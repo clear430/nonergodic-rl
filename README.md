@@ -1,13 +1,16 @@
+
 # Revisiting Fundamentals of Model-Free Reinforcement Learning
 
-Implementation using Python 3.8.10 and PyTorch 1.9.0 with CUDA 11.1.
+Implementation using Python 3.9.6 and PyTorch 1.9.0 with CUDA 11.1.
 
 Code tested on both Windows 10 21H1 and Ubuntu 20.04.2.0 LTS using an AMD Ryzen 7 5800X, Nvidia RTX 3070, 64GB 3600MHz CL16 RAM, and a Samsung SSD 980 Pro. Executable on the CentOS 6.9 Linux-based Artemis HPC after manually installing or updating several packages (gym, PyBullet, PyTorch, etc.) using source wheel files.
 
-The research encompasses three overlapping areas: 
+The research encompasses several overlapping areas: 
 1. Peculiarities regarding use of different critic loss functions, tail exponents, and shadow means
 2. Multi-step returns and replay buffer coupling in continuous action spaces, and tail exponents
 3. Multiplicative (or non-ergodic) reinforcement learning, with insights from the previous two works
+4. Designing effective multi-stage actors for large action spaces involving sequential phases
+5. Representing agent policies generally using diagrams to represent any iterative process
 
 ## References
 * Reinforcement learning ([Szepesvári 2009](https://sites.ualberta.ca/~szepesva/papers/RLAlgsInMDPs.pdf), [Sutton and Bartow 2018](http://incompleteideas.net/book/RLbook2020.pdf))
@@ -34,12 +37,10 @@ The base TD3 and SAC algorithms were implemented using guidance from the followi
 * [sfujim/TD3](https://github.com/sfujim/TD3/)
 
 ## Contact
-Author: Raja Grewal (raja \_dot\_ grewal \_at\_ hotmail \_dot\_ com) \
+Author: Raja Grewal \
 Supervisor: A/Prof. Tongliang Liu
 
 Trustworthy Machine Learning Laboratory ([TML Lab](https://www.tmllab.ai/)) \
 School of Computer Science \
 Faculty of Engineering \
 The University of Sydney
-
-Note: There are likely many bugs in the codebase due to this being my first self-directed coding project and the fact that I printed "Hello World" in early September 2020. There may also be errors in the theory as I self-taught myself reinforcement learning from scratch starting mid-December 2020.
