@@ -6,15 +6,14 @@ import plots
 import time
 import torch as T
 from torch.distributions.bernoulli import Bernoulli
+from typing import Tuple
 
 vram = 'y'  # do you have >= 8GB of VRAM?
 if vram == 'y':
     device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
 else:
     device = T.device('cpu' if T.cuda.is_available() else 'cpu')
-    # 1. https://www.youtube.com/watch?v=_36yNWw_07g
-    # 2. still need 8GB of free RAM tho
-    # 3. otherwise reduce number of investors
+    # still need 8GB of free RAM or reduce number of investors
 
 investors = 1.5e5           # number of random investors
 horizon = 3e3               # total time steps
@@ -91,7 +90,7 @@ def fixed_final_lev(outcomes: T.FloatTensor, top: int, value_0: T.FloatTensor, u
 
 def smart_lev(outcomes: T.FloatTensor, investors: T.IntTensor, horizon: T.IntTensor, top: int, 
               value_0: T.FloatTensor, up_r: T.FloatTensor, down_r: T.FloatTensor, lev_low: float, 
-              lev_high: float, lev_incr: float) -> T.FloatTensor:
+              lev_high: float, lev_incr: float) -> Tuple[np.ndarray, np.ndarray]:
     """
     Valuations across all time for fixed leverages.
 
@@ -186,7 +185,7 @@ def optimal_lev(value_t: float, value_0: float, value_min: float, lev_factor: fl
 def big_brain_lev(outcomes: T.FloatTensor, investors: T.IntTensor, horizon: T.IntTensor, top: int, 
                   value_0: T.FloatTensor, up_r: T.FloatTensor, down_r: T.FloatTensor, lev_factor: float, 
                   asym_lim: T.FloatTensor, stop_min: float, stop_max: float, stop_incr: float, roll_max: float, 
-                  roll_min: float, roll_incr: float) -> T.FloatTensor:
+                  roll_min: float, roll_incr: float) -> np.ndarray:
     """
     Valuations across all time for variable stop-losses and retention ratios that calcaultes optimal leevrage
     at each time step for each investor.
@@ -288,13 +287,13 @@ def big_brain_lev(outcomes: T.FloatTensor, investors: T.IntTensor, horizon: T.In
 
 if __name__ == '__main__':
     
-    # start_time = time.perf_counter()
+    start_time = time.perf_counter()
 
-    # T.manual_seed(420)
-    # probabilites = Bernoulli(up_prob)
-    # outcomes = probabilites.sample(sample_shape=(investors, horizon)).to(device)
+    T.manual_seed(420)
+    probabilites = Bernoulli(up_prob)
+    outcomes = probabilites.sample(sample_shape=(investors, horizon)).to(device)
 
-    # fixed_final_lev(outcomes, top, value_0, up_r, down_r, lev_low=0.05, lev_high=1.0, lev_incr=0.05)
+    fixed_final_lev(outcomes, top, value_0, up_r, down_r, lev_low=0.05, lev_high=1.0, lev_incr=0.05)
 
     # inv1_val_data, inv1_val_data_T = smart_lev(outcomes, investors, horizon, top, value_0, up_r, down_r,
     #                                            lev_low=0.1, lev_high=1, lev_incr=0.1)
@@ -307,8 +306,8 @@ if __name__ == '__main__':
     #                               asym_lim, stop_min=0.05, stop_max=0.95, stop_incr=0.05, roll_max=0.95,
     #                               roll_min=0.70, roll_incr=0.05) 
     
-    # end_time = time.perf_counter()
-    # print('time: {:1.1f}'.format(end_time-start_time))
+    end_time = time.perf_counter()
+    print('time: {:1.1f}'.format(end_time-start_time))
 
     # if not os.path.exists('./results/inv_data'):
     #     os.makedirs('./results/inv_data')
