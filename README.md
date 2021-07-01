@@ -35,12 +35,3 @@ The base TD3 and SAC algorithms were implemented using guidance from the followi
 * [rail-berkley/softlearning](https://github.com/rail-berkeley/softlearning) 
 * [rlworkgroup/garage](https://github.com/rlworkgroup/garage)
 * [sfujim/TD3](https://github.com/sfujim/TD3/)
-
-## Contact
-Author: Raja Grewal \
-Supervisor: A/Prof. Tongliang Liu
-
-Trustworthy Machine Learning Laboratory ([TML Lab](https://www.tmllab.ai/)) \
-School of Computer Science \
-Faculty of Engineering \
-The University of Sydney
