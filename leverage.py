@@ -1,5 +1,3 @@
-from email import utils
-import matplotlib.pyplot as plt
 import numpy as np
 import os
 import plots
@@ -139,10 +137,6 @@ def smart_lev(outcomes: T.FloatTensor, investors: T.IntTensor, horizon: T.IntTen
             std_adj, mean_adj = T.std_mean(adj_value, unbiased=False)
             mad_adj = T.mean(T.abs(adj_value - mean_adj))
 
-            # mean, mad, std = T.log10(mean), T.log10(mad), T.log10(std)
-            # mean_top, mad_top, std_top = T.log10(mean_top), T.log10(mad_top), T.log10(std_top)
-            # mean_adj, mad_adj, std_adj = T.log10(mean_adj), T.log10(mad_adj), T.log10(std_adj)
-
             data[i, :, t] = T.tensor([mean, mean_top, mean_adj, mad, mad_top, mad_adj, std, std_top, std_adj, lev])
 
         data_T[i, :] = value_t 
@@ -265,10 +259,6 @@ def big_brain_lev(outcomes: T.FloatTensor, investors: T.IntTensor, horizon: T.In
                 
                 std_adj, mean_adj = T.std_mean(adj_value, unbiased=False)
                 mad_adj = T.mean(T.abs(adj_value - mean_adj))
-
-                # mean, mad, std = T.log10(mean), T.log10(mad), T.log10(std)
-                # mean_top, mad_top, std_top = T.log10(mean_top), T.log10(mad_top), T.log10(std_top)
-                # mean_adj, mad_adj, std_adj = T.log10(mean_adj), T.log10(mad_adj), T.log10(std_adj)
 
                 data[j, i, 0:9, t] = T.tensor([mean, mean_top, mean_adj, mad, mad_top, mad_adj, std, std_top, std_adj])
 
