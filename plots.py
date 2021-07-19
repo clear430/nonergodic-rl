@@ -32,7 +32,6 @@ def plot_inv1(inv1_data: np.ndarray, inv1_data_T: np.ndarray, filename_png: str)
     axs[0, 0].text(0.5, -0.25, "(a)", size='small', transform=axs[0, 0].transAxes)
     axs[0, 0].set_xlabel('Steps', size='small')
 
-
     vals = [inv1_data_T[:, lev] for lev in range(investors)]
     vals = np.log10(vals)
 
@@ -134,7 +133,7 @@ def plot_inv2(inv2_data: np.ndarray, filename_png: str):
             axs[1].plot(x_steps[:max_x], lev, color=cols[sub], linewidth=1)
             axs[1].grid(True, linewidth=0.2)
     
-    axs[1].set_ylabel('Leverage (%)', size='small')
+    axs[1].set_ylabel('Leverage', size='small')
     axs[1].text(0.5, -0.40, "(b)", size='small', transform=axs[1].transAxes)
 
 
