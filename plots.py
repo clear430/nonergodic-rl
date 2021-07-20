@@ -3,6 +3,7 @@ import numpy as np
 import torch as T
 from typing import List
 
+
 def plot_inv1(inv1_data: np.ndarray, inv1_data_T: np.ndarray, filename_png: str):
     """
     Investor 1 grid of plots.
