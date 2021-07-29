@@ -73,8 +73,8 @@ inputs = {
     'r_abs_zero': None,                         # defined absolute zero value for rewards
      
     # execution parameters
-    'n_trials': 5,                              # number of total unique training trials
-    'n_cumsteps': 3e4,                          # maximum cumulative steps per trial (must be greater than warmup)
+    'n_trials': 2,                              # number of total unique training trials
+    'n_cumsteps': 4e4,                          # maximum cumulative steps per trial (must be greater than warmup)
     'eval_freq': 1e3,                           # interval of steps between evaluation episodes
     'max_eval_reward': 1e4,                     # maximum reward per evaluation episode
     'n_eval': 10                                # number of evalution episodes
@@ -102,9 +102,9 @@ gym_envs = {
         }
 
 ENV_KEY = 7
-algo_name = ['TD3']         # off-policy models 'SAC', 'TD3'
-surrogate_critic_loss = ['MSE']    # 'MSE', 'Huber', 'MAE', 'HSC', 'Cauchy', 'TCauchy', 'CIM', 'MSE2', 'MSE4', 'MSE6'
-multi_steps = [1]         # 1, 3, 5, 7 (any positive integer > 0)
+algo_name = ['TD3']                # off-policy models 'SAC', 'TD3'
+surrogate_critic_loss = ['MSE']    # 'MSE', 'Huber', 'MAE', 'HSC', 'Cauchy', 'CIM', 'MSE2', 'MSE4', 'MSE6'
+multi_steps = [1]                  # 1, 3, 5, 7 (any positive integer > 0)
 
 env = gym.make(gym_envs[str(ENV_KEY)][0])
 inputs = {'input_dims': env.observation_space.shape, 'num_actions': env.action_space.shape[0], 
@@ -120,8 +120,8 @@ if __name__ == '__main__':
             for mstep in multi_steps:
 
                 inputs['loss_fn'], inputs['algo'], inputs['multi_steps'] = loss_fn, algo, mstep
-                trial_log = np.zeros((inputs['n_trials'], int(inputs['n_cumsteps']), 15))
-                eval_log = np.zeros((inputs['n_trials'], int(inputs['n_cumsteps'] / inputs['eval_freq']), inputs['n_eval'], 16))
+                trial_log = np.zeros((inputs['n_trials'], int(inputs['n_cumsteps']), 17))
+                eval_log = np.zeros((inputs['n_trials'], int(inputs['n_cumsteps'] / inputs['eval_freq']), inputs['n_eval'], 18))
 
                 for round in range(inputs['n_trials']):
 
@@ -169,23 +169,25 @@ if __name__ == '__main__':
                         logtemp_log.append(logtemp)
                         loss_params_log.append(loss_params)
 
+                        # print(logtemp, loss)
+
                         trail_score = np.mean(score_log[-inputs['trail']:])
                         if trail_score > best_score:
                             best_score = trail_score
                             agent.save_models()
                             print('New high trailing score!')
 
-                        print('{} {}-{}-{}-{} ep/st/cst {}/{}/{} {:1.0f}/s: r {:1.0f}, r{} {:1.0f}, T/c/k {:1.2f}/{:1.2f}/{:1.2f}, C/A {:1.1f}/{:1.1f}, a/S {:1.2f}/{:1.1f}'
+                        print('{} {}-{}-{}-{} ep/st/cst {}/{}/{} {:1.0f}/s: r {:1.0f}, r{} {:1.0f}, T/c/k {:1.2f}/{:1.2f}/{:1.2f}, C/Cmax/A {:1.1f}/{:1.1f}/{:1.1f}, a/S {:1.2f}/{:1.0f}'
                         .format(datetime.now().strftime('%d %H:%M:%S'), algo, inputs['s_dist'], loss_fn, round+1, 
                             episode, step, cum_steps, step/time_log[-1], score, inputs['trail'], trail_score, np.exp(logtemp), 
-                            sum(loss_params[0:2])/2, sum(loss_params[2:4])/2, sum(loss[0:2]), loss[6], sum(loss[4:6])/2, sum(loss[2:4])))
+                            sum(loss_params[0:2])/2, sum(loss_params[2:4])/2, sum(loss[0:2])/2, sum(loss[2:4])/2, loss[8], sum(loss[6:8])/2, sum(loss[4:6])/2))
 
                         episode += 1
 
                     count = len(score_log)
                     trial_log[round, :count, 0], trial_log[round, :count, 1] =  time_log, score_log
-                    trial_log[round, :count, 2], trial_log[round, :count, 3:10] = step_log, loss_log
-                    trial_log[round, :count, 10], trial_log[round, :count, 11:] = logtemp_log, loss_params_log
+                    trial_log[round, :count, 2], trial_log[round, :count, 3:12] = step_log, loss_log
+                    trial_log[round, :count, 12], trial_log[round, :count, 13:] = logtemp_log, loss_params_log
 
                     if not os.path.exists('./results/'+inputs['env_id']):
                         os.makedirs('./results/'+inputs['env_id'])

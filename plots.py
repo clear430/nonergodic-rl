@@ -257,7 +257,7 @@ def plot_eval_curve(input_dict: dict, eval_log: np.ndarray, filename_png: str):
         eval_log: log of episode data for all trials
         filename_png (directory): save path of plot
     """
-    cum_steps_log = eval_log[0, :, 0, 15]
+    cum_steps_log = eval_log[0, :, 0, -1]
 
     eval_exp = get_exponent(input_dict['eval_freq'])
     exp = get_exponent(cum_steps_log)
@@ -318,7 +318,7 @@ def plot_eval_loss_2d(input_dict: dict, eval_log: np.ndarray, filename_png: str)
         eval_log: log of episode data for all trials
         filename_png (directory): save path of plot
     """
-    cum_steps_log = eval_log[0, :, 0, 15]
+    cum_steps_log = eval_log[0, :, 0, -1]
 
     eval_exp = get_exponent(input_dict['eval_freq'])
     exp = get_exponent(cum_steps_log)
@@ -401,7 +401,7 @@ def plot_eval_loss_3d(input_dict: dict, eval_log: np.ndarray, filename_png: str)
         eval_log: log of episode data for all trials
         filename_png (directory): save path of plot
     """
-    cum_steps_log = eval_log[0, :, 0, 15]
+    cum_steps_log = eval_log[0, :, 0, -1]
 
     eval_exp = get_exponent(input_dict['eval_freq'])
     exp = get_exponent(cum_steps_log)
@@ -472,7 +472,7 @@ def plot_critic_2d(input_dict: dict, data: np.ndarray, algo_name: List[str], cri
     """
     algos = data.shape[0]
     closs = data.shape[1]
-    cum_steps_log = data[0, 0, 0, :, 0, 15]
+    cum_steps_log = data[0, 0, 0, :, 0, -1]
 
     exp = get_exponent(cum_steps_log)
     x_steps = cum_steps_log/10**(exp)
@@ -557,7 +557,7 @@ def plot_critic_loss(input_dict: dict, data: np.ndarray, algo_name: List[str], c
     """
     algos = data.shape[0]
     closs = data.shape[1]
-    cum_steps_log = data[0, 0, 0, :, 0, 15]
+    cum_steps_log = data[0, 0, 0, :, 0, -1]
 
     exp = get_exponent(cum_steps_log)
     x_steps = cum_steps_log/10**(exp)
@@ -695,7 +695,7 @@ def plot_critic_shadow(input_dict: dict, data: np.ndarray, algo_name: List[str],
     """
     algos = data.shape[0]
     closs = data.shape[1]
-    cum_steps_log = data[0, 0, 0, :, 0, 15]
+    cum_steps_log = data[0, 0, 0, :, 0, -1]
 
     exp = get_exponent(cum_steps_log)
     x_steps = cum_steps_log/10**(exp)
@@ -792,7 +792,7 @@ def plot_temp(input_dict: dict, data: np.ndarray, env_name: List[str], critic_na
     """
     envs = data.shape[0]
     closs = data.shape[1]
-    cum_steps_log = data[0, 0, 0, :, 0, 15]
+    cum_steps_log = data[0, 0, 0, :, 0, -1]
 
     exp = get_exponent(cum_steps_log)
     x_steps = cum_steps_log/10**(exp)

@@ -56,10 +56,10 @@ def eval_policy(agent: object, inputs: dict, eval_log: np.ndarray, cum_steps: in
         eval_log[round, eval_run, eval, 0] = end_time - start_time
         eval_log[round, eval_run, eval, 1] = run_reward
         eval_log[round, eval_run, eval, 2] = run_step
-        eval_log[round, eval_run, eval, 3:10] = loss
-        eval_log[round, eval_run, eval, 10] = logtemp
-        eval_log[round, eval_run, eval, 11:15] = loss_params
-        eval_log[round, eval_run, eval, 15] = cum_steps
+        eval_log[round, eval_run, eval, 3:12] = loss
+        eval_log[round, eval_run, eval, 12] = logtemp
+        eval_log[round, eval_run, eval, 13:17] = loss_params
+        eval_log[round, eval_run, eval, 17] = cum_steps
     
         print('{} Episode {}: r/st {:1.0f}/{}'
         .format(datetime.now().strftime('%d %H:%M:%S'), eval, run_reward, run_step))
@@ -104,30 +104,6 @@ def save_directory(inputs: dict, round: int) -> str:
     directory = dir1 + dir2 + dir3 + dir4
 
     return directory
-
-def truncation(estimated: T.FloatTensor, target: T.FloatTensor) -> Tuple[T.FloatTensor, T.FloatTensor]:
-    """
-    Elements to be truncated based on Gaussian distribution assumption based on a correction of
-    Section 3.3 in https://tongliang-liu.github.io/papers/TPAMITruncatedNMF.pdf.
-
-    Parameters:
-        estimated: current Q-values
-        target: Q-values from mini-batch
-
-    Returns:
-        estimated: truncated current Q-values
-        target: truncated Q-values from mini-batch
-    """  
-    sigma1, mean1 = T.std_mean(estimated, unbiased=False)
-    sigma2, mean2 = T.std_mean(target, unbiased=False)
-    zero1 = estimated - estimated
-    zero2 = target - target
-    
-    # 3-sigma rule
-    estimated = T.where(T.abs(estimated - mean1) > 3 * sigma1, zero1, estimated)   
-    target = T.where(T.abs(target - mean2) > 3 * sigma2, zero2, target)
-
-    return estimated, target
 
 def cauchy(estimated: T.FloatTensor, target: T.FloatTensor, scale: float) -> T.FloatTensor:
     """
@@ -233,7 +209,7 @@ def mse(estimated: T.FloatTensor, target: T.FloatTensor, exp:int =0) -> T.FloatT
     Returns:
         loss (float): loss values
     """
-    return (target-estimated)**(2 + int(exp))
+    return (target-estimated)**(int(2 + exp))
     
 def mae(estimated: T.FloatTensor, target: T.FloatTensor) -> T.FloatTensor:
     """
@@ -313,7 +289,8 @@ def zipf_plot(values: T.FloatTensor, zipf_x: T.FloatTensor, zipf_x2: T.FloatTens
     return 1 / gamma
 
 def aggregator(values: T.FloatTensor, shadow_low_mul: T.FloatTensor, shadow_high_mul: T.FloatTensor, 
-               zipf_x: T.FloatTensor, zipf_x2: T.FloatTensor) -> T.FloatTensor:
+               zipf_x: T.FloatTensor, zipf_x2: T.FloatTensor) -> Tuple[T.FloatTensor, T.FloatTensor, 
+               T.FloatTensor, T.FloatTensor]:
     """
     Aggregates mini-batch values with the `empirical' mean (SLLN approach) and using  
     heuristics constructs a power law with an estimated tail exponent to infer a shadow mean.
@@ -327,10 +304,12 @@ def aggregator(values: T.FloatTensor, shadow_low_mul: T.FloatTensor, shadow_high
     
     Returns:
         mean: empirical mean
+        max: maximum critic loss
         shadow: shadow mean
-        alpha (float>0): tail index of power law
+        alpha: tail index of power law
     """
     mean = T.mean(values)
+    max = T.max(values)
     low = T.min(values) * shadow_low_mul
     high = T.max(values) * shadow_high_mul
 
@@ -339,15 +318,15 @@ def aggregator(values: T.FloatTensor, shadow_low_mul: T.FloatTensor, shadow_high
 
     try:
         shadow = low + (high - low) * T.exp(alpha / high) * (alpha / high)**alpha * high * (1 / alpha - 1)
-
     except:
         shadow = mean
     
-    return mean, shadow, alpha
+    return mean, max, shadow, alpha
 
 def loss_function(estimated: T.FloatTensor, target: T.FloatTensor, shadow_low_mul: T.FloatTensor, 
                   shadow_high_mul: T.FloatTensor, zipf_x: T.FloatTensor, zipf_x2: T.FloatTensor, 
-                  loss_type: str, scale: float, kernel: float) -> T.FloatTensor:
+                  loss_type: str, scale: float, kernel: float) -> Tuple[T.FloatTensor, T.FloatTensor, 
+                  T.FloatTensor, T.FloatTensor]:
     """
     Gives scalar critic loss value retaining graph for backpropagation.
     
@@ -363,55 +342,52 @@ def loss_function(estimated: T.FloatTensor, target: T.FloatTensor, shadow_low_mu
         kernel (float>0): standard deviation for CIM 
 
     Returns:
-        loss (float): critic loss value
+        mean: empirical mean
+        max: maximum critic loss
+        shadow: shadow mean
+        alpha: tail index of power law
     """
     if loss_type == "MSE":
         values = mse(estimated, target, 0)
-        mean, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, zipf_x, zipf_x2)
-        return mean, shadow, alpha
+        mean, max, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, zipf_x, zipf_x2)
+        return mean, max, shadow, alpha
 
     elif loss_type == "Huber":
         values = huber(estimated, target)
-        mean, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, zipf_x, zipf_x2)
-        return mean, shadow, alpha
+        mean, max, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, zipf_x, zipf_x2)
+        return mean, max, shadow, alpha
 
     elif loss_type == "MAE":
         values = mae(estimated, target)
-        mean, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, zipf_x, zipf_x2)
-        return mean, shadow, alpha
+        mean, max, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, zipf_x, zipf_x2)
+        return mean, max, shadow, alpha
 
     elif loss_type == "HSC":
         values = hypersurface(estimated, target)
-        mean, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, zipf_x, zipf_x2)
-        return mean, shadow, alpha
+        mean, max, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, zipf_x, zipf_x2)
+        return mean, max, shadow, alpha
 
     elif loss_type == "Cauchy":
         values = cauchy(estimated, target, scale)
-        mean, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, zipf_x, zipf_x2)
-        return mean, shadow, alpha
-
-    elif loss_type =="TCauchy":
-        estimated, target = truncation(estimated, target)
-        values = cauchy(estimated, target, scale)
-        mean, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, zipf_x, zipf_x2)
-        return mean, shadow, alpha
+        mean, max, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, zipf_x, zipf_x2)
+        return mean, max, shadow, alpha
 
     elif loss_type == "CIM":
         values = correntropy(estimated, target, kernel)
-        mean, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, zipf_x, zipf_x2)
-        return mean, shadow, alpha
+        mean, max, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, zipf_x, zipf_x2)
+        return mean, max, shadow, alpha
 
     elif loss_type == "MSE2":
         values = mse(estimated, target, 2)
-        mean, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, zipf_x, zipf_x2)
-        return mean, shadow, alpha
+        mean, max, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, zipf_x, zipf_x2)
+        return mean, max, shadow, alpha
 
     elif loss_type == "MSE4":
         values = mse(estimated, target, 4)
-        mean, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, zipf_x, zipf_x2)
-        return mean, shadow, alpha
+        mean, max, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, zipf_x, zipf_x2)
+        return mean, max, shadow, alpha
 
     elif loss_type == "MSE6":
         values = mse(estimated, target, 6)
-        mean, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, zipf_x, zipf_x2)
-        return mean, shadow, alpha
+        mean, max, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, zipf_x, zipf_x2)
+        return mean, max, shadow, alpha
