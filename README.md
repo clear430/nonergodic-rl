@@ -9,8 +9,7 @@ The research encompasses several overlapping areas:
 1. Peculiarities regarding use of different critic loss functions, tail exponents, and shadow means
 2. Multi-step returns and replay buffer coupling in continuous action spaces, and tail exponents
 3. Multiplicative (or non-ergodic) reinforcement learning, with insights from the previous two works
-4. Designing effective multi-stage actors for large action spaces involving sequential phases
-5. Representing agent policies generally using diagrams to represent any iterative process
+4. Designing energy efficient multi-stage actors for operation in extremely remote environments
 
 ## References
 * Reinforcement learning ([Szepesvári 2009](https://sites.ualberta.ca/~szepesva/papers/RLAlgsInMDPs.pdf), [Sutton and Bartow 2018](http://incompleteideas.net/book/RLbook2020.pdf))
@@ -22,9 +21,10 @@ The research encompasses several overlapping areas:
 * Coupling of multi-step returns and experience replay ([Fedus et al. 2020](https://arxiv.org/pdf/2007.06700.pdf))
 * Primer on statistical mechanics, ensemble averages, and entropy ([Landau and Lifshitz 1969](https://archive.org/details/ost-physics-landaulifshitz-statisticalphysics))
 * Multiplicative dynamics ([Peters 2011](https://www.tandfonline.com/doi/pdf/10.1080/14697688.2010.513338?needAccess=true), [Peters and Gell-Mann 2016](https://aip.scitation.org/doi/pdf/10.1063/1.4940236), [Peters 2019](https://www.nature.com/articles/s41567-019-0732-0.pdf), [Meder et al. 2020](https://arxiv.org/ftp/arxiv/papers/1906/1906.04652.pdf))
+* Power consumption of neural networks ([Han et al. 2015](https://proceedings.neurips.cc/paper/2015/file/ae0eb3eed39d2bcef4622b2499a05fe6-Paper.pdf), [García-Martín et al. 2019](https://www.sciencedirect.com/science/article/pii/S0743731518308773))
 
 ## Acknowledgements
-The facilities, and the scientific and technical assistance of the Sydney Informatics Hub at The University of Sydney and, in particular, access to the high performance computing facility Artemis.
+The Sydney Informatics Hub and the University of Sydney’s high performance computing cluster, Artemis, for providing the computing resources that have contributed to the results reported herein.
 
 The base TD3 and SAC algorithms were implemented using guidance from the following repositories.
 * [DLR-RM/stable-baelines3](https://github.com/DLR-RM/stable-baselines3)
