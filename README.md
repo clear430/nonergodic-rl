@@ -1,7 +1,8 @@
-
 # Revisiting Fundamentals of Model-Free Reinforcement Learning
 
-Implementation using Python 3.9.6 and PyTorch 1.9.0 with CUDA 11.1.
+Implementation using Python 3.9.6 and PyTorch 1.9.0 with CUDA 11.1. 
+
+Based entirely on extending and correcting the previously submitted project in [r-grewal/data5709](https://github.com/r-grewal/data5709).
 
 Code tested on both Windows 10 21H1 and Ubuntu 20.04.2.0 LTS using an AMD Ryzen 7 5800X, Nvidia RTX 3070, 64GB 3600MHz CL16 RAM, and a Samsung SSD 980 Pro. Executable on the CentOS 6.9 Linux-based Artemis HPC after manually installing or updating several packages (gym, PyBullet, PyTorch, etc.) using source wheel files.
 
