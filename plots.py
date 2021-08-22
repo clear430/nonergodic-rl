@@ -264,15 +264,15 @@ def plot_eval_curve(input_dict: dict, eval_log: np.ndarray, filename_png: str):
     x_steps = cum_steps_log/10**(exp)
 
     count_x = int(input_dict['n_cumsteps'] / input_dict['eval_freq'])
-    count_y = int(input_dict['n_trials'] * input_dict['n_eval'])
+    count_y = int(input_dict['n_trials'] * int(input_dict['n_eval']))
     scores = np.zeros((count_x, count_y))
     max_score = np.zeros((count_x, count_y))
 
     for t in range(count_x):
         for n in range(input_dict['n_trials']):
-            for s in range(input_dict['n_eval']):
-                scores[t, s + n * input_dict['n_eval']] = eval_log[n, t, s, 1]
-                max_score[t, s + n * input_dict['n_eval']] = int(input_dict['max_eval_reward'])
+            for s in range(int(input_dict['n_eval'])):
+                scores[t, s + n * int(input_dict['n_eval'])] = eval_log[n, t, s, 1]
+                max_score[t, s + n * int(input_dict['n_eval'])] = int(input_dict['max_eval_reward'])
 
     score_limit = np.mean(max_score, axis=1, keepdims=True)
     score_mean = np.mean(scores, axis=1, keepdims=True)
@@ -299,7 +299,7 @@ def plot_eval_curve(input_dict: dict, eval_log: np.ndarray, filename_png: str):
     ax1.yaxis.set_label_position('left')
     ax1.grid(True, linewidth=0.5)
 
-    tit1 = 'Mean, MAD, and STD of '+str(input_dict['n_trials'])+'x'+str(input_dict['n_eval'])+' Evaluations per '
+    tit1 = 'Mean, MAD, and STD of '+str(input_dict['n_trials'])+'x'+str(int(input_dict['n_eval']))+' Evaluations per '
     tit2 = str(int(input_dict['eval_freq']))[0]+'e'+str(eval_exp)+' Steps \n'
     tit3 = input_dict['algo']+'-'+input_dict['s_dist']+': \''+input_dict['env_id']+'\' '+'('+'d'+input_dict['dynamics']+', '
     tit4 = input_dict['loss_fn']+', '+'b'+str(input_dict['buffer']/1e6)[0]+', '+'m'+str(input_dict['multi_steps'])+')'
@@ -325,7 +325,7 @@ def plot_eval_loss_2d(input_dict: dict, eval_log: np.ndarray, filename_png: str)
     x_steps = cum_steps_log/10**(exp)
 
     count_x = int(input_dict['n_cumsteps'] / input_dict['eval_freq'])
-    count_y = int(input_dict['n_trials'] * input_dict['n_eval'])
+    count_y = int(input_dict['n_trials'] * int(input_dict['n_eval']))
 
     scores = np.zeros((count_x, count_y))
     max_score = np.ones((count_x, count_y)) * int(input_dict['max_eval_reward'])
@@ -333,9 +333,9 @@ def plot_eval_loss_2d(input_dict: dict, eval_log: np.ndarray, filename_png: str)
 
     for t in range(count_x):
         for n in range(input_dict['n_trials']):
-            for s in range(input_dict['n_eval']):
-                scores[t, s + n * input_dict['n_eval']] = eval_log[n, t, s, 1]
-                loss[t, s + n * input_dict['n_eval']] = np.mean(eval_log[n, t, s, 3:5])
+            for s in range(int(input_dict['n_eval'])):
+                scores[t, s + n * int(input_dict['n_eval'])] = eval_log[n, t, s, 1]
+                loss[t, s + n * int(input_dict['n_eval'])] = np.mean(eval_log[n, t, s, 3:5])
 
     score_limit = np.mean(max_score, axis=1, keepdims=True)
 
@@ -382,7 +382,7 @@ def plot_eval_loss_2d(input_dict: dict, eval_log: np.ndarray, filename_png: str)
     ax2.yaxis.set_label_position('right')
     ax2.tick_params(axis='y', colors='C3')
 
-    tit1 = 'Mean, MAD, and STD of '+str(input_dict['n_trials'])+'x'+str(input_dict['n_eval'])+' Evaluations per '
+    tit1 = 'Mean, MAD, and STD of '+str(input_dict['n_trials'])+'x'+str(int(input_dict['n_eval']))+' Evaluations per '
     tit2 = str(int(input_dict['eval_freq']))[0]+'e'+str(eval_exp)+' Steps \n'
     tit3 = input_dict['algo']+'-'+input_dict['s_dist']+': \''+input_dict['env_id']+' ('+'d'+input_dict['dynamics']+', '
     tit4 = input_dict['loss_fn']+', '+'b'+str(input_dict['buffer']/1e6)[0]+', '+'m'+str(input_dict['multi_steps'])+')'
@@ -408,7 +408,7 @@ def plot_eval_loss_3d(input_dict: dict, eval_log: np.ndarray, filename_png: str)
     x_steps = cum_steps_log/10**(exp)
 
     count_x = int(input_dict['n_cumsteps'] / input_dict['eval_freq'])
-    count_y = int(input_dict['n_trials'] * input_dict['n_eval'])
+    count_y = int(input_dict['n_trials'] * int(input_dict['n_eval']))
 
     scores = np.zeros((count_x, count_y))
     max_score = np.ones((count_x, count_y)) * int(input_dict['max_eval_reward'])
@@ -416,9 +416,9 @@ def plot_eval_loss_3d(input_dict: dict, eval_log: np.ndarray, filename_png: str)
 
     for t in range(count_x):
         for n in range(input_dict['n_trials']):
-            for s in range(input_dict['n_eval']):
-                scores[t, s + n * input_dict['n_eval']] = eval_log[n, t, s, 1]
-                loss[t, s + n * input_dict['n_eval']] = np.mean(eval_log[n, t, s, 3:5])
+            for s in range(int(input_dict['n_eval'])):
+                scores[t, s + n * int(input_dict['n_eval'])] = eval_log[n, t, s, 1]
+                loss[t, s + n * int(input_dict['n_eval'])] = np.mean(eval_log[n, t, s, 3:5])
 
     score_limit = np.mean(max_score, axis=1, keepdims=True)
 
@@ -451,7 +451,7 @@ def plot_eval_loss_3d(input_dict: dict, eval_log: np.ndarray, filename_png: str)
     ax1.set_ylabel('Mean Score')
     ax1.set_zlabel('Critic Loss')
 
-    tit1 = 'Mean and MAD of '+str(input_dict['n_trials'])+'x'+str(input_dict['n_eval'])+' Evaluations per '
+    tit1 = 'Mean and MAD of '+str(input_dict['n_trials'])+'x'+str(int(input_dict['n_eval']))+' Evaluations per '
     tit2 = str(int(input_dict['eval_freq']))[0]+'e'+str(eval_exp)+' Steps \n'
     tit3 = input_dict['algo']+'-'+input_dict['s_dist']+': \''+input_dict['env_id']+' ('+'d'+input_dict['dynamics']+', '
     tit4 = input_dict['loss_fn']+', '+'b'+str(input_dict['buffer']/1e6)[0]+', '+'m'+str(input_dict['multi_steps'])+')'
@@ -478,7 +478,7 @@ def plot_critic_2d(input_dict: dict, data: np.ndarray, algo_name: List[str], cri
     x_steps = cum_steps_log/10**(exp)
 
     count_x = int(input_dict['n_cumsteps'] / input_dict['eval_freq'])
-    count_y = int(input_dict['n_trials'] * input_dict['n_eval'])
+    count_y = int(input_dict['n_trials'] * int(input_dict['n_eval']))
 
     scores = np.zeros((algos, closs, count_x, count_y))
     max_score = np.ones((count_x, count_y)) * int(input_dict['max_eval_reward'])
@@ -488,9 +488,9 @@ def plot_critic_2d(input_dict: dict, data: np.ndarray, algo_name: List[str], cri
         for l in range(closs):
             for t in range(count_x):
                 for n in range(input_dict['n_trials']):
-                    for s in range(input_dict['n_eval']):
-                        scores[a, l, t, s + n * input_dict['n_eval']] = data[a, l, n, t, s, 1]
-                        loss[a, l, t, s + n * input_dict['n_eval']] = np.mean(data[a, l, n, t, s, 3:5])
+                    for s in range(int(input_dict['n_eval'])):
+                        scores[a, l, t, s + n * int(input_dict['n_eval'])] = data[a, l, n, t, s, 1]
+                        loss[a, l, t, s + n * int(input_dict['n_eval'])] = np.mean(data[a, l, n, t, s, 3:5])
 
     score_limit = np.mean(max_score, axis=1, keepdims=True)
     cols = ['C'+str(x) for x in range(closs)]
@@ -563,7 +563,7 @@ def plot_critic_loss(input_dict: dict, data: np.ndarray, algo_name: List[str], c
     x_steps = cum_steps_log/10**(exp)
 
     count_x = int(input_dict['n_cumsteps'] / input_dict['eval_freq'])
-    count_y = int(input_dict['n_trials'] * input_dict['n_eval'])
+    count_y = int(input_dict['n_trials'] * int(input_dict['n_eval']))
     count_z = int(input_dict['n_trials'] )
 
     scores = np.zeros((algos, closs, count_x, count_y))
@@ -581,8 +581,8 @@ def plot_critic_loss(input_dict: dict, data: np.ndarray, algo_name: List[str], c
                     scale[a, l, t, (n * 2):(n * 2) + 2 ] = data[a, l, n, t, 0, 11:13]
                     kernel[a, l, t, (n * 2):(n * 2) + 2 ] = data[a, l, n, t, 0, 13:15]
 
-                    for s in range(input_dict['n_eval']):
-                        scores[a, l, t, s + n * input_dict['n_eval']] = data[a, l, n, t, s, 1]
+                    for s in range(int(input_dict['n_eval'])):
+                        scores[a, l, t, s + n * int(input_dict['n_eval'])] = data[a, l, n, t, s, 1]
 
     score_limit = np.mean(max_score, axis=1, keepdims=True)
     cols = ['C'+str(x) for x in range(closs)]
@@ -701,7 +701,7 @@ def plot_critic_shadow(input_dict: dict, data: np.ndarray, algo_name: List[str],
     x_steps = cum_steps_log/10**(exp)
 
     count_x = int(input_dict['n_cumsteps'] / input_dict['eval_freq'])
-    count_y = int(input_dict['n_trials'] * input_dict['n_eval'])
+    count_y = int(input_dict['n_trials'] * int(input_dict['n_eval']))
     count_z = int(input_dict['n_trials'] )
 
     scores = np.zeros((algos, closs, count_x, count_y))
@@ -719,8 +719,8 @@ def plot_critic_shadow(input_dict: dict, data: np.ndarray, algo_name: List[str],
                     shadow[a, l, t, (n * 2):(n * 2) + 2 ] = data[a, l, n, t, 0, 5:7]
                     alpha[a, l, t, (n * 2):(n * 2) + 2 ] = data[a, l, n, t, 0, 7:9]
 
-                    # for s in range(input_dict['n_eval']):
-                    #     scores[a, l, t, s + n * input_dict['n_eval']] = data[a, l, n, t, s, 1]
+                    # for s in range(int(input_dict['n_eval'])):
+                    #     scores[a, l, t, s + n * int(input_dict['n_eval'])] = data[a, l, n, t, s, 1]
 
     score_limit = np.mean(max_score, axis=1, keepdims=True)
     cols = ['C'+str(x) for x in range(closs)]
