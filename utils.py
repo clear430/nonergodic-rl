@@ -381,17 +381,30 @@ def loss_function(estimated: T.FloatTensor, target: T.FloatTensor, shadow_low_mu
         mean, min, max, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, zipf_x, zipf_x2)
         return mean, min, max, shadow, alpha
 
-    elif loss_type == "MSE2":
-        values = mse(estimated, target, 2)
+    elif loss_type[0:3] == "MSE" and type(int(loss_type[3:])) == int:
+        values = mse(estimated, target, int(loss_type[3:]))
         mean, min, max, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, zipf_x, zipf_x2)
         return mean, min, max, shadow, alpha
 
-    elif loss_type == "MSE4":
-        values = mse(estimated, target, 4)
-        mean, min, max, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, zipf_x, zipf_x2)
-        return mean, min, max, shadow, alpha
+def shadow_means(alpha: np.ndarray, min: np.ndarray, max: np.ndarray, min_mul: float, 
+                 max_mul: float) -> np.ndarray:
+    """
+    Construct shadow mean given tail exponent and sample min/max for various multipliers
 
-    elif loss_type == "MSE6":
-        values = mse(estimated, target, 6)
-        mean, min, max, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, zipf_x, zipf_x2)
-        return mean, min, max, shadow, alpha
+    Parameters:
+        alpha: tail indices
+        min: sample minimum critic loss
+        max: sample maximum critic loss
+        min_mul: min multiplier
+        max_mul: max multiplier
+
+    Returns:
+        shadow: shadow mean
+    """
+    low = min * min_mul
+    high = max * max_mul
+
+    up_gamma = T.exp(T.lgamma(1 - alpha)) * (1 - T.igamma(1 - alpha, alpha / high))
+    shadow = low + (high - low) * T.exp(alpha / high) * (alpha / high)**alpha * up_gamma
+
+    return shadow
