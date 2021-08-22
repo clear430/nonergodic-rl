@@ -77,13 +77,13 @@ inputs = {
     'n_cumsteps': 4e4,                          # maximum cumulative steps per trial (must be greater than warmup)
     'eval_freq': 1e3,                           # interval of steps between evaluation episodes
     'max_eval_reward': 1e4,                     # maximum reward per evaluation episode
-    'n_eval': 10                                # number of evalution episodes
+    'n_eval': 1e2                               # number of evalution episodes
     }
 
 gym_envs = {
         # OpenAI Box2D continuous control tasks
         '0': ['LunarLanderContinuous-v2', 8, 2, 1e3], 
-        '1': ['BipedalWalker-v3', 24, 4, 1e3],    # [env_id, input_dim, action_dim, generate random seed (steps)]
+        '1': ['BipedalWalker-v3', 24, 4, 1e3],              # [env_id, input_dim, action_dim, generate random seed (steps)]
         '2': ['BipedalWalkerHardcore-v3', 24, 4, 1e3],
         # Roboschool environments ported to PyBullet
         '3': ['CartPoleContinuousBulletEnv-v0', 4, 1, 1e3], 
@@ -120,8 +120,8 @@ if __name__ == '__main__':
             for mstep in multi_steps:
 
                 inputs['loss_fn'], inputs['algo'], inputs['multi_steps'] = loss_fn, algo, mstep
-                trial_log = np.zeros((inputs['n_trials'], int(inputs['n_cumsteps']), 17))
-                eval_log = np.zeros((inputs['n_trials'], int(inputs['n_cumsteps'] / inputs['eval_freq']), inputs['n_eval'], 18))
+                trial_log = np.zeros((inputs['n_trials'], int(inputs['n_cumsteps']), 19))
+                eval_log = np.zeros((inputs['n_trials'], int(inputs['n_cumsteps'] / inputs['eval_freq']), int(inputs['n_eval']), 20))
 
                 for round in range(inputs['n_trials']):
 
@@ -186,8 +186,8 @@ if __name__ == '__main__':
 
                     count = len(score_log)
                     trial_log[round, :count, 0], trial_log[round, :count, 1] =  time_log, score_log
-                    trial_log[round, :count, 2], trial_log[round, :count, 3:12] = step_log, loss_log
-                    trial_log[round, :count, 12], trial_log[round, :count, 13:] = logtemp_log, loss_params_log
+                    trial_log[round, :count, 2], trial_log[round, :count, 3:14] = step_log, loss_log
+                    trial_log[round, :count, 14], trial_log[round, :count, 15:] = logtemp_log, loss_params_log
 
                     if not os.path.exists('./results/'+inputs['env_id']):
                         os.makedirs('./results/'+inputs['env_id'])

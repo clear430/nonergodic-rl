@@ -56,10 +56,10 @@ def eval_policy(agent: object, inputs: dict, eval_log: np.ndarray, cum_steps: in
         eval_log[round, eval_run, eval, 0] = end_time - start_time
         eval_log[round, eval_run, eval, 1] = run_reward
         eval_log[round, eval_run, eval, 2] = run_step
-        eval_log[round, eval_run, eval, 3:12] = loss
-        eval_log[round, eval_run, eval, 12] = logtemp
-        eval_log[round, eval_run, eval, 13:17] = loss_params
-        eval_log[round, eval_run, eval, 17] = cum_steps
+        eval_log[round, eval_run, eval, 3:14] = loss
+        eval_log[round, eval_run, eval, 14] = logtemp
+        eval_log[round, eval_run, eval, 15:19] = loss_params
+        eval_log[round, eval_run, eval, 19] = cum_steps
     
         print('{} Episode {}: r/st {:1.0f}/{}'
         .format(datetime.now().strftime('%d %H:%M:%S'), eval, run_reward, run_step))
@@ -304,11 +304,13 @@ def aggregator(values: T.FloatTensor, shadow_low_mul: T.FloatTensor, shadow_high
     
     Returns:
         mean: empirical mean
+        min: minimum critic loss
         max: maximum critic loss
         shadow: shadow mean
         alpha: tail index of power law
     """
     mean = T.mean(values)
+    min = T.min(values)
     max = T.max(values)
     low = T.min(values) * shadow_low_mul
     high = T.max(values) * shadow_high_mul
@@ -316,12 +318,13 @@ def aggregator(values: T.FloatTensor, shadow_low_mul: T.FloatTensor, shadow_high
     # alpha = hill_est(values)
     alpha = zipf_plot(values, zipf_x, zipf_x2)
 
-    try:
-        shadow = low + (high - low) * T.exp(alpha / high) * (alpha / high)**alpha * high * (1 / alpha - 1)
-    except:
-        shadow = mean
-    
-    return mean, max, shadow, alpha
+    # upper incomplete gamma function valid only for alpha, high > 0
+    up_gamma = T.exp(T.lgamma(1 - alpha)) * (1 - T.igamma(1 - alpha, alpha / high))
+
+    # shadow mean point estimate
+    shadow = low + (high - low) * T.exp(alpha / high) * (alpha / high)**alpha * up_gamma
+
+    return mean, min, max, shadow, alpha
 
 def loss_function(estimated: T.FloatTensor, target: T.FloatTensor, shadow_low_mul: T.FloatTensor, 
                   shadow_high_mul: T.FloatTensor, zipf_x: T.FloatTensor, zipf_x2: T.FloatTensor, 
@@ -343,51 +346,52 @@ def loss_function(estimated: T.FloatTensor, target: T.FloatTensor, shadow_low_mu
 
     Returns:
         mean: empirical mean
+        min: minimum critic loss
         max: maximum critic loss
         shadow: shadow mean
         alpha: tail index of power law
     """
     if loss_type == "MSE":
         values = mse(estimated, target, 0)
-        mean, max, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, zipf_x, zipf_x2)
-        return mean, max, shadow, alpha
+        mean, min, max, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, zipf_x, zipf_x2)
+        return mean, min, max, shadow, alpha
 
     elif loss_type == "Huber":
         values = huber(estimated, target)
-        mean, max, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, zipf_x, zipf_x2)
-        return mean, max, shadow, alpha
+        mean, min, max, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, zipf_x, zipf_x2)
+        return mean, min, max, shadow, alpha
 
     elif loss_type == "MAE":
         values = mae(estimated, target)
-        mean, max, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, zipf_x, zipf_x2)
-        return mean, max, shadow, alpha
+        mean, min, max, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, zipf_x, zipf_x2)
+        return mean, min, max, shadow, alpha
 
     elif loss_type == "HSC":
         values = hypersurface(estimated, target)
-        mean, max, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, zipf_x, zipf_x2)
-        return mean, max, shadow, alpha
+        mean, min, max, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, zipf_x, zipf_x2)
+        return mean, min, max, shadow, alpha
 
     elif loss_type == "Cauchy":
         values = cauchy(estimated, target, scale)
-        mean, max, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, zipf_x, zipf_x2)
-        return mean, max, shadow, alpha
+        mean, min, max, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, zipf_x, zipf_x2)
+        return mean, min, max, shadow, alpha
 
     elif loss_type == "CIM":
         values = correntropy(estimated, target, kernel)
-        mean, max, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, zipf_x, zipf_x2)
-        return mean, max, shadow, alpha
+        mean, min, max, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, zipf_x, zipf_x2)
+        return mean, min, max, shadow, alpha
 
     elif loss_type == "MSE2":
         values = mse(estimated, target, 2)
-        mean, max, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, zipf_x, zipf_x2)
-        return mean, max, shadow, alpha
+        mean, min, max, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, zipf_x, zipf_x2)
+        return mean, min, max, shadow, alpha
 
     elif loss_type == "MSE4":
         values = mse(estimated, target, 4)
-        mean, max, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, zipf_x, zipf_x2)
-        return mean, max, shadow, alpha
+        mean, min, max, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, zipf_x, zipf_x2)
+        return mean, min, max, shadow, alpha
 
     elif loss_type == "MSE6":
         values = mse(estimated, target, 6)
-        mean, max, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, zipf_x, zipf_x2)
-        return mean, max, shadow, alpha
+        mean, min, max, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, zipf_x, zipf_x2)
+        return mean, min, max, shadow, alpha

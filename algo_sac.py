@@ -244,7 +244,7 @@ class Agent_sac():
         """
         # return nothing till batch size less than replay buffer
         if self.memory.mem_idx <= self.batch_size:
-            loss = [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]
+            loss = [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]
             cpu_logtmep = self.log_alpha.detach().cpu().numpy()
             loss_params = [np.nan, np.nan, np.nan, np.nan]
             return loss, cpu_logtmep, loss_params
@@ -269,10 +269,10 @@ class Agent_sac():
         self.critic_1.optimizer.zero_grad()
         self.critic_2.optimizer.zero_grad()
 
-        q1_mean, q1_max, q1_shadow, q1_alpha = utils.loss_function(q1, batch_target, self.shadow_low_mul, self.shadow_high_mul,
-                                                                   self.zipf_x, self.zipf_x2, self.loss_type, self.cauchy_scale_1, kernel_1)
-        q2_mean, q2_max, q2_shadow, q2_alpha = utils.loss_function(q2, batch_target, self.shadow_low_mul, self.shadow_high_mul,
-                                                                   self.zipf_x, self.zipf_x2, self.loss_type, self.cauchy_scale_2, kernel_2)
+        q1_mean, q1_min, q1_max, q1_shadow, q1_alpha = utils.loss_function(q1, batch_target, self.shadow_low_mul, self.shadow_high_mul,
+                                                                           self.zipf_x, self.zipf_x2, self.loss_type, self.cauchy_scale_1, kernel_1)
+        q2_mean, q2_min, q2_max, q2_shadow, q2_alpha = utils.loss_function(q2, batch_target, self.shadow_low_mul, self.shadow_high_mul,
+                                                                           self.zipf_x, self.zipf_x2, self.loss_type, self.cauchy_scale_2, kernel_2)
 
         if self.critic_mean == 'E':
             q1_loss, q2_loss = q1_mean, q2_mean
@@ -296,15 +296,18 @@ class Agent_sac():
 
         cpu_q1_mean = q1_mean.detach().cpu().numpy()
         cpu_q2_mean = q2_mean.detach().cpu().numpy()
+        cpu_q1_min = q1_min.detach().cpu().numpy()
+        cpu_q2_min = q2_min.detach().cpu().numpy()
         cpu_q1_max = q1_max.detach().cpu().numpy()
         cpu_q2_max = q2_max.detach().cpu().numpy()
         cpu_q1_shadow = q1_shadow.detach().cpu().numpy()
         cpu_q2_shadow = q2_shadow.detach().cpu().numpy()
         cpu_q1_alpha = q1_alpha.detach().cpu().numpy()
-        cpu_q2_alpha = q2_alpha.detach().cpu().numpy()
+        cpu_q2_alpha = q2_alpha.detach().cpu().numpy
         cpu_logtmep = self.log_alpha.detach().cpu().numpy()
 
-        loss = [cpu_q1_mean, cpu_q2_mean, cpu_q1_max, cpu_q2_max, cpu_q1_shadow, cpu_q2_shadow, cpu_q1_alpha, cpu_q2_alpha, np.nan]
+        loss = [cpu_q1_mean, cpu_q2_mean, cpu_q1_min, cpu_q2_min, cpu_q1_max, cpu_q2_max, 
+                cpu_q1_shadow, cpu_q2_shadow, cpu_q1_alpha, cpu_q2_alpha, np.nan]
         loss_params = [self.cauchy_scale_1, self.cauchy_scale_2, kernel_1, kernel_2]
 
         # update actor, temperature and target critic networks every interval
@@ -333,7 +336,7 @@ class Agent_sac():
         self.actor.optimizer.step()
 
         cpu_actor_loss = actor_loss.detach().cpu().numpy()
-        loss[8] = cpu_actor_loss
+        loss[-1] = cpu_actor_loss
 
         if self.learn_step_cntr % self.temp_update_interval != 0:
             return loss, cpu_logtmep, loss_params
@@ -362,7 +365,7 @@ class Agent_sac():
 
           target_param_1.data.copy_(self.tau * param_1.data + (1 - self.tau) * target_param_1.data)
           target_param_2.data.copy_(self.tau * param_2.data + (1 - self.tau) * target_param_2.data)
-
+        
     def save_models(self):
         """
         Saves all 3 networks.
