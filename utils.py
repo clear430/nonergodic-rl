@@ -2,6 +2,7 @@ from datetime import datetime
 import gym
 import numpy as np
 import pybullet_envs
+import scipy.special as sp
 import time
 import torch as T
 from torch.distributions.gamma import Gamma
@@ -389,14 +390,14 @@ def loss_function(estimated: T.FloatTensor, target: T.FloatTensor, shadow_low_mu
 def shadow_means(alpha: np.ndarray, min: np.ndarray, max: np.ndarray, min_mul: float, 
                  max_mul: float) -> np.ndarray:
     """
-    Construct shadow mean given tail exponent and sample min/max for various multipliers
+    Construct shadow mean given tail exponent and sample min/max for various multipliers.
 
     Parameters:
-        alpha: tail indices
+        alpha: tail index
         min: sample minimum critic loss
         max: sample maximum critic loss
-        min_mul: min multiplier
-        max_mul: max multiplier
+        min_mul: min multiplier to form shadow mean low threshold
+        max_mul: max multiplier to form shadow mean high estimate
 
     Returns:
         shadow: shadow mean
@@ -404,7 +405,7 @@ def shadow_means(alpha: np.ndarray, min: np.ndarray, max: np.ndarray, min_mul: f
     low = min * min_mul
     high = max * max_mul
 
-    up_gamma = T.exp(T.lgamma(1 - alpha)) * (1 - T.igamma(1 - alpha, alpha / high))
-    shadow = low + (high - low) * T.exp(alpha / high) * (alpha / high)**alpha * up_gamma
+    up_gamma = sp.gamma(1 - alpha) * sp.gammaincc(1 - alpha, alpha / high)
+    shadow = low + (high - low) * np.exp(alpha / high) * (alpha / high)**alpha * up_gamma
 
     return shadow
