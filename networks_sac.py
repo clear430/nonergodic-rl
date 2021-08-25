@@ -64,12 +64,12 @@ class ActorNetwork(nn.Module):
                                             +'--'+algo_name+'_'+loss_type
                                             +'_'+nn_name)
 
-        # network inputs environment space shape
+        # network inputs environment state space features
         self.fc1 = nn.Linear(self.input_dims, fc1_dim)
         self.fc2 = nn.Linear(fc1_dim, fc2_dim)
         self.pi = nn.Linear(fc2_dim, self.num_actions * 2)
 
-        self.optimizer = optim.Adam(self.parameters(), lr=lr_alpha)
+        self.optimiser = optim.Adam(self.parameters(), lr=lr_alpha)
         self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
 
         self.to(self.device)
@@ -137,7 +137,8 @@ class ActorNetwork(nn.Module):
         Stochastic action selection sampled from unbounded spherical Gaussian input 
         noise with tanh bounding using Jacobian transformation. Allows each mini-batch 
         state to have a unique covariance matrix allowing faster learning in terms of 
-        cumulative steps but significantly longer run time per step. 
+        cumulative steps but significantly longer run time per step. Likely only feasible
+        if PyTorch implements a multivariate normal sampling distirbution.
 
         Parameters:
             state: current environment state or mini-batch
@@ -167,7 +168,7 @@ class ActorNetwork(nn.Module):
             for vol in range(self.num_actions):     
                 cov_mat[0, vol, vol] = var[vol]
 
-        chol_ltm = T.cholesky(cov_mat)
+        chol_ltm = T.linalg.cholesky(cov_mat)
 
         probabilities = MultivariateNormal(loc=mu, scale_tril=chol_ltm)
 
@@ -236,12 +237,12 @@ class CriticNetwork(nn.Module):
                                             +'--'+algo_name+'_'+loss_type
                                             +'_'+nn_name)
 
-        # network inputs environment space shape and number of actions
+        # network inputs environment state space features and number of actions
         self.fc1 = nn.Linear(self.input_dims + self.num_actions, fc1_dim)
         self.fc2 = nn.Linear(fc1_dim, fc2_dim)
         self.q = nn.Linear(fc2_dim, 1)
 
-        self.optimizer = optim.Adam(self.parameters(), lr=lr_beta)
+        self.optimiser = optim.Adam(self.parameters(), lr=lr_beta)
         self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
 
         self.to(self.device)

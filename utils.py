@@ -31,7 +31,7 @@ def eval_policy(agent: object, inputs: dict, eval_log: np.ndarray, cum_steps: in
 
     print('{} Training Summary: T/Cg/Cs {:1.2f}/{:1.2f}/{:1.2f}, C/A {:1.1f}/{:1.1f}'
     .format(datetime.now().strftime('%d %H:%M:%S'), np.exp(logtemp), sum(loss_params[0:2])/2, 
-        sum(loss_params[2:4])/2, sum(loss[0:2]), loss[2]))
+        sum(loss_params[2:4])/2, sum(loss[0:2]), loss[-1]))
     
     eval_env = gym.make(inputs['env_id'])
     
@@ -269,7 +269,7 @@ def hill_est(values: T.FloatTensor) -> T.FloatTensor:
 
 def zipf_plot(values: T.FloatTensor, zipf_x: T.FloatTensor, zipf_x2: T.FloatTensor) -> T.FloatTensor:
     """
-    Obtain gradient of Zipf plot created with order statistics.
+    Obtain gradient of Zipf (or Pareto Q-Q) plot using ordered statistics.
 
     Parameters:
         values: critic loss per sample in the mini-batch without aggregation
@@ -277,7 +277,7 @@ def zipf_plot(values: T.FloatTensor, zipf_x: T.FloatTensor, zipf_x2: T.FloatTens
         zipf_x2: sum of squared deviations form the mean for Zipf plot x-axis
 
     Returns:
-        alpha: tail index of power law
+        alpha (>=0): tail index estimated using plot gradient
     """
     values = values.view(-1)
 
@@ -285,21 +285,22 @@ def zipf_plot(values: T.FloatTensor, zipf_x: T.FloatTensor, zipf_x2: T.FloatTens
     order_stats = T.log(order_stats)
     diff_stats = order_stats - T.mean(order_stats)
     
+    # standard linear regression coefficient
     gamma = T.sum(zipf_x * diff_stats) / zipf_x2
 
     return 1 / gamma
 
 def aggregator(values: T.FloatTensor, shadow_low_mul: T.FloatTensor, shadow_high_mul: T.FloatTensor, 
                zipf_x: T.FloatTensor, zipf_x2: T.FloatTensor) -> Tuple[T.FloatTensor, T.FloatTensor, 
-               T.FloatTensor, T.FloatTensor]:
+               T.FloatTensor, T.FloatTensor, T.FloatTensor]:
     """
-    Aggregates mini-batch values with the `empirical' mean (SLLN approach) and using  
-    heuristics constructs a power law with an estimated tail exponent to infer a shadow mean.
+    Aggregates several mini-batch summary statistics: 'empirical' mean (strong LLN approach), min/max, 
+    uses power law heuristics to estimate the shadow mean, and the tail exponent.
 
     Parameters:
         values: critic loss per sample in the mini-batch without aggregation
-        shadow_low_mul: lower bound multiplier of minimum for which values greater than are of interest
-        shadow_high_mul: finite improbable upper bound multiplier of maximum of distributions
+        shadow_low_mul: lower bound multiplier of sample minimum to form minimum threshold of interest
+        shadow_high_mul: finite improbable upper bound multiplier of sample maximum for tail distributions
         zipf_x: array for Zipf plot x-axis
         zipf_x2: sum of squared deviations form the mean for Zipf plot x-axis
     
@@ -310,19 +311,15 @@ def aggregator(values: T.FloatTensor, shadow_low_mul: T.FloatTensor, shadow_high
         shadow: shadow mean
         alpha: tail index of power law
     """
-    mean = T.mean(values)
-    min = T.min(values)
-    max = T.max(values)
-    low = T.min(values) * shadow_low_mul
-    high = T.max(values) * shadow_high_mul
-
-    # alpha = hill_est(values)
+    mean, min, max = T.mean(values), T.min(values), T.max(values)
+    
+    low, high = T.min(values) * shadow_low_mul, T.max(values) * shadow_high_mul
     alpha = zipf_plot(values, zipf_x, zipf_x2)
 
     # upper incomplete gamma function valid only for alpha, high > 0
     up_gamma = T.exp(T.lgamma(1 - alpha)) * (1 - T.igamma(1 - alpha, alpha / high))
 
-    # shadow mean point estimate
+    # shadow mean estimate
     shadow = low + (high - low) * T.exp(alpha / high) * (alpha / high)**alpha * up_gamma
 
     return mean, min, max, shadow, alpha
@@ -330,9 +327,9 @@ def aggregator(values: T.FloatTensor, shadow_low_mul: T.FloatTensor, shadow_high
 def loss_function(estimated: T.FloatTensor, target: T.FloatTensor, shadow_low_mul: T.FloatTensor, 
                   shadow_high_mul: T.FloatTensor, zipf_x: T.FloatTensor, zipf_x2: T.FloatTensor, 
                   loss_type: str, scale: float, kernel: float) -> Tuple[T.FloatTensor, T.FloatTensor, 
-                  T.FloatTensor, T.FloatTensor]:
+                  T.FloatTensor, T.FloatTensor, T.FloatTensor]:
     """
-    Gives scalar critic loss value retaining graph for backpropagation.
+    Gives scalar critic loss value (retaining graph) for network backpropagation.
     
     Parameters:
         estimated: current Q-values from mini-batch
@@ -350,7 +347,7 @@ def loss_function(estimated: T.FloatTensor, target: T.FloatTensor, shadow_low_mu
         min: minimum critic loss
         max: maximum critic loss
         shadow: shadow mean
-        alpha: tail index of power law
+        alpha: tail index
     """
     if loss_type == "MSE":
         values = mse(estimated, target, 0)
@@ -390,10 +387,10 @@ def loss_function(estimated: T.FloatTensor, target: T.FloatTensor, shadow_low_mu
 def shadow_means(alpha: np.ndarray, min: np.ndarray, max: np.ndarray, min_mul: float, 
                  max_mul: float) -> np.ndarray:
     """
-    Construct shadow mean given tail exponent and sample min/max for various multipliers.
+    Construct shadow mean given the tail exponent and sample min/max for varying multipliers.
 
     Parameters:
-        alpha: tail index
+        alpha: sample tail index
         min: sample minimum critic loss
         max: sample maximum critic loss
         min_mul: min multiplier to form shadow mean low threshold
@@ -402,9 +399,7 @@ def shadow_means(alpha: np.ndarray, min: np.ndarray, max: np.ndarray, min_mul: f
     Returns:
         shadow: shadow mean
     """
-    low = min * min_mul
-    high = max * max_mul
-
+    low, high = min * min_mul, max * max_mul
     up_gamma = sp.gamma(1 - alpha) * sp.gammaincc(1 - alpha, alpha / high)
     shadow = low + (high - low) * np.exp(alpha / high) * (alpha / high)**alpha * up_gamma
 

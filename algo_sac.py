@@ -19,6 +19,8 @@ class Agent_sac():
     """
     Causal entropy arguments based on https://www.cs.cmu.edu/~bziebart/publications/thesis-bziebart.pdf.
     SAC agent algorithm based on https://arxiv.org/pdf/1812.05905.pdf.
+    Agent learning using PyTorch neural networks described in
+    https://proceedings.neurips.cc/paper/2019/file/bdbca288fee7f92f2bfa9f7012727740-Paper.pdf.
 
     Methods:
         store_transistion(state, action, reward, next_state, done):
@@ -97,6 +99,7 @@ class Agent_sac():
         self.shadow_low_mul = inputs_dict['shadow_low_mul']
         self.shadow_high_mul = inputs_dict['shadow_high_mul']
 
+        # intialisation for tail exponent estimation
         self.zipf_x = (T.ones((self.batch_size,)) + self.batch_size).view(-1)
         for x in range(self.batch_size):
             self.zipf_x[x] = self.zipf_x[x] / (x + 1)
@@ -110,6 +113,7 @@ class Agent_sac():
         self.temp_optimiser = T.optim.Adam([self.log_alpha], lr=self.lr_kappa)
         self.entropy_target = -int(self.num_actions)    # heuristic assumption
 
+        # required for method intialisation
         self._mini_batch()
         self._multi_step_target(None, None, None, None, None)
         self._update_critic_parameters(self.tau)
@@ -175,7 +179,7 @@ class Agent_sac():
             eff_length: batch of effective multi-step episode lengths
         """
         if self.memory.mem_idx < self.batch_size:
-            return np.nan, np.nan, np.nan, np.nan, np.nan, np.nan
+            return np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan
             
         states, actions, rewards, next_states, dones, epis_rewards, eff_length = \
                 self.memory.sample_exp()
@@ -210,7 +214,8 @@ class Agent_sac():
         Returns:
             batch_target: clipped double multi-step target Q-values
         """
-        if self.memory.mem_idx <= self.batch_size:    # ensure memory buffer large enough for mini-batch
+        # ensure memory buffer large enough for mini-batch
+        if self.memory.mem_idx <= self.batch_size:
             return np.nan
 
         # sample next stochastic action policy for target critic network based on mini-batch
@@ -228,11 +233,13 @@ class Agent_sac():
         q2_target = self.target_critic_2.forward(batch_next_states, batch_next_stoc_actions).view(-1)
         q1_target[batch_dones], q2_target[batch_dones] = 0.0, 0.0
     
-        # clipped double target critic soft values with bootstrapping
+        # clipped double target critic with bootstrapping
         soft_q_target = T.min(q1_target, q2_target)
         soft_q_target = self.reward_scale * batch_rewards + self.gamma**batch_eff_length * soft_q_target
         soft_q_target = soft_q_target if self.dyna == 'A' else soft_q_target / batch_epis_rewards
-        soft_value = soft_q_target - self.log_alpha.exp() * batch_next_logprob_actions    # advantage function
+
+        # soft value as an advantage function
+        soft_value = soft_q_target - self.log_alpha.exp() * batch_next_logprob_actions    
         batch_target = soft_value.view(self.batch_size, -1)
 
         return batch_target
@@ -243,9 +250,9 @@ class Agent_sac():
         Agent learning via SAC algorithm with multi-step bootstrapping and robust critic loss.
 
         Returns:
-            loss: mean critic losses, max critic losses, critic shadow losses, critic tail exponents, mean actor loss
+            loss: empirical mean / min / max /shadow mean of critic losses, critic tail exponents, mean actor loss
             logtemp: log entropy adjustment factor (temperature)
-            loss_params: list of Cauchy scale parameters and kernel sizes for critics
+            loss_params: list of Cauchy scale parameters and CIM kernel sizes for twin critics
         """
         # return nothing till batch size less than replay buffer
         if self.memory.mem_idx <= self.batch_size:
@@ -254,42 +261,45 @@ class Agent_sac():
             loss_params = [np.nan, np.nan, np.nan, np.nan]
             return loss, cpu_logtmep, loss_params
 
+        # uniformly sample from replay buffer (off-policy)
         batch_states, batch_actions, batch_rewards, batch_next_states, \
         batch_dones, batch_epis_rewards, batch_eff_length = self._mini_batch()
 
+        # estimate target critic value
         batch_target = self._multi_step_target(batch_rewards, batch_next_states, batch_dones, 
                                                batch_epis_rewards, batch_eff_length)
 
-        # obtain current twin soft Q-values for mini-batch
+        # obtain twin current state soft Q-values for mini-batch
         q1 = self.critic_1.forward(batch_states, batch_actions).view(-1)
         q2 = self.critic_2.forward(batch_states, batch_actions).view(-1)
         q1 = q1 if self.dyna == 'A' else q1 / batch_epis_rewards
         q2 = q2 if self.dyna == 'A' else q2 / batch_epis_rewards
         q1, q2 = q1.view(self.batch_size, 1), q2.view(self.batch_size, 1)
         
-        # updates CIM size empircally
+        # updates CIM kernel size empirically
         kernel_1 = utils.cim_size(q1, batch_target)
         kernel_2 = utils.cim_size(q2, batch_target)
 
-        # backpropogation of critic loss while retaining graph due to coupling
-        self.critic_1.optimizer.zero_grad()
-        self.critic_2.optimizer.zero_grad()
+        # backpropogation of critic loss while retaining graph due to coupling of soft value and policy
+        self.critic_1.optimiser.zero_grad()
+        self.critic_2.optimiser.zero_grad()
 
         q1_mean, q1_min, q1_max, q1_shadow, q1_alpha = utils.loss_function(q1, batch_target, self.shadow_low_mul, self.shadow_high_mul,
                                                                            self.zipf_x, self.zipf_x2, self.loss_type, self.cauchy_scale_1, kernel_1)
         q2_mean, q2_min, q2_max, q2_shadow, q2_alpha = utils.loss_function(q2, batch_target, self.shadow_low_mul, self.shadow_high_mul,
                                                                            self.zipf_x, self.zipf_x2, self.loss_type, self.cauchy_scale_2, kernel_2)
 
+        # ensure consistent mean selection for learning
         if self.critic_mean == 'E':
             q1_loss, q2_loss = q1_mean, q2_mean
         else:
             q1_loss, q2_loss = q1_shadow, q2_shadow
     
-        critic_loss = 0.5 * (q1_loss + q2_loss)
+        critic_loss = 0.5 * (q1_loss + q2_loss)    # 0.5 multiplier due to SAC convention
         critic_loss.backward(retain_graph=True)
 
-        self.critic_1.optimizer.step()
-        self.critic_2.optimizer.step()
+        self.critic_1.optimiser.step()
+        self.critic_2.optimiser.step()
 
         # updates Cauchy scale parameter using the Nagy algorithm
         self.cauchy_scale_1 = utils.nagy_algo(q1, batch_target, self.cauchy_scale_1)
@@ -300,16 +310,11 @@ class Agent_sac():
         if self.learn_step_cntr % self.target_critic_update == 0:
             self._update_critic_parameters(self.tau)
 
-        cpu_q1_mean = q1_mean.detach().cpu().numpy()
-        cpu_q2_mean = q2_mean.detach().cpu().numpy()
-        cpu_q1_min = q1_min.detach().cpu().numpy()
-        cpu_q2_min = q2_min.detach().cpu().numpy()
-        cpu_q1_max = q1_max.detach().cpu().numpy()
-        cpu_q2_max = q2_max.detach().cpu().numpy()
-        cpu_q1_shadow = q1_shadow.detach().cpu().numpy()
-        cpu_q2_shadow = q2_shadow.detach().cpu().numpy()
-        cpu_q1_alpha = q1_alpha.detach().cpu().numpy()
-        cpu_q2_alpha = q2_alpha.detach().cpu().numpy
+        cpu_q1_mean, cpu_q2_mean = q1_mean.detach().cpu().numpy(), q2_mean.detach().cpu().numpy()
+        cpu_q1_min, cpu_q2_min = q1_min.detach().cpu().numpy(), q2_min.detach().cpu().numpy()
+        cpu_q1_max, cpu_q2_max = q1_max.detach().cpu().numpy(), q2_max.detach().cpu().numpy()
+        cpu_q1_shadow, cpu_q2_shadow = q1_shadow.detach().cpu().numpy(), q2_shadow.detach().cpu().numpy()
+        cpu_q1_alpha, cpu_q2_alpha = q1_alpha.detach().cpu().numpy(), q2_alpha.detach().cpu().numpy()
         cpu_logtmep = self.log_alpha.detach().cpu().numpy()
 
         loss = [cpu_q1_mean, cpu_q2_mean, cpu_q1_min, cpu_q2_min, cpu_q1_max, cpu_q2_max, 
@@ -334,12 +339,12 @@ class Agent_sac():
         soft_q = T.min(q1, q2).view(-1)
         soft_q = soft_q if self.dyna == 'A' else (1 + soft_q / batch_epis_rewards)
 
-        # learn stochastic actor policy
-        self.actor.optimizer.zero_grad()
+        # learn stochastic actor policy by minimising KL divergence (advantage function)
+        self.actor.optimiser.zero_grad()
         actor_loss = (self.log_alpha.exp() * batch_logprob_actions - soft_q)
         actor_loss = T.mean(actor_loss)
         actor_loss.backward()
-        self.actor.optimizer.step()
+        self.actor.optimiser.step()
 
         cpu_actor_loss = actor_loss.detach().cpu().numpy()
         loss[-1] = cpu_actor_loss
@@ -347,7 +352,7 @@ class Agent_sac():
         if self.learn_step_cntr % self.temp_update_interval != 0:
             return loss, cpu_logtmep, loss_params
 
-        # learn log temperature by approximating dual gradient
+        # learn temperature by approximating dual gradient descent
         self.temp_optimiser.zero_grad()
         temp_loss = -(self.log_alpha.exp() * (batch_logprob_actions.detach() + self.entropy_target))
         temp_loss = T.mean(temp_loss)

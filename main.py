@@ -145,6 +145,7 @@ if __name__ == '__main__':
                             next_state, reward, done, info = env.step(action)
                             agent.store_transistion(state, action, reward, next_state, done)
 
+                            # gradient update interval (perform backpropagation)
                             if cum_steps % int(inputs['grad_step'][inputs['algo']]) == 0:
                                 loss, logtemp, loss_params = agent.learn()
 
@@ -154,7 +155,7 @@ if __name__ == '__main__':
                             cum_steps += 1
                             end_time = time.perf_counter()
 
-                            # conduct evaluation episodes without learning
+                            # conduct periodic agent evaluation episodes without learning
                             if cum_steps % int(inputs['eval_freq']) == 0:
                                 utils.eval_policy(agent, inputs, eval_log, cum_steps, round, eval_run, loss, logtemp, loss_params)
                                 eval_run += 1
@@ -169,18 +170,17 @@ if __name__ == '__main__':
                         logtemp_log.append(logtemp)
                         loss_params_log.append(loss_params)
 
-                        # print(logtemp, loss)
-
+                        # save actor-critic neural network weights for checkpointing
                         trail_score = np.mean(score_log[-inputs['trail']:])
                         if trail_score > best_score:
                             best_score = trail_score
                             agent.save_models()
                             print('New high trailing score!')
 
-                        print('{} {}-{}-{}-{} ep/st/cst {}/{}/{} {:1.0f}/s: r {:1.0f}, r{} {:1.0f}, T/c/k {:1.2f}/{:1.2f}/{:1.2f}, C/Cmax/A {:1.1f}/{:1.1f}/{:1.1f}, a/S {:1.2f}/{:1.0f}'
+                        print('{} {}-{}-{}-{} ep/st/cst {}/{}/{} {:1.0f}/s: r {:1.0f}, r{} {:1.0f}, T/c/k {:1.2f}/{:1.2f}/{:1.2f}, C/Cm/A {:1.1f}/{:1.1f}/{:1.1f}, a/S {:1.2f}/{:1.0f}'
                         .format(datetime.now().strftime('%d %H:%M:%S'), algo, inputs['s_dist'], loss_fn, round+1, 
                             episode, step, cum_steps, step/time_log[-1], score, inputs['trail'], trail_score, np.exp(logtemp), 
-                            sum(loss_params[0:2])/2, sum(loss_params[2:4])/2, sum(loss[0:2])/2, sum(loss[2:4])/2, loss[8], sum(loss[6:8])/2, sum(loss[4:6])/2))
+                            sum(loss_params[0:2])/2, sum(loss_params[2:4])/2, sum(loss[0:2])/2, sum(loss[4:6])/2, loss[8], sum(loss[8:10])/2, sum(loss[6:8])/2))
 
                         episode += 1
 
@@ -195,7 +195,7 @@ if __name__ == '__main__':
                     if inputs['n_trials'] == 1:
                         plots.plot_learning_curve(inputs, trial_log[round], directory+'.png')
 
-                # truncate trial log array zeros up to maximum episodes
+                # truncate training trial log array up to maximum episodes
                 count_episodes = [np.min(np.where(trial_log[trial, :, 0] == 0)) for trial in range(int(inputs['n_trials']))]
                 max_episode = np.max(count_episodes) 
                 trial_log = trial_log[:, :max_episode, :]
@@ -204,7 +204,7 @@ if __name__ == '__main__':
                 np.save(directory+'_eval.npy', eval_log)
 
                 if inputs['n_trials'] > 1:
-                    plots.plot_trial_curve(inputs, trial_log, directory+'_trial.png')
-                    # plots.plot_eval_curve(inputs, eval_log, directory+'_eval.png')
-                    plots.plot_eval_loss_2d(inputs, eval_log, directory+'_2d.png')
-                    plots.plot_eval_loss_3d(inputs, eval_log, directory+'_3d.png')
+                    plots.plot_trial_curve(inputs, trial_log, directory+'_trial.png')    # plot of agent training with linear interpolation across all trials
+                    # plots.plot_eval_curve(inputs, eval_log, directory+'_eval.png')     # plot of agent evaluation round scores across all trials
+                    plots.plot_eval_loss_2d(inputs, eval_log, directory+'_2d.png')       # plot of agent evaluation round scores and training critic losses across all trials
+                    plots.plot_eval_loss_3d(inputs, eval_log, directory+'_3d.png')       # 3D plot of agent evaluation round scores and training critic losses across all trials

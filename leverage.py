@@ -18,17 +18,17 @@ horizon = 3e3               # total time steps
 top = investors * 1e-4      # define top performers
 value_0 = 1e2               # intial portfolio value of each investor
 up_prob = 0.5               # probability of up move
-up_r = 0.5                  # upside return
-down_r = -0.4               # downside return
+up_r = 0.5                  # upside return (>=0)
+down_r = -0.4               # downside return (0<=)
 asym_lim = 1e-12            # offset to enforce 'optimal' leverage bound
 
 investors = T.tensor(int(investors), dtype=T.int32, device=device)
 horizon = T.tensor(int(horizon), dtype=T.int32, device=device)
 value_0 = T.tensor(value_0, device=device)
 asym_lim = T.tensor(asym_lim, device=device)
-top = int(top) if top > 1 else int(1) 
+top = int(top) if top > 1 else int(1)    # minimum 1 person in the top sample
 factor = np.abs(down_r) if np.abs(up_r) > np.abs(down_r) else np.abs(up_r)
-lev_factor =  T.tensor(1 / factor, device=device)
+lev_factor =  T.tensor(1 / factor, device=device)    # theoritical optimal leverage based on 'expectaions'
 
 def param_range(low: float, high: float, increment: float):
     """
@@ -40,7 +40,7 @@ def param_range(low: float, high: float, increment: float):
         increment: step size
     """
     min = int(low/increment)
-    max = int(high/increment + 1 + 1e-4)
+    max = int(high/increment + 1 + 1e-4)    # minor offset to counter Python strangness
 
     return [x * increment for x in range(min, max, 1)]
 
@@ -71,6 +71,7 @@ def fixed_final_lev(outcomes: T.FloatTensor, top: int, value_0: T.FloatTensor, u
         top_value = sort_value[0:top]
         adj_value = sort_value[top:]
 
+        # summary statistics
         std, mean = T.std_mean(value_T, unbiased=False)
         mad = T.mean(T.abs(value_T - mean))
 
@@ -128,6 +129,7 @@ def smart_lev(outcomes: T.FloatTensor, investors: T.IntTensor, horizon: T.IntTen
             top_value = sort_value[0:top]
             adj_value = sort_value[top:]
 
+            # summary statistics
             std, mean = T.std_mean(value_t, unbiased=False)
             mad = T.mean(T.abs(value_t - mean))
 
@@ -181,7 +183,7 @@ def big_brain_lev(outcomes: T.FloatTensor, investors: T.IntTensor, horizon: T.In
                   asym_lim: T.FloatTensor, stop_min: float, stop_max: float, stop_incr: float, roll_max: float, 
                   roll_min: float, roll_incr: float) -> np.ndarray:
     """
-    Valuations across all time for variable stop-losses and retention ratios that calcaultes optimal leevrage
+    Valuations across all time for variable stop-losses and retention ratios that calculates optimal leverage
     at each time step for each investor.
 
     Parameters:
@@ -231,6 +233,7 @@ def big_brain_lev(outcomes: T.FloatTensor, investors: T.IntTensor, horizon: T.In
                 top_lev = sort_lev[0:top]
                 adj_lev = sort_lev[top:]
 
+                # leverage summary statistics
                 lstd, lmean = T.std_mean(sample_lev, unbiased=False)
                 lmad = T.mean(T.abs(sample_lev - lmean))
 
@@ -242,6 +245,7 @@ def big_brain_lev(outcomes: T.FloatTensor, investors: T.IntTensor, horizon: T.In
 
                 data[j, i, 9:20, t] = T.tensor([lmean, lmean_top, lmean_adj, lmad, lmad_top, lmad_adj, lstd, lstd_top, lstd_adj, stop_level, roll_level])
 
+                #  calculate one-period change in valuations
                 value_t = initial * (1 + sample_lev * gambles[:, t + 1])
                 initial = value_t
 
@@ -251,6 +255,7 @@ def big_brain_lev(outcomes: T.FloatTensor, investors: T.IntTensor, horizon: T.In
                 top_value = sort_value[0:top]
                 adj_value = sort_value[top:]
 
+                # valuation summary statistics
                 std, mean = T.std_mean(value_t, unbiased=False)
                 mad = T.mean(T.abs(value_t - mean))
 
@@ -279,10 +284,11 @@ if __name__ == '__main__':
     
     start_time = time.perf_counter()
 
-    T.manual_seed(420)
+    T.manual_seed(420)    # set fixed seed for reproducibility
     probabilites = Bernoulli(up_prob)
     outcomes = probabilites.sample(sample_shape=(investors, horizon)).to(device)
 
+    # run experiments
     fixed_final_lev(outcomes, top, value_0, up_r, down_r, lev_low=0.05, lev_high=1.0, lev_incr=0.05)
 
     # inv1_val_data, inv1_val_data_T = smart_lev(outcomes, investors, horizon, top, value_0, up_r, down_r,
@@ -299,6 +305,8 @@ if __name__ == '__main__':
     end_time = time.perf_counter()
     print('time: {:1.1f}'.format(end_time-start_time))
 
+    ## save experiment data
+
     # if not os.path.exists('./results/inv_data'):
     #     os.makedirs('./results/inv_data')
 
@@ -306,6 +314,8 @@ if __name__ == '__main__':
     # np.save('results\inv_data\inv1_val_T.npy', inv1_val_data_T)
     # np.save('results\inv_data\inv2_val.npy', inv2_val_data)
     # np.save('results\inv_data\inv3_val.npy', inv3_val_data)
+
+    ## load experiment data and save figures
 
     # if not os.path.exists('./figs'):
     #         os.makedirs('./figs')

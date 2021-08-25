@@ -3,7 +3,6 @@ import torch as T
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from typing import Tuple
 
 class ActorNetwork(nn.Module):
     """
@@ -49,12 +48,12 @@ class ActorNetwork(nn.Module):
                                             +'--'+algo_name+'_'+loss_type
                                             +'_'+nn_name)
 
-        # network inputs environment space shape
+        # network inputs environment state space features
         self.fc1 = nn.Linear(self.input_dims, fc1_dim)
         self.fc2 = nn.Linear(fc1_dim, fc2_dim)
         self.mu = nn.Linear(fc2_dim, self.num_actions)
 
-        self.optimizer = optim.Adam(self.parameters(), lr=lr_alpha)
+        self.optimiser = optim.Adam(self.parameters(), lr=lr_alpha)
         self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
 
         self.to(self.device)
@@ -129,12 +128,12 @@ class CriticNetwork(nn.Module):
                                             +'--'+algo_name+'_'+loss_type
                                             +'_'+nn_name)
 
-        # network inputs environment space shape and number of actions
+        # network inputs environment state space features and number of actions
         self.fc1 = nn.Linear(self.input_dims + self.num_actions, fc1_dim)
         self.fc2 = nn.Linear(fc1_dim, fc2_dim)
         self.q = nn.Linear(fc2_dim, 1)
 
-        self.optimizer = optim.Adam(self.parameters(), lr=lr_beta)
+        self.optimiser = optim.Adam(self.parameters(), lr=lr_beta)
         self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
 
         self.to(self.device)
