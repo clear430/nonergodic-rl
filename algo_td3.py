@@ -181,7 +181,7 @@ class Agent_td3():
         Returns:
             states: batch of environment states
             actions: batch of continuous actions taken to arrive at states
-            rewards: batch of rewards from current states
+            rewards: batch of (discounted multi-step) rewards from current states
             next_states: batch of next environment states
             dones (bool): batch of done flags
             epis_rewards: batch of cumulative sum of episodic rewards
@@ -210,7 +210,7 @@ class Agent_td3():
         Multi-step target Q-values for mini-batch with regularisation through noise addition. 
 
         Parameters:
-            batch_rewards: batch of rewards from current states
+            batch_rewards: batch of (discounted multi-step) rewards from current states
             batch_next_states: batch of next environment states
             batch_dones: batch of done flags
             batch_epis_rewards: batch of cumulative sum of episodic rewards
@@ -233,9 +233,9 @@ class Agent_td3():
         q2_target = self.target_critic_2.forward(batch_next_states, batch_next_actions).view(-1)
         q1_target[batch_dones], q2_target[batch_dones] = 0.0, 0.0
 
-        # clipped double target critic values
+        # clipped double target critic values with bootstrapping
         q_target = T.min(q1_target, q2_target)
-        target = batch_rewards + self.gamma * q_target
+        target = batch_rewards + self.gamma**self.multi_steps * q_target
         target = target if self.dyna == 'A' else target / batch_epis_rewards
         batch_target = target.view(self.batch_size, 1)
 

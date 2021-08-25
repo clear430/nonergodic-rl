@@ -168,7 +168,7 @@ class Agent_sac():
         Returns:
             states: batch of environment states
             actions: batch of continuous actions taken to arrive at states
-            rewards: batch of rewards from current states
+            rewards: batch of (discounted multi-step) rewards from current states
             next_states: batch of next environment states
             dones (bool): batch of done flags
             epis_rewards: batch of cumulative sum of episodic rewards
@@ -197,7 +197,7 @@ class Agent_sac():
         Multi-step target soft Q-values for mini-batch. 
 
         Parameters:
-            batch_rewards: batch of rewards from current states
+            batch_rewards: batch of (discounted multi-step) rewards from current states
             batch_next_states: batch of next environment states
             batch_dones: batch of done flags
             batch_epis_rewards: batch of cumulative sum of episodic rewards
@@ -223,9 +223,9 @@ class Agent_sac():
         q2_target = self.target_critic_2.forward(batch_next_states, batch_next_stoc_actions).view(-1)
         q1_target[batch_dones], q2_target[batch_dones] = 0.0, 0.0
     
-        # clipped double target critic soft values
+        # clipped double target critic soft values with bootstrapping
         soft_q_target = T.min(q1_target, q2_target)
-        soft_q_target = self.reward_scale * batch_rewards + self.gamma * soft_q_target
+        soft_q_target = self.reward_scale * batch_rewards + self.gamma**self.multi_steps * soft_q_target
         soft_q_target = soft_q_target if self.dyna == 'A' else soft_q_target / batch_epis_rewards
         soft_value = soft_q_target - self.log_alpha.exp() * batch_next_logprob_actions    # advantage function
         batch_target = soft_value.view(self.batch_size, -1)
