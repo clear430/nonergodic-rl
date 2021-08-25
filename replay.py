@@ -266,11 +266,12 @@ class ReplayBuffer():
             batch_multi_reward: discounted sum of multi-step rewards
             batch_intial_state: array of intial state before bootstrapping
             batch_cum_rewards: undiscounted sum of rewards
+            eff_length: effective n-step bootstrapping length
         """
-        # length taken to be the minimum of either history length or multi-steps
-        length = np.minimum(np.array([x.shape[0] for x in step_rewards]), self.multi_steps)
+        # effective length taken to be the minimum of either history length or multi-steps
+        eff_length = np.minimum(np.array([x.shape[0] for x in step_rewards]), self.multi_steps)
 
-        batch_multi = [self._multi_step_rewards_and_states(step_rewards[x], step_states[x], length[x]) 
+        batch_multi = [self._multi_step_rewards_and_states(step_rewards[x], step_states[x], eff_length[x]) 
                        for x in range(self.batch_size)]
 
         batch_multi_rewards = np.array([batch_multi[x][0] for x in range(self.batch_size)])
@@ -278,12 +279,12 @@ class ReplayBuffer():
         
         if self.dyna == 'A':
             batch_cum_rewards = False
-            return batch_multi_rewards, batch_states, batch_cum_rewards
+            return batch_multi_rewards, batch_states, batch_cum_rewards, eff_length
 
         else:
             batch_cum_rewards = np.array([batch_multi[x][2] for x in range(self.batch_size)])
 
-        return batch_multi_rewards, batch_states, batch_cum_rewards
+        return batch_multi_rewards, batch_states, batch_cum_rewards, eff_length
 
     def sample_exp(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
@@ -296,6 +297,7 @@ class ReplayBuffer():
             next_states: batch of next environment states
             dones (bool): batch of done flags
             epis_rewards: batch of cumulative rewards up till previous states
+            eff_length: batch of effective multi-step episode lengths
         """
         if self.dyna == 'A':
             # pool batch from either partial or fully populated buffer
@@ -308,12 +310,13 @@ class ReplayBuffer():
             next_states = self.next_state_memory[batch]
             dones = self.terminal_memory[batch]
             epis_rewards = False
+            eff_length = 1
 
             if self.multi_steps > 1:
                 step_rewards, step_states, _ = self._episode_rewards_states(batch)
-                rewards, states, _ = self._multi_step_batch(step_rewards, step_states)
+                rewards, states, _, eff_length = self._multi_step_batch(step_rewards, step_states)
 
-            return states, actions, rewards, next_states, dones, epis_rewards
+            return states, actions, rewards, next_states, dones, epis_rewards, eff_length
 
         else:
             # pool batch from 'living' states
@@ -329,10 +332,11 @@ class ReplayBuffer():
 
             step_rewards, step_states, step_alive = self._episode_rewards_states(batch)
             epis_rewards = np.array([self.initial_reward + np.sum(x) for x in step_rewards]) - rewards
+            eff_length = 1
 
             if self.multi_steps > 1:
                 epis_rewards += rewards
-                rewards, states, cum_rewards = self._multi_step_batch(step_rewards, step_states)
+                rewards, states, cum_rewards, eff_length = self._multi_step_batch(step_rewards, step_states)
                 epis_rewards -= cum_rewards
             
-        return states, actions, rewards, next_states, dones, epis_rewards
+        return states, actions, rewards, next_states, dones, epis_rewards, eff_length

@@ -124,7 +124,7 @@ class Agent_td3():
         self.zipf_x2 = T.sum(self.zipf_x**2).to(self.critic_1.device)
 
         self._mini_batch()
-        self._multi_step_target(None, None, None, None)
+        self._multi_step_target(None, None, None, None, None)
         self._update_actor_parameters(self.tau)
         self._update_critic_parameters(self.tau)
 
@@ -174,7 +174,7 @@ class Agent_td3():
         return numpy_next_action, next_action
     
     def _mini_batch(self) -> Tuple[T.FloatTensor, T.FloatTensor, T.FloatTensor, 
-                                   T.FloatTensor, T.FloatTensor, T.FloatTensor]:
+                                   T.FloatTensor, T.BoolTensor, T.FloatTensor, T.IntTensor]:
         """
         Uniform sampling from replay buffer and send to GPU.
 
@@ -185,27 +185,31 @@ class Agent_td3():
             next_states: batch of next environment states
             dones (bool): batch of done flags
             epis_rewards: batch of cumulative sum of episodic rewards
+            eff_length: batch of effective multi-step episode lengths
         """
-        if self.memory.mem_idx <= self.batch_size:
+        if self.memory.mem_idx < self.batch_size:
             return np.nan, np.nan, np.nan, np.nan, np.nan, np.nan
             
-        states, actions, rewards, next_states, dones, epis_rewards = \
+        states, actions, rewards, next_states, dones, epis_rewards, eff_length = \
                 self.memory.sample_exp()
-        
+
         batch_states = T.tensor(states, dtype=T.float).to(self.critic_1.device)
         batch_actions = T.tensor(actions, dtype=T.float).to(self.critic_1.device)
         batch_rewards = T.tensor(rewards, dtype=T.float).to(self.critic_1.device)
         batch_next_states = T.tensor(next_states, dtype=T.float).to(self.critic_1.device)
         batch_dones = T.tensor(dones, dtype=T.bool).to(self.critic_1.device)
         batch_epis_rewards = epis_rewards
+        batch_eff_length = T.tensor(eff_length, dtype=T.int).to(self.critic_1.device)
 
         if self.dyna == 'M':
             batch_epis_rewards = T.tensor(epis_rewards, dtype=T.float).to(self.critic_1.device)
 
-        return batch_states, batch_actions, batch_rewards, batch_next_states, batch_dones, batch_epis_rewards
+        return batch_states, batch_actions, batch_rewards, batch_next_states, batch_dones, \
+               batch_epis_rewards, batch_eff_length 
 
     def _multi_step_target(self, batch_rewards: T.FloatTensor, batch_next_states: T.FloatTensor, 
-                           batch_dones: T.BoolTensor, batch_epis_rewards: T.FloatTensor) -> T.FloatTensor:
+                           batch_dones: T.BoolTensor, batch_epis_rewards: T.FloatTensor, 
+                           batch_eff_length: T.IntTensor) -> T.FloatTensor:
         """
         Multi-step target Q-values for mini-batch with regularisation through noise addition. 
 
@@ -214,6 +218,7 @@ class Agent_td3():
             batch_next_states: batch of next environment states
             batch_dones: batch of done flags
             batch_epis_rewards: batch of cumulative sum of episodic rewards
+            batch_eff_length: batch of effective multi-step episode lengths
         
         Returns:
             batch_target: clipped double multi-step target Q-values
@@ -235,7 +240,7 @@ class Agent_td3():
 
         # clipped double target critic values with bootstrapping
         q_target = T.min(q1_target, q2_target)
-        target = batch_rewards + self.gamma**self.multi_steps * q_target
+        target = batch_rewards + self.gamma**batch_eff_length * q_target
         target = target if self.dyna == 'A' else target / batch_epis_rewards
         batch_target = target.view(self.batch_size, 1)
 
@@ -256,10 +261,11 @@ class Agent_td3():
             loss_params = [np.nan, np.nan, np.nan, np.nan]
             return loss, np.nan, loss_params
 
-        batch_states, batch_actions, batch_rewards, \
-        batch_next_states, batch_dones, batch_epis_rewards = self._mini_batch()
+        batch_states, batch_actions, batch_rewards, batch_next_states, \
+        batch_dones, batch_epis_rewards, batch_eff_length = self._mini_batch()
 
-        batch_target = self._multi_step_target(batch_rewards, batch_next_states, batch_dones, batch_epis_rewards)
+        batch_target = self._multi_step_target(batch_rewards, batch_next_states, batch_dones, 
+                                               batch_epis_rewards, batch_eff_length)
 
         # obtain twin Q-values for current step
         q1 = self.critic_1.forward(batch_states, batch_actions).view(-1)
