@@ -13,16 +13,16 @@ class ReplayBuffer():
             Stores current step into experience replay buffer.
 
         _construct_history(step, epis_history):
-            Generate reward and state history for a sampled step.
+            Generate reward and state-action pair history for a sampled step.
 
-        _episode_rewards_states(batch):
-            Collect reward and state histories for the batch.
+        _episode_rewards_states_actions(batch):
+            Collect reward and state-action pair histories for the batch.
 
-        _multi_step_rewards_and_states(reward_history, state_history, multi_length):
-            Generate multi-step rewards and intial state for a sampled step.
+        _multi_step_rewards_states_actions(reward_history, state_history, action_history, multi_length):
+            Generate multi-step rewards and intial state-action pair for a sampled step.
 
-        _multi_step_batch(step_rewards, step_states):
-            Collect multi-step rewards and intial states for the batch.
+        _multi_step_batch(step_rewards, step_states, step_actions):
+            Collect multi-step rewards and intial state-action pairs for the batch.
         
         get_sample_exp():
             Uniformly sample mini-batch from experience replay buffer.
@@ -65,20 +65,21 @@ class ReplayBuffer():
         self.epis_idx = [np.nan]
         self.epis_reward_memory = []
         self.epis_state_memory = []
+        self.epis_action_memory = []
         self.alive_memory = np.zeros(self.mem_size, dtype=np.bool8)
 
         # required for intialisation
         self._contruct_history(1, 0)
-        self._episode_rewards_states([])
-        self._multi_step_rewards_and_states(np.zeros((1)), np.zeros((1,1)), 1)
+        self._episode_rewards_states_actions([])
+        self._multi_step_rewards_states_actions(np.zeros((1)), np.zeros((1,1)), np.zeros((1,1)), 1)
 
     def store_exp(self, state: np.ndarray, action: np.ndarray, reward: float, 
                   next_state: np.ndarray, done: bool):
         """
         Store a transistion to the buffer containing a total up to a maximum size and log 
-        history of rewards and states for each episode.
+        history of rewards, states, and actions for each episode.
 
-        Paramters:
+        Parameters:
             state: current environment state
             action: continuous actions taken to arrive at current state
             reward: reward from arriving at current environment state
@@ -97,35 +98,41 @@ class ReplayBuffer():
         if self.multi_steps > 1 or self.dyna == 'M':
             self.epis_idx[-1] = idx
 
-            # aggregate the reward and state histories of the currently trained episode
+            # aggregate the reward, state, and action histories of the currently trained episode
             try:
                 current_start = self.epis_idx[-2] + 1
                 current_reward_memory = self.reward_memory[current_start:idx + 1]
                 current_state_memory = self.next_state_memory[current_start:idx + 1]
+                current_action_memory = self.action_memory[current_start:idx + 1]
 
             except:
                 try:
                     # used for the start of a new training episode (excluding the first)
                     current_reward_memory = self.reward_memory[0:idx + 1]
                     current_state_memory = self.next_state_memory[0:idx + 1]
+                    current_action_memory = self.action_memory[0:idx + 1]
 
                 except:
                     # used for the the very first training step of the first episode
                     current_reward_memory = self.reward_memory[idx]
                     current_state_memory = self.next_state_memory[idx]
+                    current_action_memory = self.action_memory[idx]
             
             # log the aggregated history upon termination of the training episode
             if done is True:
                 self.epis_idx.append(idx + 1)
                 self.epis_reward_memory.append(current_reward_memory)
                 self.epis_state_memory.append(current_state_memory)
+                self.epis_action_memory.append(current_action_memory)
 
             if self.dyna == 'M':
                 # generate log of when the cumulative episode reward exceeds the minimum threshold
                 try:
-                    alive = bool(1) if self.initial_reward + np.sum(self.reward_memory[current_start:idx + 1]) > self.game_over else bool(0)
+                    alive = bool(1) if self.initial_reward + \
+                            np.sum(self.reward_memory[current_start:idx + 1]) > self.game_over else bool(0)
                 except:
-                    alive = bool(1) if self.initial_reward + np.sum(self.reward_memory[0:idx + 1]) > self.game_over else bool(0) 
+                    alive = bool(1) if self.initial_reward + \
+                            np.sum(self.reward_memory[0:idx + 1]) > self.game_over else bool(0) 
                 
                 self.alive_memory[idx] = alive
 
@@ -135,9 +142,10 @@ class ReplayBuffer():
          
         self.mem_idx += 1
 
-    def _contruct_history(self, step: int, epis_history: np.ndarray) -> Tuple[np.ndarray, np.ndarray, bool]:
+    def _contruct_history(self, step: int, epis_history: np.ndarray) -> Tuple[np.ndarray, np.ndarray, 
+                          np.ndarray, bool]:
         """
-        Given a single mini-batch sample (or step), obtain the history of rewards, states,
+        Given a single mini-batch sample (or step), obtain the history of rewards, state-action pairs,
         and whether previous states where 'alive' (non-ergodicity).
 
         Parameters:
@@ -147,9 +155,11 @@ class ReplayBuffer():
         Returns:
             rewards: sample reward history
             states: sample state history
+            actions: sample action history
             alive_states: sample life history
         """
         # find which episode the sample step is located
+        # for environments composed of a single never-ending training episode this will not work
         try:
             sample_idx = int(np.max(np.where(step - epis_history > 0)) + 1) if step > epis_history[0] else 0
             n_rewards = step - epis_history[sample_idx - 1] if step > epis_history[0] else step
@@ -162,25 +172,30 @@ class ReplayBuffer():
         try:
             rewards = self.epis_reward_memory[sample_idx][0:n_rewards + 1]
             states = self.epis_state_memory[sample_idx][0:n_rewards + 1]
+            actions = self.epis_action_memory[sample_idx][0:n_rewards + 1]
         except:
             try:
                 # used for the first episode
                 rewards = self.epis_reward_memory[0][0:n_rewards + 1]
-                states = self.epis_state_memory[0][0:n_rewards + 1]               
+                states = self.epis_state_memory[0][0:n_rewards + 1]
+                actions = self.epis_action_memory[0][0:n_rewards + 1]
+
             except:
                 try:
                     # used for the the very first training step of the first episode
                     rewards = self.epis_reward_memory[0][0]
                     states = self.epis_state_memory[0][0]
+                    actions = self.epis_action_memory[0][0]
+
                 except:
                     # required for intialisation
                     rewards = 0
                     states = 0
-                    
+                    actions = 0
             
         if self.dyna == 'A':
             alive_states = False
-            return rewards, states, alive_states
+            return rewards, states, actions, alive_states
 
         else:
             # log of whether cumulative episode reward exceeds minimum threshold for step 
@@ -195,9 +210,9 @@ class ReplayBuffer():
                     except:
                         alive_states = False
 
-        return rewards, states, alive_states
+        return rewards, states, actions, alive_states
     
-    def _episode_rewards_states(self, batch: List[int]) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def _episode_rewards_states_actions(self, batch: List[int]) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         Collect respective histories for each sample in the mini-batch.
 
@@ -207,30 +222,34 @@ class ReplayBuffer():
         Returns:
             sample_epis_rewards: mini-batch reward history
             sample_epis_states: mini-batch state history
+            sample_epis_actions: mini-batch actions history 
             sample_epis_alive: mini-batch life history
         """
         epis_history = np.array(self.epis_idx)
         batch_histories = [self._contruct_history(step, epis_history) for step in batch]
         sample_epis_rewards = [x[0] for x in batch_histories]
         sample_epis_states = [x[1] for x in batch_histories]
+        sample_epis_actions = [x[2] for x in batch_histories]
 
         if self.dyna == 'A':
             sample_epis_alive = False
-            return sample_epis_rewards, sample_epis_states, sample_epis_alive
+            return sample_epis_rewards, sample_epis_states, sample_epis_actions, sample_epis_alive
 
         else:
-            sample_epis_alive = [x[2] for x in batch_histories]
+            sample_epis_alive = [x[3] for x in batch_histories]
 
-        return sample_epis_rewards, sample_epis_states, sample_epis_alive
+        return sample_epis_rewards, sample_epis_states, sample_epis_actions, sample_epis_alive
 
-    def _multi_step_rewards_and_states(self, reward_history: np.ndarray, state_history: np.ndarray, 
-                                       multi_length: int) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def _multi_step_rewards_states_actions(self, reward_history: np.ndarray, state_history: np.ndarray, 
+                                           action_history: np.ndarray, multi_length: int) -> Tuple[np.ndarray, 
+                                           np.ndarray, np.ndarray, np.ndarray]:
         """
-        For a single mini-batch sample, generate multi-step rewards and identify intial state.
+        For a single mini-batch sample, generate multi-step rewards and identify intial state-action pair.
 
         Parameters:
             reward_history: entire reward history of sample
             state_history: entire state history of sample
+            action_history: entire action history of sample
             multi_length: minimum of length of episode or multi-steps
 
         Returns:
@@ -243,48 +262,54 @@ class ReplayBuffer():
         # the sampled step is treated as the (n-1)th step  
         multi_reward = sum([self.gamma**t * reward_history[-idx + t] for t in range(idx - 1)])
         intial_state = state_history[-idx]
+        intial_action = action_history[-idx]
  
         if self.dyna == 'A':
             cum_reward = False
-            return multi_reward, intial_state, cum_reward
+            return multi_reward, intial_state, intial_action, cum_reward
 
         else:
             cum_reward = sum([reward_history[-idx + t] for t in range(idx - 1)])
 
-        return multi_reward, intial_state, cum_reward
+        return multi_reward, intial_state, intial_action, cum_reward
     
-    def _multi_step_batch(self, step_rewards: List[np.ndarray], step_states: List[np.ndarray]) \
-                          -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def _multi_step_batch(self, step_rewards: List[np.ndarray], step_states: List[np.ndarray],
+                          step_actions: List[np.ndarray])-> Tuple[np.ndarray, np.ndarray, np.ndarray,
+                          np.ndarray, np.ndarray]:
         """
-        Collect respective multi-step returns and intial states for each sample in the mini-batch.
+        Collect respective multi-step returns and intial state-action pairs for each sample in the mini-batch.
 
         Parameters:
             step_rewards: complete reward history of entire mini-batch
             step_states: complete state history of entire mini-batch
+            step_actions: complete action history of entire mini-batch
 
         Returns:
             batch_multi_reward: discounted sum of multi-step rewards
             batch_intial_state: array of intial state before bootstrapping
+            batch_intial_action: array of intial action before bootstrapping
             batch_cum_rewards: undiscounted sum of rewards
             eff_length: effective n-step bootstrapping length
         """
         # effective length taken to be the minimum of either history length or multi-steps
         eff_length = np.minimum(np.array([x.shape[0] for x in step_rewards]), self.multi_steps)
 
-        batch_multi = [self._multi_step_rewards_and_states(step_rewards[x], step_states[x], eff_length[x]) 
+        batch_multi = [self._multi_step_rewards_states_actions(step_rewards[x], step_states[x], 
+                                                               step_actions[x], eff_length[x]) 
                        for x in range(self.batch_size)]
 
         batch_multi_rewards = np.array([batch_multi[x][0] for x in range(self.batch_size)])
         batch_states = np.array([batch_multi[x][1] for x in range(self.batch_size)])
+        batch_actions = np.array([batch_multi[x][2] for x in range(self.batch_size)])
         
         if self.dyna == 'A':
             batch_cum_rewards = False
-            return batch_multi_rewards, batch_states, batch_cum_rewards, eff_length
+            return batch_multi_rewards, batch_states, batch_actions, batch_cum_rewards, eff_length
 
         else:
-            batch_cum_rewards = np.array([batch_multi[x][2] for x in range(self.batch_size)])
+            batch_cum_rewards = np.array([batch_multi[x][3] for x in range(self.batch_size)])
 
-        return batch_multi_rewards, batch_states, batch_cum_rewards, eff_length
+        return batch_multi_rewards, batch_states, batch_actions, batch_cum_rewards, eff_length
 
     def sample_exp(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
@@ -302,7 +327,7 @@ class ReplayBuffer():
         if self.dyna == 'A':
             # pool batch from either partial or fully populated buffer
             max_mem = min(self.mem_idx, self.mem_size)
-            batch = np.random.choice(max_mem, size=self.batch_size)
+            batch = np.random.choice(max_mem, size=self.batch_size, replace=False)
 
             states = self.state_memory[batch]
             actions = self.action_memory[batch]
@@ -313,15 +338,15 @@ class ReplayBuffer():
             eff_length = 1
 
             if self.multi_steps > 1:
-                step_rewards, step_states, _ = self._episode_rewards_states(batch)
-                rewards, states, _, eff_length = self._multi_step_batch(step_rewards, step_states)
+                step_rewards, step_states, step_actions, _ = self._episode_rewards_states_actions(batch)
+                rewards, states, actions, _, eff_length = self._multi_step_batch(step_rewards, step_states, step_actions)
 
             return states, actions, rewards, next_states, dones, epis_rewards, eff_length
 
         else:
             # pool batch from 'living' states
             alive_mem = np.where(self.alive_memory == True)[0]
-            batch = np.random.choice(alive_mem, size=self.batch_size)
+            batch = np.random.choice(alive_mem, size=self.batch_size, replace=False)
             # print(alive_mem)
 
             states = self.state_memory[batch]
@@ -330,13 +355,13 @@ class ReplayBuffer():
             next_states = self.next_state_memory[batch]
             dones = self.terminal_memory[batch]
 
-            step_rewards, step_states, step_alive = self._episode_rewards_states(batch)
+            step_rewards, step_states, step_actions, step_alive = self._episode_rewards_states_actions(batch)
             epis_rewards = np.array([self.initial_reward + np.sum(x) for x in step_rewards]) - rewards
             eff_length = 1
 
             if self.multi_steps > 1:
                 epis_rewards += rewards
-                rewards, states, cum_rewards, eff_length = self._multi_step_batch(step_rewards, step_states)
+                rewards, states, actions, cum_rewards, eff_length = self._multi_step_batch(step_rewards, step_states)
                 epis_rewards -= cum_rewards
             
         return states, actions, rewards, next_states, dones, epis_rewards, eff_length
