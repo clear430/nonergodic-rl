@@ -58,6 +58,7 @@ inputs = {
     'multi_steps': 1,                           # bootstrapping of target critic values and discounted rewards
     'trail': 50,                                # moving average of training episode scores used for model saving
     'cauchy_scale': 1,                          # Cauchy scale parameter initialisation value
+    'continue': False,                          # whether to continue learning with same parameters across trials
 
     # critic loss aggregation
     'critic_mean_type': 'E',                    # critic mean estimation method either empirical 'E' or shadow 'S' 
@@ -73,7 +74,7 @@ inputs = {
     'r_abs_zero': None,                         # defined absolute zero value for rewards
      
     # execution parameters
-    'n_trials': 2,                              # number of total unique training trials
+    'n_trials': 3,                              # number of total unique training trials
     'n_cumsteps': 4e4,                          # maximum cumulative steps per trial (must be greater than warmup)
     'eval_freq': 1e3,                           # interval of steps between evaluation episodes
     'max_eval_reward': 1e4,                     # maximum reward per evaluation episode
@@ -91,8 +92,8 @@ gym_envs = {
         '5': ['InvertedDoublePendulumBulletEnv-v0', 9, 1, 1e3], 
         '6': ['HopperBulletEnv-v0', 15, 3, 1e3], 
         '7': ['Walker2DBulletEnv-v0', 22, 6, 1e3],
-        '8': ['HalfCheetahBulletEnv-v0', 26, 6, 1e4], 
-        '9': ['AntBulletEnv-v0', 28, 8, 1e4], 
+        '8': ['HalfCheetahBulletEnv-v0', 26, 6, 1e4],    # composed of a single training episode (can't use multi-steps)
+        '9': ['AntBulletEnv-v0', 28, 8, 1e4],            # composed of a single training episode (can't use multi-steps)
         '10': ['HumanoidBulletEnv-v0', 44, 17, 1e4], 
         # KOD*LAB quadruped direct-drive legged robots ported to PyBullet
         '11': ['MinitaurBulletEnv-v0', 28, 8, 1e4],
@@ -129,10 +130,12 @@ if __name__ == '__main__':
                     time_log, score_log, step_log, logtemp_log, loss_log, loss_params_log = [], [], [], [], [], []
                     cum_steps, eval_run, episode = 0, 0, 1
                     best_score = env.reward_range[0]
-                    # inputs['initial_logtemp'] = logtemp if round > 1 else False    # load existing SAC parameter to continue learning
+                    if inputs['continue'] == True:
+                        inputs['initial_logtemp'] = logtemp if round > 1 else False    # load existing SAC parameter to continue learning
 
                     agent = Agent_td3(env, inputs) if inputs['algo'] == 'TD3' else Agent_sac(env, inputs)
-                    # agent.load_models() if round > 1 else False    # load existing actor-critic parameters to continue learning
+                    if inputs['continue'] == True:
+                        agent.load_models() if round > 1 else False    # load existing actor-critic parameters to continue learning
 
                     while cum_steps < int(inputs['n_cumsteps']):
                         start_time = time.perf_counter()            
@@ -205,6 +208,6 @@ if __name__ == '__main__':
 
                 if inputs['n_trials'] > 1:
                     plots.plot_trial_curve(inputs, trial_log, directory+'_trial.png')    # plot of agent training with linear interpolation across all trials
-                    # plots.plot_eval_curve(inputs, eval_log, directory+'_eval.png')     # plot of agent evaluation round scores across all trials
+                    # plots.plot_eval_curve(inputs, eval_log, directory+'_eval.png')       # plot of agent evaluation round scores across all trials
                     plots.plot_eval_loss_2d(inputs, eval_log, directory+'_2d.png')       # plot of agent evaluation round scores and training critic losses across all trials
                     plots.plot_eval_loss_3d(inputs, eval_log, directory+'_3d.png')       # 3D plot of agent evaluation round scores and training critic losses across all trials

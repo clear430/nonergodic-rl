@@ -27,7 +27,7 @@ def eval_policy(agent: object, inputs: dict, eval_log: np.ndarray, cum_steps: in
         loss_params: values of Cauchy scale parameters and kernel sizes for critics
     """
     print('{} {}-{}-{}-{} {} Evaluations cst {}:'.format(datetime.now().strftime('%d %H:%M:%S'), 
-    inputs['algo'], inputs['s_dist'], inputs['loss_fn'], round+1, inputs['n_eval'], cum_steps))
+    inputs['algo'], inputs['s_dist'], inputs['loss_fn'], round+1, int(inputs['n_eval']), cum_steps))
 
     print('{} Training Summary: T/Cg/Cs {:1.2f}/{:1.2f}/{:1.2f}, C/A {:1.1f}/{:1.1f}'
     .format(datetime.now().strftime('%d %H:%M:%S'), np.exp(logtemp), sum(loss_params[0:2])/2, 
