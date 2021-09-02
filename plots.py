@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
 import numpy as np
 import torch as T
 from typing import List
@@ -880,7 +881,7 @@ def plot_inv1(inv1_data: np.ndarray, inv1_data_T: np.ndarray, filename_png: str)
     """
     nlevs = inv1_data.shape[0]
     investors = inv1_data_T.shape[1]
-    levs = (inv1_data[:, 9, 0] * 100).tolist()
+    levs = (inv1_data[:, -1, 0] * 100).tolist()
     levs = [str(int(levs[l]))+'%' for l in range(nlevs)]
     x_steps = np.arange(0, inv1_data.shape[2])
     cols = ['C'+str(x) for x in range(nlevs)]
@@ -976,38 +977,55 @@ def plot_inv2(inv2_data: np.ndarray, filename_png: str):
     x_steps = np.arange(0, inv2_data.shape[3])
     cols = ['C'+str(x) for x in range(3)]
 
+    avg_col = mpatches.Patch(color=cols[0], label='Complete Sample', alpha=0.8)
+    top_col = mpatches.Patch(color=cols[1], label='Top Sample', alpha=0.8)
+    adj_col = mpatches.Patch(color=cols[2], label='Adjusted Sample', alpha=0.8)
+
     fig, axs = plt.subplots(nrows=1, ncols=2, figsize=(8, 3))
     
-    max_x = 30
+    max_x = 30         # maximum number of time steps to be plotted
+    value_0 = 1e2      # intial portfolio value of each investor
 
     for sub in range(3):
-            
             val = inv2_data[0, 0, sub, :max_x].reshape(-1)
-            val = np.log10(val)
+            mad = inv2_data[0, 0, 3 + sub, :max_x].reshape(-1)
+            mad_up = (val + mad).reshape(-1)
+            mad_lo = np.maximum(inv2_data[0, 0, -2, 0] * value_0, val - mad).reshape(-1)
+            med_val = inv2_data[0, 0, 9 + sub, :max_x].reshape(-1)
 
-            axs[0].plot(x_steps[:max_x], val, color=cols[sub], linewidth=1)
+            val, mad_up, mad_lo, med_val = np.log10(val), np.log10(mad_up), np.log10(mad_lo), np.log10(med_val)
+
+            axs[0].plot(x_steps[:max_x], med_val, color=cols[sub], linewidth=1, linestyle='dashed')
+            axs[0].fill_between(x_steps[:max_x], mad_lo, mad_up, facecolor=cols[sub], alpha=0.2)
+            axs[0].plot(x_steps[:max_x], val, color=cols[sub], linewidth=1, label='label')
+            
             axs[0].grid(True, linewidth=0.2)
     
-    axs[0].set_ylabel('Mean (log10)', size='small')
-    axs[0].text(0.5, -0.40, "(a)", size='small', transform=axs[0].transAxes)
+    axs[0].set_ylabel('Valuation (log10)', size='small')
+    axs[0].text(0.5, -0.3, "(a)", size='small', transform=axs[0].transAxes)
     axs[0].set_xlabel('Steps', size='small')
 
     for sub in range(3):
+            lev = inv2_data[0, 0, 12 + sub, :max_x].reshape(-1)
+            lmad = inv2_data[0, 0, 15 + sub, :max_x].reshape(-1)
+            lmad_up = (lev + lmad).reshape(-1)
+            lmad_lo = np.maximum(0, lev - lmad).reshape(-1)
+            med_lev = inv2_data[0, 0, 21 + sub, :max_x].reshape(-1)
             
-            lev = inv2_data[0, 0, 9 + sub, :max_x].reshape(-1)
-
+            axs[1].plot(x_steps[:max_x], med_lev, color=cols[sub], linewidth=1, linestyle='dashed')
+            axs[1].fill_between(x_steps[:max_x], lmad_lo, lmad_up, facecolor=cols[sub], alpha=0.2)
             axs[1].plot(x_steps[:max_x], lev, color=cols[sub], linewidth=1)
+
             axs[1].grid(True, linewidth=0.2)
-    
+
     axs[1].set_ylabel('Leverage', size='small')
-    axs[1].text(0.5, -0.40, "(b)", size='small', transform=axs[1].transAxes)
-
-
-    fig.subplots_adjust(bottom=0.3)
-    fig.legend(['Complete Sample', 'Top Sample', 'Adjusted Sample'], loc='upper center', ncol=3, frameon=False, fontsize='medium')
+    axs[1].text(0.5, -0.3, "(b)", size='small', transform=axs[1].transAxes)
+    fig.legend(handles=[avg_col, top_col, adj_col], loc='upper center', ncol=3, frameon=False, fontsize='medium')
 
     axs[0].tick_params(axis='both', which='major', labelsize='small')
     axs[1].tick_params(axis='both', which='major', labelsize='small')
+
+    fig.subplots_adjust(bottom=0.25)
 
     plt.savefig(filename_png, dpi=1000, format='png')
 
@@ -1019,27 +1037,99 @@ def plot_inv3(inv3_data: np.ndarray, filename_png: str):
         inv3_data: array of investor 3 data across all stop-losses and retention ratios
         filename_png (directory): save path of plot
     """
-    roll = inv3_data[:, 0, 19, 0]
-    stop = inv3_data[0, :, 18, 0]
+    roll = inv3_data[:, 0, -1, 0]
+    stop = inv3_data[0, :, -2, 0]
 
     r_len = roll.shape[0]
     s_len = stop.shape[0]
     adj_mean = np.zeros((r_len, s_len))
+    adj_med = np.zeros((r_len, s_len))
 
     for r in range(r_len):
         for s in range(s_len):
-            adj_mean[r, s] = inv3_data[r, s, 2, -1] 
+            adj_mean[r, s] = inv3_data[r, s, 2, -1]
+            adj_med[r, s] = inv3_data[r, s, 3, -1] 
 
-    adj_mean = np.log10(adj_mean)
+    adj_mean, adj_med = np.log10(adj_mean), np.log10(adj_med)
+
+    fig, axs = plt.subplots(nrows=1, ncols=2, figsize=(8, 3))
     
-    plt.pcolormesh(stop*100, roll*100, adj_mean, shading='gouraud', vmin=adj_mean.min(), vmax=adj_mean.max())
-    plt.colorbar()
+    im0 = axs[0].pcolormesh(stop*100, roll*100, adj_mean, shading='gouraud', vmin=adj_mean.min(), vmax=adj_mean.max())
+    im1 = axs[1].pcolormesh(stop*100, roll*100, adj_med, shading='gouraud', vmin=adj_mean.min(), vmax=adj_mean.max())
+    cb1 = fig.colorbar(im1, ax=axs[1])
 
-    plt.tick_params(axis='both', which='major', labelsize='small')
-    plt.ylabel('Retention Ratio Φ (%)', size='small')
-    plt.xlabel('Stop-Loss λ (%)', size='small')
-    plt.title('Adjusted Mean (log10)', size='medium')
+    axs[0].tick_params(axis='both', which='major', labelsize='small')
+    axs[0].set_ylabel('Retention Ratio Φ (%)', size='small')
+    axs[0].set_xlabel('Stop-Loss λ (%)', size='small')
+    axs[0].set_title('Adjusted Mean (log10)', size='medium')
+    axs[0].text(0.5, -0.325, "(a)", size='small', transform=axs[0].transAxes)
 
+    axs[1].tick_params(axis='both', which='major', labelsize='small')
+    axs[1].set_ylabel('', size='small')
+    axs[1].set_xlabel('', size='small')
+    axs[1].set_title('Adjusted Median (log10)', size='medium')
+    axs[1].text(1.5, -0.325, "(b)", size='small', transform=axs[0].transAxes)
+    cb1.ax.tick_params(labelsize='small')
+
+    fig.subplots_adjust(bottom=0.25)
+
+    plt.savefig(filename_png, dpi=1000, format='png')
+
+def plot_inv4(inv4_data: np.ndarray, filename_png: str):
+    """
+    Investor 4 density plots for only three probabilities.
+
+    Parameters:
+        inv4_data: array of investor 4 data across various returns and three probabilities.
+        filename_png (directory): save path of plot
+    """
+    pu_len, ru_len, rd_len, _ = inv4_data.shape
+
+    pu = inv4_data[:, 0, 0, 0]
+    ru = inv4_data[0, :, 0, 1]
+    rd = inv4_data[0, 0, :, 2]
+
+    kelly = np.zeros((pu_len, ru_len, rd_len))
+
+    for q in range(pu_len):
+        for r in range(ru_len):
+            for s in range(rd_len):
+                kelly[q, r, s] = inv4_data[q, r, s, 3] 
+
+    fig, axs = plt.subplots(nrows=1, ncols=int(pu_len), figsize=(10, 3))
+
+    im0 = axs[0].pcolormesh(rd * 100, ru * 100, kelly[0], shading='gouraud', vmin=kelly[0].min(), vmax=kelly[0].max())
+    cb0 = fig.colorbar(im0, ax=axs[0])
+
+    im1 = axs[1].pcolormesh(rd * 100, ru * 100, kelly[1], shading='gouraud', vmin=kelly[1].min(), vmax=kelly[1].max())
+    cb1 = fig.colorbar(im1, ax=axs[1])
+
+    im2 = axs[2].pcolormesh(rd * 100, ru * 100, kelly[2], shading='gouraud', vmin=kelly[2].min(), vmax=kelly[2].max())
+    cb2 = fig.colorbar(im2, ax=axs[2])
+
+    axs[0].tick_params(axis='both', which='major', labelsize='small')
+    axs[0].set_ylabel('Up Return (%)', size='small')
+    axs[0].set_xlabel('Down Return (%)', size='small')
+    axs[0].set_title(str(int(pu[0] * 100))+'% Up Probability', size='medium')
+    axs[0].text(0.5, -0.325, "(a)", size='small', transform=axs[0].transAxes)
+    cb0.ax.tick_params(labelsize='small')
+
+    axs[1].tick_params(axis='both', which='major', labelsize='small')
+    axs[1].set_ylabel('', size='small')
+    axs[1].set_xlabel('', size='small')
+    axs[1].set_title(str(int(pu[1] * 100))+'% Up Probability', size='medium')
+    axs[1].text(2, -0.325, "(b)", size='small', transform=axs[0].transAxes)
+    cb1.ax.tick_params(labelsize='small')
+
+    axs[2].tick_params(axis='both', which='major', labelsize='small')
+    axs[2].set_ylabel('', size='small')
+    axs[2].set_xlabel('', size='small')
+    axs[2].set_title(str(int(pu[2] * 100))+'% Up Probability', size='medium')
+    axs[2].text(3.5, -0.325, "(c)", size='small', transform=axs[0].transAxes)
+    cb2.ax.tick_params(labelsize='small')
+
+    fig.subplots_adjust(bottom=0.25)
+    
     plt.savefig(filename_png, dpi=1000, format='png')
 
 def loss_fn_plot(filename_png: str):
