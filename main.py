@@ -35,13 +35,13 @@ inputs = {
     'reparam_noise': 1e-6,                      # miniscule constant to keep logarithm bounded
 
     # TD3 hyperparameters          
-    'td3_actor_learn_rate': 1e-3,
-    'td3_critic_learn_rate': 1e-3,
-    'td3_layer_1_units': 400,
-    'td3_layer_2_units': 300,
-    'td3_actor_step_update': 2,
+    'td3_actor_learn_rate': 1e-3,               # ibid.
+    'td3_critic_learn_rate': 1e-3,              # ibid.
+    'td3_layer_1_units': 400,                   # ibid.
+    'td3_layer_2_units': 300,                   # ibid.
+    'td3_actor_step_update': 2,                 # ibid.
     'td3_target_actor_update': 2,               # target actor network update frequency (steps)
-    'td3_target_critic_update': 2,
+    'td3_target_critic_update': 2,              # ibid.
     'policy_noise': 0.1,                        # Gaussian exploration noise added to next actions
     'target_policy_noise': 0.2,                 # Gaussian noise added to next target actions as a regulariser
     'target_policy_clip': 0.5,                  # Clipping of Gaussian noise added to next target actions
@@ -82,9 +82,11 @@ inputs = {
     }
 
 gym_envs = {
+        # ENV_KEY: [env_id, input_dim, action_dim, intial warmup steps (generate random seed)]
+
         # OpenAI Box2D continuous control tasks
         '0': ['LunarLanderContinuous-v2', 8, 2, 1e3], 
-        '1': ['BipedalWalker-v3', 24, 4, 1e3],              # [env_id, input_dim, action_dim, generate random seed (steps)]
+        '1': ['BipedalWalker-v3', 24, 4, 1e3],              
         '2': ['BipedalWalkerHardcore-v3', 24, 4, 1e3],
         # Roboschool environments ported to PyBullet
         '3': ['CartPoleContinuousBulletEnv-v0', 4, 1, 1e3], 
@@ -98,7 +100,7 @@ gym_envs = {
         # KOD*LAB quadruped direct-drive legged robots ported to PyBullet
         '11': ['MinitaurBulletEnv-v0', 28, 8, 1e4],
         # DeepMimic simulation of a imitating Humanoid mimic ported to PyBullet
-        '12': ['HumanoidDeepMimicWalkBulletEnv-v1', 197, 36, 1e4], 
+        '12': ['HumanoidDeepMimicWalkBulletEnv-v1', 197, 36, 1e4],
         '13': ['HumanoidDeepMimicBackflipBulletEnv-v1', 197, 36, 1e4]
         }
 
@@ -120,7 +122,7 @@ if __name__ == '__main__':
         for loss_fn in surrogate_critic_loss:
             for mstep in multi_steps:
 
-                inputs['loss_fn'], inputs['algo'], inputs['multi_steps'] = loss_fn, algo, mstep
+                inputs['loss_fn'], inputs['algo'], inputs['multi_steps'] = loss_fn.upper(), algo.upper(), mstep
                 trial_log = np.zeros((inputs['n_trials'], int(inputs['n_cumsteps']), 19))
                 eval_log = np.zeros((inputs['n_trials'], int(inputs['n_cumsteps'] / inputs['eval_freq']), int(inputs['n_eval']), 20))
 
@@ -180,10 +182,14 @@ if __name__ == '__main__':
                             agent.save_models()
                             print('New high trailing score!')
 
-                        print('{} {}-{}-{}-{} ep/st/cst {}/{}/{} {:1.0f}/s: r {:1.0f}, r{} {:1.0f}, T/c/k {:1.2f}/{:1.2f}/{:1.2f}, C/Cm/A {:1.1f}/{:1.1f}/{:1.1f}, a/S {:1.2f}/{:1.0f}'
-                        .format(datetime.now().strftime('%d %H:%M:%S'), algo, inputs['s_dist'], loss_fn, round+1, 
-                            episode, step, cum_steps, step/time_log[-1], score, inputs['trail'], trail_score, np.exp(logtemp), 
-                            sum(loss_params[0:2])/2, sum(loss_params[2:4])/2, sum(loss[0:2])/2, sum(loss[4:6])/2, loss[8], sum(loss[8:10])/2, sum(loss[6:8])/2))
+                        print('{} {}-{}-{}-{} ep/st/cst {}/{}/{} {:1.0f}/s: r {:1.0f}, tr{} {:1.0f}, C/Cm/Cs {:1.1f}/{:1.1f}/{:1.0f}, a/c/k {:1.2f}/{:1.2f}/{:1.2f}, A/T {:1.1f}/{:1.2f}'
+                        .format(datetime.now().strftime('%d %H:%M:%S'), 
+                                inputs['algo'], inputs['s_dist'], inputs['loss_fn'], round+1,  episode, step, cum_steps, step/time_log[-1], 
+                                score, inputs['trail'], trail_score,  np.mean(loss[0:2]), np.mean(loss[4:6]), np.mean(loss[6:8]),
+                                np.mean(loss[8:10]), np.mean(loss_params[0:2]), np.mean(loss_params[2:4]),  loss[8], np.exp(logtemp)))
+                        # rl_algorithm-sampling_sitribution-loss_function-trial,  ep/st/cst = episode/steps/cumulative_steps,  /s = training_steps_per_second,
+                        # r = episode_reward, tr = trailing_episode_reward,  C/Cm/Cs = avg_critic_loss/max_critic_loss/shadow_critic_loss
+                        # c/k/a = avg_Cauchy_scale/avg_CIM_kernel_size/avg_tail_exponent,  A/T = avg_actor_loss/sac_entropy_temperature
 
                         episode += 1
 
