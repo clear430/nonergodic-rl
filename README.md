@@ -1,16 +1,14 @@
 # Revisiting Fundamentals of Model-Free Reinforcement Learning
 
-Implementation using Python 3.9.7 and PyTorch 1.9.0 with CUDA 11.1. 
-
-Based entirely on extending a Capstone project submitted on June 20th, 2021 at the University of Sydney in partial fulfilment of the requirements for the Master of Data Science.
-
-Code tested on both Windows 10 21H1 and Ubuntu 20.04.2.0 LTS using an AMD Ryzen 7 5800X, Nvidia RTX 3070, 64GB 3600MHz CL16 RAM, and a Samsung SSD 980 Pro. Executable on the CentOS 6.9 Linux-based Artemis HPC after manually installing or updating several packages (gym, PyBullet, PyTorch, etc.) using source wheel files.
-
 The research encompasses several overlapping areas: 
 1. Peculiarities regarding use of different critic loss functions, tail exponents, and shadow means
-2. Multi-step returns and replay buffer coupling in continuous action spaces, and tail exponents
+2. Multi-step returns and replay buffer coupling in continuous action spaces
 3. Multiplicative (or non-ergodic) reinforcement learning, with insights from the previous two areas
 4. Designing energy efficient multi-stage actors for operation in extremely remote environments
+
+Based on extending a Capstone project ([r-grewal/data5709](https://github.com/r-grewal/data5709)) submitted on June 20th, 2021 at the University of Sydney.
+
+Implementation using Python 3.9.7 and PyTorch 1.9.0 with CUDA 11.1. Code tested on Windows 10 21H1, Ubuntu 20.04 LTS, and Pop!\_OS 21.04 using an AMD Ryzen 7 5800X, Nvidia RTX 3070, 64GB RAM, and a Samsung SSD 980 Pro. 
 
 ## References
 * Reinforcement learning ([Szepesvári 2009](https://sites.ualberta.ca/~szepesva/papers/RLAlgsInMDPs.pdf), [Sutton and Bartow 2018](http://incompleteideas.net/book/RLbook2020.pdf))
@@ -27,12 +25,4 @@ The research encompasses several overlapping areas:
 ## Acknowledgements
 The Sydney Informatics Hub and the University of Sydney’s high performance computing cluster, Artemis, for providing the computing resources that have contributed to the results reported herein.
 
-The base TD3 and SAC algorithms were implemented using guidance from the following repositories.
-* [DLR-RM/stable-baelines3](https://github.com/DLR-RM/stable-baselines3)
-* [haarnoja/sac](https://github.com/haarnoja/sac)
-* [openai/spinningup](https://github.com/openai/spinningup)
-* [p-christ/Deep-Reinforcement-Learning-Algorithms-with-PyTorch](https://github.com/p-christ/Deep-Reinforcement-Learning-Algorithms-with-PyTorch)
-* [philtabor/Actor-Critic-Methods-Paper-To-Code](https://github.com/philtabor/Actor-Critic-Methods-Paper-To-Code)
-* [rail-berkley/softlearning](https://github.com/rail-berkeley/softlearning) 
-* [rlworkgroup/garage](https://github.com/rlworkgroup/garage)
-* [sfujim/TD3](https://github.com/sfujim/TD3/)
+The base TD3 and SAC algorithms were implemented using guidance from the following repositories: [DLR-RM/stable-baelines3](https://github.com/DLR-RM/stable-baselines3), [haarnoja/sac](https://github.com/haarnoja/sac), [openai/spinningup](https://github.com/openai/spinningup), [p-christ/Deep-Reinforcement-Learning-Algorithms-with-PyTorch](https://github.com/p-christ/Deep-Reinforcement-Learning-Algorithms-with-PyTorch), [philtabor/Actor-Critic-Methods-Paper-To-Code](https://github.com/philtabor/Actor-Critic-Methods-Paper-To-Code), [rail-berkley/softlearning](https://github.com/rail-berkeley/softlearning), [rlworkgroup/garage](https://github.com/rlworkgroup/garage), [sfujim/TD3](https://github.com/sfujim/TD3/)
