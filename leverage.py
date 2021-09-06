@@ -6,29 +6,32 @@ import torch as T
 from torch.distributions.bernoulli import Bernoulli
 from typing import Tuple
 
-vram = 'y'  # do you have >= 8GB of VRAM?
-if vram == 'y':
+VRAM = 'y'  # do you have >= 8GB of VRAM?
+if VRAM == 'y':
     device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
 else:
     device = T.device('cpu' if T.cuda.is_available() else 'cpu')
     # still need 8GB of free RAM or reduce number of investors
 
-investors = 1.5e5           # number of random investors
-horizon = 3e3               # total time steps
-top = investors * 1e-4      # define top performers
-value_0 = 1e2               # intial portfolio value of each investor
-up_prob = 0.5               # probability of up move
-up_r = 0.5                  # upside return (>=0)
-down_r = -0.4               # downside return (0<=)
-asym_lim = 1e-12            # offset to enforce 'optimal' leverage bound
+INVESTORS = 1.5e5           # number of random investors
+HORIZON = 3e3               # total time steps
+TOP= INVESTORS * 1e-4       # define top performers
+VALUE_0 = 1e2               # intial portfolio value of each investor
+UP_PROB = 0.5               # probability of up move
+UP_R = 0.5                  # upside return (>=0)
+DOWN_R = -0.4               # downside return (0<=)
+ASYM_LIM = 1e-12            # offset to enforce 'optimal' leverage bound
 
-investors = T.tensor(int(investors), dtype=T.int32, device=device)
-horizon = T.tensor(int(horizon), dtype=T.int32, device=device)
-value_0 = T.tensor(value_0, device=device)
-asym_lim = T.tensor(asym_lim, device=device)
-top = int(top) if top > 1 else int(1)    # minimum 1 person in the top sample
-factor = np.abs(down_r) if np.abs(up_r) > np.abs(down_r) else np.abs(up_r)
-lev_factor =  T.tensor(1 / factor, device=device)    # theoritical optimal leverage based on 'expectaions'
+INVESTORS = T.tensor(int(INVESTORS), dtype=T.int32, device=device)
+HORIZON = T.tensor(int(HORIZON), dtype=T.int32, device=device)
+VALUE_0 = T.tensor(VALUE_0, device=device)
+TOP = int(TOP) if TOP > 1 else int(1)    # minimum 1 person in the top sample
+ASYM_LIM = T.tensor(ASYM_LIM, device=device)
+
+# theoretical optimal leverage based on 'expectations'
+BIGGER_PAYOFF = np.abs(DOWN_R) if np.abs(UP_R) > np.abs(DOWN_R) else -np.abs(UP_R) 
+LEV_FACTOR = T.tensor(1 / BIGGER_PAYOFF, device=device)
+LEV_FACTOR = LEV_FACTOR - ASYM_LIM if np.abs(UP_R) > np.abs(DOWN_R) else LEV_FACTOR + ASYM_LIM
 
 def param_range(low: float, high: float, increment: float):
     """
@@ -59,7 +62,8 @@ def fixed_final_lev(outcomes: T.FloatTensor, top: int, value_0: T.FloatTensor, u
         lev_high: ending leverage
         lev_incr: leverage step sizes
     """
-    lev_range = param_range(lev_low, lev_high, lev_incr)
+    lev_range = np.array(param_range(lev_low, lev_high, lev_incr))
+    lev_range = - lev_range if -down_r > up_r else lev_range
 
     for lev in lev_range:
         
@@ -112,7 +116,9 @@ def smart_lev(outcomes: T.FloatTensor, investors: T.IntTensor, horizon: T.IntTen
         data: valuation summary statistics for each time step
         data_T: valuations at  maturity
     """
-    lev_range = param_range(lev_low, lev_high, lev_incr)
+    lev_range = np.array(param_range(lev_low, lev_high, lev_incr))
+    lev_range = - lev_range if -down_r > up_r else lev_range
+
 
     data = T.zeros((len(lev_range), 3 * 4 + 1, horizon - 1))
     data_T = T.zeros((len(lev_range), investors))
@@ -161,7 +167,7 @@ def smart_lev(outcomes: T.FloatTensor, investors: T.IntTensor, horizon: T.IntTen
 
     return data.cpu().numpy(), data_T.cpu().numpy()
 
-def optimal_lev(value_t: float, value_0: float, value_min: float, lev_factor: float, roll: float, asym_lim: T.FloatTensor) -> float:
+def optimal_lev(value_t: float, value_0: float, value_min: float, lev_factor: float, roll: float) -> float:
     """
     Calculate optimal leverage besed on either rolling or fixed stop loss at each time step.
 
@@ -171,25 +177,22 @@ def optimal_lev(value_t: float, value_0: float, value_min: float, lev_factor: fl
         value_min: global stop-loss
         lev_factor: maximum leverage to not be stopped out by a single move
         roll: retention ratio
-        asym_limit: small constant to enforce leverage bounds 
     """
     if roll == 0:
         rolling_loss = value_min
         value_roll = T.maximum(value_min, rolling_loss)
-        opt_lev = lev_factor * (1 - value_roll / value_t) - asym_lim
-        opt_lev = T.max(opt_lev, asym_lim)
+        opt_lev = lev_factor * (1 - value_roll / value_t)
 
     else:
         rolling_loss = T.where(value_t <= value_0, value_min, value_0 + roll * (value_t - value_0)) 
-        opt_lev = lev_factor * (1 - rolling_loss / value_t) - asym_lim
-        opt_lev = T.maximum(opt_lev, asym_lim)
+        opt_lev = lev_factor * (1 - rolling_loss / value_t)
         
     return opt_lev
 
 def big_brain_lev(outcomes: T.FloatTensor, investors: T.IntTensor, horizon: T.IntTensor, top: int, 
                   value_0: T.FloatTensor, up_r: T.FloatTensor, down_r: T.FloatTensor, lev_factor: float, 
-                  asym_lim: T.FloatTensor, stop_min: float, stop_max: float, stop_incr: float, roll_max: float, 
-                  roll_min: float, roll_incr: float) -> np.ndarray:
+                  stop_min: float, stop_max: float, stop_incr: float, roll_max: float, roll_min: float, 
+                  roll_incr: float) -> np.ndarray:
     """
     Valuations across all time for variable stop-losses and retention ratios that calculates optimal leverage
     at each time step for each investor.
@@ -203,7 +206,6 @@ def big_brain_lev(outcomes: T.FloatTensor, investors: T.IntTensor, horizon: T.In
         up_r: return if up move
         down_r: return if down move
         lev_factor: maximum leverage to not be stopped out by a single move
-        asym_limit: small constant to enforce leverage bounds 
         stop_low: starting stop-loss
         stop_high: ending stop-loss
         stop_incr: stop-loss step sizes
@@ -229,12 +231,12 @@ def big_brain_lev(outcomes: T.FloatTensor, investors: T.IntTensor, horizon: T.In
             
             value_min = stop_level * value_0
             
-            lev = optimal_lev(value_0, value_0, value_min, lev_factor, roll_level, asym_lim)
+            lev = optimal_lev(value_0, value_0, value_min, lev_factor, roll_level)
             sample_lev = T.ones((1, investors), device=device) * lev
             
             initial = value_0 * (1 + lev * gambles[:, 0])
 
-            sample_lev = optimal_lev(initial, value_0, value_min, lev_factor, roll_level, asym_lim)
+            sample_lev = optimal_lev(initial, value_0, value_min, lev_factor, roll_level)
 
             for t in range(horizon - 1):
                 sort_lev = sample_lev.sort(descending=True)[0]
@@ -261,7 +263,7 @@ def big_brain_lev(outcomes: T.FloatTensor, investors: T.IntTensor, horizon: T.In
                 value_t = initial * (1 + sample_lev * gambles[:, t + 1])
                 initial = value_t
 
-                sample_lev = optimal_lev(initial, value_0, value_min, lev_factor, roll_level, asym_lim)
+                sample_lev = optimal_lev(initial, value_0, value_min, lev_factor, roll_level)
                 
                 sort_value = value_t.sort(descending=True)[0]
                 top_value = sort_value[0:top]
@@ -345,20 +347,20 @@ if __name__ == '__main__':
     start_time = time.perf_counter()
 
     # T.manual_seed(420)    # set fixed seed for reproducibility
-    # probabilites = Bernoulli(up_prob)
-    # outcomes = probabilites.sample(sample_shape=(investors, horizon)).to(device)
+    # probabilites = Bernoulli(UP_PROB)
+    # outcomes = probabilites.sample(sample_shape=(INVESTORS, HORIZON)).to(device)
 
-    # fixed_final_lev(outcomes, top, value_0, up_r, down_r, lev_low=0.05, lev_high=1.0, lev_incr=0.05)
+    # fixed_final_lev(outcomes, TOP, VALUE_0, UP_R, DOWN_R, lev_low=0.05, lev_high=1.0, lev_incr=0.05)
 
-    # inv1_val_data, inv1_val_data_T = smart_lev(outcomes, investors, horizon, top, value_0, up_r, down_r,
+    # inv1_val_data, inv1_val_data_T = smart_lev(outcomes, INVESTORS, HORIZON, TOP, VALUE_0, UP_R, DOWN_R,
     #                                            lev_low=0.1, lev_high=1, lev_incr=0.1)
     
-    # inv2_val_data = big_brain_lev(outcomes, investors, horizon, top, value_0, up_r, down_r, lev_factor, 
-    #                               asym_lim, stop_min=0.1, stop_max=0.1, stop_incr=0.1, roll_max=0.0,
+    # inv2_val_data = big_brain_lev(outcomes, INVESTORS, HORIZON, TOP, VALUE_0, UP_R, DOWN_R, LEV_FACTOR 
+    #                               stop_min=0.1, stop_max=0.1, stop_incr=0.1, roll_max=0.0,
     #                               roll_min=0.0, roll_incr=0.1)
 
-    # inv3_val_data = big_brain_lev(outcomes, investors, horizon, top, value_0, up_r, down_r, lev_factor, 
-    #                               asym_lim, stop_min=0.05, stop_max=0.95, stop_incr=0.05, roll_max=0.95,
+    # inv3_val_data = big_brain_lev(outcomes, INVESTORS, HORIZON, TOP, VALUE_0, UP_R, DOWN_R, LEV_FACTOR, 
+    #                               stop_min=0.05, stop_max=0.95, stop_incr=0.05, roll_max=0.95,
     #                               roll_min=0.70, roll_incr=0.05)
 
     # inv4_lev_data = galaxy_brain_lev(ru_min=0.2, ru_max=0.8, ru_incr=0.005, rd_min=0.2, rd_max=0.8, 
