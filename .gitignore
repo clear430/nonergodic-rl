@@ -1,12 +1,14 @@
 *.pyc
 
-gbm_stock_trading_env.py
+gbm_equity_trading_env.py
 notepad.py
+RGrewal_Draft.pdf
 rl_portfolio_mngt.py
-rl_simulated_backtests.py
+rl_market_backtests.py
 
-__pycache__/
+arxiv_drafts/
 asset_valuations/
 figs/
 historical_prices/
+latex/
 models/
