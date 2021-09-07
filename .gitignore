@@ -3,7 +3,10 @@
 gbm_stock_trading_env.py
 notepad.py
 rl_portfolio_mngt.py
+rl_simulated_backtests.py
 
 __pycache__/
+asset_valuations/
 figs/
+historical_prices/
 models/
