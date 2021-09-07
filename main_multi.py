@@ -66,34 +66,27 @@ inputs = {
 gym_envs = {
         # ENV_KEY: [env_id, input_dim, action_dim, intial warmup steps (generate random seed)]
 
-        # single asset investor categories for the equally likely +50%/-40% gamble
-        '1': ['SimpleInv1_1x', 1, 1, 3e3], 
-        '2': ['SimpleInv2_1x', 1, 2, 3e3],           
-        '3': ['SimpleInv3_1x', 1, 3, 3e3],
-        
-        # double asset investor categories for the equally likely +50%/-40% gamble
-        '4': ['SimpleInv1_2x', 3, 2, 3e3],
-        '5': ['SimpleInv2_2x', 3, 3, 3e3],
-        '6': ['SimpleInv3_2x', 3, 4, 3e3]
+        # three investor categories for the equally likely +50%/-40% gamble
+        # portfolio of one asset 
+        '1': ['Investor1_1x', 1, 1, 3e3], 
+        '2': ['Investor2_1x', 1, 2, 3e3],           
+        '3': ['Investor3_1x', 1, 3, 3e3],
+        # portfolio of two identical assets
+        '4': ['Investor1_2x', 3, 2, 3e3],
+        '5': ['Investor2_2x', 3, 3, 3e3],
+        '6': ['Investor3_2x', 3, 4, 3e3],
+        # portfolio of ten identical assets
+        '7': ['Investor1_10x', 11, 11, 3e3],
+        '8': ['Investor2_10x', 11, 12, 3e3],
+        '9': ['Investor3_10x', 11, 13, 3e3]
         }
 
-ENV_KEY = 6
+ENV_KEY = 9
 algo_name = ['TD3']                # off-policy model 'TD3'
 surrogate_critic_loss = ['MSE']    # 'MSE', 'Huber', 'MAE', 'HSC', 'Cauchy', 'CIM', 'MSE2', 'MSE4', 'MSE6'
 multi_steps = [1]                  # 1
 
-if ENV_KEY == 1:
-    env = multi_envs.Investor1_1x()
-elif ENV_KEY == 2:
-    env = multi_envs.Investor2_1x()
-elif ENV_KEY == 3:
-    env = multi_envs.Investor3_1x()
-elif ENV_KEY == 4:
-    env = multi_envs.Investor1_2x()
-elif ENV_KEY == 5:
-    env = multi_envs.Investor2_2x()
-elif ENV_KEY == 6:
-    env = multi_envs.Investor3_2x()
+env = eval('multi_envs.'+gym_envs[str(ENV_KEY)][0]+'()')
 
 inputs = {'input_dims': env.observation_space.shape, 'num_actions': env.action_space.shape[0], 
           'max_action': env.action_space.high.min(), 'min_action': env.action_space.low.max(),    # assume all elements span equal domain 
@@ -111,6 +104,7 @@ if __name__ == '__main__':
                 for round in range(inputs['n_trials']):
 
                     time_log, score_log, step_log, logtemp_log, loss_log, loss_params_log = [], [], [], [], [], []
+                    agent = Agent_td3(env, inputs)
                     cum_steps, eval_run, episode = 0, 0, 1
                     best_score = env.reward_range[0]
 
@@ -143,7 +137,7 @@ if __name__ == '__main__':
                             logtemp_log.append(logtemp)
                             loss_params_log.append(loss_params)
 
-                            print('ep/st/cst {}/{}/{} {:1.0f}/s: V/g/[risk] ${}/{:1.6f}%/{}, C/Cm/Cs {:1.1f}/{:1.1f}/{:1.0f}, a/c/k/A {:1.2f}/{:1.2f}/{:1.2f}/{:1.2f}'
+                            print('ep/st/cst {}/{}/{} {:1.0f}/s: V/g/[risk] ${}/{:1.6f}%/{}, C/Cm/Cs {:1.2f}/{:1.2f}/{:1.2f}, a/c/k/A {:1.2f}/{:1.2f}/{:1.2f}/{:1.2f}'
                                   .format(episode, step, cum_steps, step/time_log[-1], state[0], reward*100, np.round(risk*100, 0), np.mean(loss[0:2]), 
                                           np.mean(loss[4:6]), np.mean(loss[6:8]),np.mean(loss[8:10]), np.mean(loss_params[0:2]), np.mean(loss_params[2:4]), loss[8]))
 
