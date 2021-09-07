@@ -3,7 +3,7 @@ import matplotlib.patches as mpatches
 import numpy as np
 import torch as T
 from typing import List
-import utils
+import extras.utils as utils
 
 def get_exponent(array: np.ndarray) -> int:
     """
@@ -1134,6 +1134,9 @@ def plot_inv4(inv4_data: np.ndarray, filename_png: str):
 
 def loss_fn_plot(filename_png: str):
     """
+    Plot of critic loss functions about the origin.
+
+    Parameters:
         filename_png (directory): save path of plot
     """
     pdf = T.distributions.normal.Normal(0, 10)

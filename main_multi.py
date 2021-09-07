@@ -1,14 +1,12 @@
-from algo_td3 import Agent_td3
+from algos.algo_td3 import Agent_td3
 from datetime import datetime
-import gbm_envs
-import gym
+import envs.gbm_envs as gbm_envs
+import envs.coin_flip_envs as coin_flip_envs
+import extras.plots as plots
+import extras.utils as utils
 import numpy as np
 import os
-import plots
-import pybullet_envs
-import multi_envs
 import time
-import utils
 
 assert hasattr(Agent_td3, 'select_next_action'), 'missing agent action selection'
 assert hasattr(Agent_td3, 'store_transistion'), 'missing transition storage functionality'
@@ -85,13 +83,13 @@ gym_envs = {
         '10': ['Investor1GBM_1x', 1, 1, 3e3]
         }
 
-ENV_KEY = 10
+ENV_KEY = 9
 algo_name = ['TD3']                # off-policy model 'TD3'
 surrogate_critic_loss = ['MSE']    # 'MSE', 'Huber', 'MAE', 'HSC', 'Cauchy', 'CIM', 'MSE2', 'MSE4', 'MSE6'
 multi_steps = [1]                  # 1
 
 if ENV_KEY <= 9:
-    env = eval('multi_envs.'+gym_envs[str(ENV_KEY)][0]+'()')
+    env = eval('coin_flip_envs.'+gym_envs[str(ENV_KEY)][0]+'()')
 else:
     env = eval('gbm_envs.'+gym_envs[str(ENV_KEY)][0]+'()')
 

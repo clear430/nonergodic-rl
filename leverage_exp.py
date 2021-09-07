@@ -1,6 +1,6 @@
 import numpy as np
 import os
-import plots
+import extras.plots as plots
 import time
 import torch as T
 from torch.distributions.bernoulli import Bernoulli
@@ -344,7 +344,7 @@ if __name__ == '__main__':
 
     ## run experiments
 
-    start_time = time.perf_counter()
+    # start_time = time.perf_counter()
 
     # T.manual_seed(420)    # set fixed seed for reproducibility
     # probabilites = Bernoulli(UP_PROB)
@@ -366,8 +366,8 @@ if __name__ == '__main__':
     # inv4_lev_data = galaxy_brain_lev(ru_min=0.2, ru_max=0.8, ru_incr=0.005, rd_min=0.2, rd_max=0.8, 
     #                                  rd_incr=0.005, pu_min=0.25, pu_max=0.75, pu_incr=0.25)
     
-    end_time = time.perf_counter()
-    print('time: {:1.1f}'.format(end_time-start_time))
+    # end_time = time.perf_counter()
+    # print('time: {:1.1f}'.format(end_time-start_time))
 
     ## save experiment data
 
@@ -380,20 +380,20 @@ if __name__ == '__main__':
     # np.save('results\inv_data\inv3_val.npy', inv3_val_data)
     # np.save('results\inv_data\inv4_lev.npy', inv4_lev_data)
 
-    ## load experiment data and save figures
+    # load experiment data and save figures
 
-    # if not os.path.exists('./figs'):
-    #         os.makedirs('./figs')
+    if not os.path.exists('./figs'):
+            os.makedirs('./figs')
 
-    # inv4_lev_data = np.load('results\inv_data\inv4_lev.npy')
-    # plots.plot_inv4(inv4_lev_data, 'figs/inv4.png')
+    inv4_lev_data = np.load('results\inv_data\inv4_lev.npy')
+    plots.plot_inv4(inv4_lev_data, 'figs/inv4.png')
 
-    # inv3_val_data = np.load('results\inv_data\inv3_val.npy')
-    # plots.plot_inv3(inv3_val_data, 'figs/inv3.png')
+    inv3_val_data = np.load('results\inv_data\inv3_val.npy')
+    plots.plot_inv3(inv3_val_data, 'figs/inv3.png')
 
-    # inv2_val_data = np.load('results\inv_data\inv2_val.npy')
-    # plots.plot_inv2(inv2_val_data, 'figs/inv2.png')
+    inv2_val_data = np.load('results\inv_data\inv2_val.npy')
+    plots.plot_inv2(inv2_val_data, 'figs/inv2.png')
 
-    # inv1_val_data = np.load('results\inv_data\inv1_val.npy')
-    # inv1_val_data_T = np.load('results\inv_data\inv1_val_T.npy')
-    # plots.plot_inv1(inv1_val_data, inv1_val_data_T, 'figs/inv1.png')
+    inv1_val_data = np.load('results\inv_data\inv1_val.npy')
+    inv1_val_data_T = np.load('results\inv_data\inv1_val_T.npy')
+    plots.plot_inv1(inv1_val_data, inv1_val_data_T, 'figs/inv1.png')

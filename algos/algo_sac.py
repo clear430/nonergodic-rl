@@ -1,9 +1,9 @@
-from networks_sac import ActorNetwork, CriticNetwork
+from algos.networks_sac import ActorNetwork, CriticNetwork
+from extras.replay import ReplayBuffer
+import extras.utils as utils
 import numpy as np
-from replay import ReplayBuffer
 import torch as T
 from typing import Tuple
-import utils
 
 assert hasattr(ActorNetwork, 'stochastic_uv'), 'missing univariate sampling'
 assert hasattr(ActorNetwork, 'stochastic_mv_gaussian'), 'missing multi-variate Gaussian sampling'

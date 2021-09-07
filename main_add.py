@@ -1,13 +1,13 @@
-from algo_sac import Agent_sac
-from algo_td3 import Agent_td3
+from algos.algo_sac import Agent_sac
+from algos.algo_td3 import Agent_td3
 from datetime import datetime
+import extras.plots as plots
+import extras.utils as utils
 import gym
 import numpy as np
 import os
-import plots
 import pybullet_envs
 import time
-import utils
 
 assert hasattr(Agent_sac, 'select_next_action'), 'missing agent action selection'
 assert hasattr(Agent_sac, 'store_transistion'), 'missing transition storage functionality'
@@ -75,7 +75,7 @@ inputs = {
      
     # execution parameters
     'n_trials': 3,                              # number of total unique training trials
-    'n_cumsteps': 4e4,                          # maximum cumulative steps per trial (must be greater than warmup)
+    'n_cumsteps': 3e3,                          # maximum cumulative steps per trial (must be greater than warmup)
     'eval_freq': 1e3,                           # interval of steps between evaluation episodes
     'max_eval_reward': 1e4,                     # maximum reward per evaluation episode
     'n_eval': 1e2                               # number of evalution episodes
@@ -105,7 +105,7 @@ gym_envs = {
         }
 
 ENV_KEY = 7
-algo_name = ['TD3']                # off-policy models 'SAC', 'TD3'
+algo_name = ['TD3', 'SAC']                # off-policy models 'SAC', 'TD3'
 surrogate_critic_loss = ['MSE']    # 'MSE', 'Huber', 'MAE', 'HSC', 'Cauchy', 'CIM', 'MSE2', 'MSE4', 'MSE6'
 multi_steps = [1]                  # 1, 3, 5, 7 (any positive integer > 0)
 

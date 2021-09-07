@@ -1,11 +1,11 @@
-from networks_td3 import ActorNetwork, CriticNetwork
+from algos.networks_td3 import ActorNetwork, CriticNetwork
+from extras.replay import ReplayBuffer
+import extras.utils as utils
 import numpy as np
-from replay import ReplayBuffer
 import torch as T
 from torch.distributions.normal import Normal
 from torch.distributions.laplace import Laplace
 from typing import Tuple
-import utils 
 
 assert hasattr(ActorNetwork, 'forward'), 'missing actor forward propagation'
 assert hasattr(ActorNetwork, 'save_checkpoint'), 'missing actor saving functionality'
