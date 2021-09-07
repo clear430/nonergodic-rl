@@ -1,2 +1,9 @@
-
 *.pyc
+
+gbm_stock_trading_env.py
+notepad.py
+rl_portfolio_mngt.py
+
+__pycache__/
+figs/
+models/
