@@ -1,5 +1,6 @@
 from algo_td3 import Agent_td3
 from datetime import datetime
+import gbm_envs
 import gym
 import numpy as np
 import os
@@ -78,15 +79,21 @@ gym_envs = {
         # portfolio of ten identical assets
         '7': ['Investor1_10x', 11, 11, 3e3],
         '8': ['Investor2_10x', 11, 12, 3e3],
-        '9': ['Investor3_10x', 11, 13, 3e3]
+        '9': ['Investor3_10x', 11, 13, 3e3],
+
+        # three investor categories for assets following GBM
+        '10': ['Investor1GBM_1x', 1, 1, 3e3]
         }
 
-ENV_KEY = 9
+ENV_KEY = 10
 algo_name = ['TD3']                # off-policy model 'TD3'
 surrogate_critic_loss = ['MSE']    # 'MSE', 'Huber', 'MAE', 'HSC', 'Cauchy', 'CIM', 'MSE2', 'MSE4', 'MSE6'
 multi_steps = [1]                  # 1
 
-env = eval('multi_envs.'+gym_envs[str(ENV_KEY)][0]+'()')
+if ENV_KEY <= 9:
+    env = eval('multi_envs.'+gym_envs[str(ENV_KEY)][0]+'()')
+else:
+    env = eval('gbm_envs.'+gym_envs[str(ENV_KEY)][0]+'()')
 
 inputs = {'input_dims': env.observation_space.shape, 'num_actions': env.action_space.shape[0], 
           'max_action': env.action_space.high.min(), 'min_action': env.action_space.low.max(),    # assume all elements span equal domain 
