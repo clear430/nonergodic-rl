@@ -66,24 +66,26 @@ gym_envs = {
         # ENV_KEY: [env_id, input_dim, action_dim, intial warmup steps (generate random seed)]
 
         # three investor categories for the equally likely +50%/-40% gamble
-        # portfolio of one asset 
-        '1': ['Investor1_1x', 1, 1, 3e3], 
-        '2': ['Investor2_1x', 1, 2, 3e3],           
-        '3': ['Investor3_1x', 1, 3, 3e3],
-        # portfolio of two identical assets
-        '4': ['Investor1_2x', 3, 2, 3e3],
-        '5': ['Investor2_2x', 3, 3, 3e3],
-        '6': ['Investor3_2x', 3, 4, 3e3],
-        # portfolio of ten identical assets
-        '7': ['Investor1_10x', 11, 11, 3e3],
-        '8': ['Investor2_10x', 11, 12, 3e3],
-        '9': ['Investor3_10x', 11, 13, 3e3],
+        # investor 1: portfolio of one, two and ten assets 
+        '1': ['Investor1_1x', 2, 1, 1e3],
+        '2': ['Investor1_2x', 3, 3, 1e3],
+        '3': ['Investor1_10x', 11, 11, 1e3],
 
-        # three investor categories for assets following GBM
-        '10': ['Investor1GBM_1x', 1, 1, 3e3]
+        # # investor 2: portfolio of one, two and ten assets 
+        # '4': ['Investor1_1x', 2, 2, 1e3],
+        # '5': ['Investor1_2x', 3, 4, 1e3],
+        # '6': ['Investor1_10x', 11, 12, 1e3],
+
+        # # investor 3: portfolio of one, two and ten assets 
+        # '7': ['Investor1_1x', 2, 3, 1e3],
+        # '8': ['Investor1_2x', 3, 5, 1e3],
+        # '9': ['Investor1_10x', 11, 13, 1e3],
+
+        # # # three investor categories for assets following GBM
+        # # '10': ['Investor1GBM_1x', 2, 1, 3e3]
         }
 
-ENV_KEY = 9
+ENV_KEY = 3
 algo_name = ['TD3']                # off-policy model 'TD3'
 surrogate_critic_loss = ['MSE']    # 'MSE', 'Huber', 'MAE', 'HSC', 'Cauchy', 'CIM', 'MSE2', 'MSE4', 'MSE6'
 multi_steps = [1]                  # 1
@@ -143,7 +145,7 @@ if __name__ == '__main__':
                             loss_params_log.append(loss_params)
 
                             print('ep/st/cst {}/{}/{} {:1.0f}/s: V/g/[risk] ${}/{:1.6f}%/{}, C/Cm/Cs {:1.2f}/{:1.2f}/{:1.2f}, a/c/k/A {:1.2f}/{:1.2f}/{:1.2f}/{:1.2f}'
-                                  .format(episode, step, cum_steps, step/time_log[-1], state[0], reward*100, np.round(risk*100, 0), np.mean(loss[0:2]), 
+                                  .format(episode, step, cum_steps, step/time_log[-1], risk[0], risk[1], np.round(risk[2:]*100, 0), np.mean(loss[0:2]), 
                                           np.mean(loss[4:6]), np.mean(loss[6:8]),np.mean(loss[8:10]), np.mean(loss_params[0:2]), np.mean(loss_params[2:4]), loss[8]))
 
                             if cum_steps > int(inputs['n_cumsteps']-1):
