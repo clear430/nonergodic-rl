@@ -1,10 +1,10 @@
 # Revisiting Fundamentals of Model-Free Reinforcement Learning
 
 The research encompasses several overlapping areas: 
-1. Peculiarities regarding use of different critic loss functions, tail exponents, and shadow means
+1. Peculiarities regarding use of critic loss functions, tail exponents, and shadow means
 2. Multi-step returns and replay buffer coupling in continuous action spaces
-3. Multiplicative (or non-ergodic) reinforcement learning, with insights from the previous two areas
-4. Designing energy efficient multi-stage actors for operation in extremely remote environments
+3. Reinforcement learning in multiplicative (or non-ergodic) domains, maximising the time-average growth rate
+4. Designing energy efficient multi-stage actors for operation in extremely remote (multiplicative) environments
 
 Based on extending a Capstone project ([r-grewal/data5709](https://github.com/r-grewal/data5709)) submitted on June 20th, 2021 at the University of Sydney.
 
@@ -19,7 +19,7 @@ Implementation using Python 3.9.7 and PyTorch 1.9.0 with CUDA 11.1. Code tested 
 * Non-i.i.d. and fat-tailed data ([Fazekas and Klesov 2006](https://epubs.siam.org/doi/pdf/10.1137/S0040585X97978385), [Cirillo and Taleb 2016](https://www.tandfonline.com/doi/pdf/10.1080/14697688.2016.1162908?needAccess=true), [Cirillo and Taleb 2020](https://www.nature.com/articles/s41567-020-0921-x.pdf), [Taleb 2020](https://arxiv.org/ftp/arxiv/papers/2001/2001.10488.pdf))
 * Coupling of multi-step returns and experience replay ([Fedus et al. 2020](https://arxiv.org/pdf/2007.06700.pdf))
 * Primer on statistical mechanics, ensemble averages, and entropy ([Landau and Lifshitz 1969](https://archive.org/details/ost-physics-landaulifshitz-statisticalphysics))
-* Multiplicative dynamics ([Peters 2011a](https://www.tandfonline.com/doi/pdf/10.1080/14697688.2010.513338?needAccess=true), [Peters 2011b](https://royalsocietypublishing.org/doi/pdf/10.1098/rsta.2011.0065), [Peters and Gell-Mann 2016](https://aip.scitation.org/doi/pdf/10.1063/1.4940236), [Peters 2019](https://www.nature.com/articles/s41567-019-0732-0.pdf), [Peters et al. 2020](https://arxiv.org/ftp/arxiv/papers/2005/2005.00056.pdf), [Peters and Adamou 2020](https://arxiv.org/pdf/1101.4548.pdf), [Meder et al. 2020](https://arxiv.org/ftp/arxiv/papers/1906/1906.04652.pdf), [Peters and Adamou 2021](https://arxiv.org/pdf/1801.03680.pdf), [Spitznagel 2021](https://www.wiley.com/en-us/Safe+Haven%3A+Investing+for+Financial+Storms-p-9781119401797))
+* Multiplicative dynamics ([Bernoulli 1738](http://risk.garven.com/wp-content/uploads/2013/09/St.-Petersburg-Paradox-Paper.pdf), [Kelly 1956](https://cpb-us-w2.wpmucdn.com/u.osu.edu/dist/7/36891/files/2017/07/Kelly1956-1uwz47o.pdf), [Peters 2011a](https://www.tandfonline.com/doi/pdf/10.1080/14697688.2010.513338?needAccess=true), [Peters 2011b](https://royalsocietypublishing.org/doi/pdf/10.1098/rsta.2011.0065), [Peters and Gell-Mann 2016](https://aip.scitation.org/doi/pdf/10.1063/1.4940236), [Peters 2019](https://www.nature.com/articles/s41567-019-0732-0.pdf), [Peters et al. 2020](https://arxiv.org/ftp/arxiv/papers/2005/2005.00056.pdf), [Peters and Adamou 2020](https://arxiv.org/pdf/1101.4548.pdf), [Meder et al. 2020](https://arxiv.org/ftp/arxiv/papers/1906/1906.04652.pdf), [Spitznagel 2021](https://www.wiley.com/en-us/Safe+Haven%3A+Investing+for+Financial+Storms-p-9781119401797))
 * Power consumption of neural networks ([Han et al. 2015](https://proceedings.neurips.cc/paper/2015/file/ae0eb3eed39d2bcef4622b2499a05fe6-Paper.pdf), [García-Martín et al. 2019](https://www.sciencedirect.com/science/article/pii/S0743731518308773))
 
 ## Acknowledgements
