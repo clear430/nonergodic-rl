@@ -72,20 +72,20 @@ gym_envs = {
         '3': ['Investor1_10x', 11, 11, 1e3],
 
         # # investor 2: portfolio of one, two and ten assets 
-        # '4': ['Investor1_1x', 2, 2, 1e3],
-        # '5': ['Investor1_2x', 3, 4, 1e3],
-        # '6': ['Investor1_10x', 11, 12, 1e3],
+        '4': ['Investor2_1x', 2, 2, 1e3],
+        '5': ['Investor2_2x', 3, 4, 1e3],
+        '6': ['Investor2_10x', 11, 12, 1e3],
 
         # # investor 3: portfolio of one, two and ten assets 
-        # '7': ['Investor1_1x', 2, 3, 1e3],
-        # '8': ['Investor1_2x', 3, 5, 1e3],
-        # '9': ['Investor1_10x', 11, 13, 1e3],
+        '7': ['Investor3_1x', 2, 3, 1e3],
+        '8': ['Investor3_2x', 3, 5, 1e3],
+        '9': ['Investor3_10x', 11, 13, 1e3],
 
         # # # three investor categories for assets following GBM
         # # '10': ['Investor1GBM_1x', 2, 1, 3e3]
         }
 
-ENV_KEY = 3
+ENV_KEY = 9
 algo_name = ['TD3']                # off-policy model 'TD3'
 surrogate_critic_loss = ['MSE']    # 'MSE', 'Huber', 'MAE', 'HSC', 'Cauchy', 'CIM', 'MSE2', 'MSE4', 'MSE6'
 multi_steps = [1]                  # 1
