@@ -1,3 +1,6 @@
+import sys
+sys.path.append("./")
+
 import numpy as np
 import os
 import extras.plots as plots
@@ -6,8 +9,8 @@ import torch as T
 from torch.distributions.bernoulli import Bernoulli
 from typing import Tuple
 
-VRAM = 'y'  # do you have >= 8GB of VRAM?
-if VRAM == 'y':
+VRAM = 1  # do you have >= 8GB of VRAM?
+if VRAM == 1:
     device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
 else:
     device = T.device('cpu' if T.cuda.is_available() else 'cpu')
@@ -382,18 +385,18 @@ if __name__ == '__main__':
 
     # load experiment data and save figures
 
-    if not os.path.exists('./figs'):
-            os.makedirs('./figs')
+    if not os.path.exists('./docs/figs'):
+            os.makedirs('./docs/figs')
 
-    inv4_lev_data = np.load('results\inv_data\inv4_lev.npy')
-    plots.plot_inv4(inv4_lev_data, 'figs/inv4.png')
+    inv4_lev_data = np.load('results/inv_data/inv4_lev.npy')
+    plots.plot_inv4(inv4_lev_data, 'docs/figs/inv4.png')
 
-    inv3_val_data = np.load('results\inv_data\inv3_val.npy')
-    plots.plot_inv3(inv3_val_data, 'figs/inv3.png')
+    inv3_val_data = np.load('results/inv_data/inv3_val.npy')
+    plots.plot_inv3(inv3_val_data, 'docs/figs/inv3.png')
 
-    inv2_val_data = np.load('results\inv_data\inv2_val.npy')
-    plots.plot_inv2(inv2_val_data, 'figs/inv2.png')
+    inv2_val_data = np.load('results/inv_data/inv2_val.npy')
+    plots.plot_inv2(inv2_val_data, 'docs/figs/inv2.png')
 
-    inv1_val_data = np.load('results\inv_data\inv1_val.npy')
-    inv1_val_data_T = np.load('results\inv_data\inv1_val_T.npy')
-    plots.plot_inv1(inv1_val_data, inv1_val_data_T, 'figs/inv1.png')
+    inv1_val_data = np.load('results/inv_data/inv1_val.npy')
+    inv1_val_data_T = np.load('results/inv_data/inv1_val_T.npy')
+    plots.plot_inv1(inv1_val_data, inv1_val_data_T, 'docs/figs/inv1.png')

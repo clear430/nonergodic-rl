@@ -1,3 +1,6 @@
+import sys
+sys.path.append("./")
+
 from algos.algo_sac import Agent_sac
 from algos.algo_td3 import Agent_td3
 from datetime import datetime
@@ -20,103 +23,21 @@ assert hasattr(Agent_td3, 'learn'), 'missing agent learning functionality'
 assert hasattr(Agent_td3, 'save_models'), 'missing agent save functionality'
 assert hasattr(Agent_td3, 'load_models'), 'missing agent load functionality'
 
-inputs = {
-    # SAC hyperparameters
-    'sac_actor_learn_rate': 3e-4,               # actor learning rate (Adam optimiser)
-    'sac_critic_learn_rate': 3e-4,              # critic learning rate (Adam optimiser)
-    'sac_temp_learn_rate': 3e-4,                # log temperature learning rate (Adam optimiser)
-    'sac_layer_1_units': 256,                   # nodes in first fully connected layer
-    'sac_layer_2_units': 256,                   # nodes in second fully connected layer
-    'sac_actor_step_update': 1,                 # actor policy network update frequency (steps)
-    'sac_temp_step_update': 1,                  # temperature update frequency (steps)
-    'sac_target_critic_update': 1,              # target critic networks update frequency (steps)
-    'initial_logtemp': 0,                       # log weighting given to entropy maximisation
-    'reward_scale': 1,                          # constant scaling factor of next reward ('inverse temperature')
-    'reparam_noise': 1e-6,                      # miniscule constant to keep logarithm bounded
+def additive_env(gym_envs: dict, inputs: dict, ENV_KEY: int):
+    """
+    Conduct experiments for additive environments.
+    """
+    env = gym.make(gym_envs[str(ENV_KEY)][0])
+    inputs = {'input_dims': env.observation_space.shape, 'num_actions': env.action_space.shape[0], 
+            'max_action': env.action_space.high.min(), 'min_action': env.action_space.low.max(), 
+            'env_id': gym_envs[str(ENV_KEY)][0], 'random': gym_envs[str(ENV_KEY)][3],
+            'dynamics': 'A',    # gambling dynamics 'A' (additive)
+            'loss_fn': 'MSE', 'algo': 'TD3', **inputs}
+    env = env.env    # allow access to setting enviroment state and remove episode step limit
 
-    # TD3 hyperparameters          
-    'td3_actor_learn_rate': 1e-3,               # ibid.
-    'td3_critic_learn_rate': 1e-3,              # ibid.
-    'td3_layer_1_units': 400,                   # ibid.
-    'td3_layer_2_units': 300,                   # ibid.
-    'td3_actor_step_update': 2,                 # ibid.
-    'td3_target_actor_update': 2,               # target actor network update frequency (steps)
-    'td3_target_critic_update': 2,              # ibid.
-    'policy_noise': 0.1,                        # Gaussian exploration noise added to next actions
-    'target_policy_noise': 0.2,                 # Gaussian noise added to next target actions as a regulariser
-    'target_policy_clip': 0.5,                  # Clipping of Gaussian noise added to next target actions
-
-    # shared parameters
-    'target_update_rate': 5e-3,                 # Polyak averaging rate for target network parameter updates
-    's_dist': 'N',                              # actor policy sampling via 'L' (Laplace) or 'N' (Normal) distribution 
-    'batch_size': {'SAC': 256, 'TD3': 100},     # mini-batch size
-    'grad_step': {'SAC': 1, 'TD3': 1},          # standard gradient update frequency (steps)
-
-    # learning variables
-    'buffer': 1e6,                              # maximum transistions in experience replay buffer
-    'discount': 0.99,                           # discount factor for successive steps            
-    'multi_steps': 1,                           # bootstrapping of target critic values and discounted rewards
-    'trail': 50,                                # moving average of training episode scores used for model saving
-    'cauchy_scale': 1,                          # Cauchy scale parameter initialisation value
-    'r_abs_zero': None,                         # defined absolute zero value for rewards
-    'continue': False,                          # whether to continue learning with same parameters across trials
-
-    # critic loss aggregation
-    'critic_mean_type': 'E',                    # critic mean estimation method either empirical 'E' or shadow 'S' 
-    'shadow_low_mul': 0e0,                      # lower bound multiplier of minimum for critic difference power law  
-    'shadow_high_mul': 1e1,                     # finite improbable upper bound multiplier of maximum for critic difference power law
-
-    # ergodicity
-    'dynamics': 'A',                            # gambling dynamics either 'A' (additive) or 'M' (multiplicative)
-
-    # execution parameters
-    'n_trials': 3,                              # number of total unique training trials
-    'n_cumsteps': 3e4,                          # maximum cumulative steps per trial (must be greater than warmup)
-    'eval_freq': 1e3,                           # interval of steps between evaluation episodes
-    'max_eval_reward': 1e4,                     # maximum reward per evaluation episode
-    'n_eval': 1e2                               # number of evalution episodes
-    }
-
-gym_envs = {
-        # ENV_KEY: [env_id, input_dim, action_dim, intial warmup steps (generate random seed)]
-
-        # OpenAI Box2D continuous control tasks
-        '0': ['LunarLanderContinuous-v2', 8, 2, 1e3], 
-        '1': ['BipedalWalker-v3', 24, 4, 1e3],              
-        '2': ['BipedalWalkerHardcore-v3', 24, 4, 1e3],
-        # Roboschool environments ported to PyBullet
-        '3': ['CartPoleContinuousBulletEnv-v0', 4, 1, 1e3], 
-        '4': ['InvertedPendulumBulletEnv-v0', 5, 1, 1e3],
-        '5': ['InvertedDoublePendulumBulletEnv-v0', 9, 1, 1e3], 
-        '6': ['HopperBulletEnv-v0', 15, 3, 1e3], 
-        '7': ['Walker2DBulletEnv-v0', 22, 6, 1e3],
-        '8': ['HalfCheetahBulletEnv-v0', 26, 6, 1e4],    # composed of a single training episode (can't use multi-steps)
-        '9': ['AntBulletEnv-v0', 28, 8, 1e4],            # composed of a single training episode (can't use multi-steps)
-        '10': ['HumanoidBulletEnv-v0', 44, 17, 1e4], 
-        # KOD*LAB quadruped direct-drive legged robots ported to PyBullet
-        '11': ['MinitaurBulletEnv-v0', 28, 8, 1e4],
-        # DeepMimic simulation of a imitating Humanoid mimic ported to PyBullet
-        '12': ['HumanoidDeepMimicWalkBulletEnv-v1', 197, 36, 1e4],
-        '13': ['HumanoidDeepMimicBackflipBulletEnv-v1', 197, 36, 1e4]
-        }
-
-ENV_KEY = 6
-algo_name = ['SAC', 'TD3']         # off-policy models 'SAC', 'TD3'
-surrogate_critic_loss = ['MSE']    # 'MSE', 'Huber', 'MAE', 'HSC', 'Cauchy', 'CIM', 'MSE2', 'MSE4', 'MSE6'
-multi_steps = [1]                  # 1, 3, 5, 7 (any positive integer > 0)
-
-env = gym.make(gym_envs[str(ENV_KEY)][0])
-inputs = {'input_dims': env.observation_space.shape, 'num_actions': env.action_space.shape[0], 
-          'max_action': env.action_space.high.min(), 'min_action': env.action_space.low.max(), 
-          'env_id': gym_envs[str(ENV_KEY)][0], 'random': gym_envs[str(ENV_KEY)][3], 
-          'loss_fn': 'MSE', 'algo': 'TD3', **inputs}
-env = env.env    # allow access to setting enviroment state and remove episode step limit
-
-if __name__ == '__main__':
-
-    for algo in algo_name:
-        for loss_fn in surrogate_critic_loss:
-            for mstep in multi_steps:
+    for algo in inputs['algo_name']:
+        for loss_fn in inputs['critic_loss']:
+            for mstep in inputs['multi_steps']:
 
                 inputs['loss_fn'], inputs['algo'], inputs['multi_steps'] = loss_fn.upper(), algo.upper(), mstep
                 trial_log = np.zeros((inputs['n_trials'], int(inputs['n_cumsteps']), 19))
