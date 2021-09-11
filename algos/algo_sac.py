@@ -82,8 +82,6 @@ class Agent_sac():
         self.cauchy_scale_2 = inputs_dict['cauchy_scale']
 
         self.warmup = int(inputs_dict['random'])
-        self.dyna = str(inputs_dict['dynamics'])
-        self.r_abs_zero = inputs_dict['r_abs_zero']
         self.loss_type = str(inputs_dict['loss_fn'])
 
         self.time_step = 0
@@ -109,13 +107,14 @@ class Agent_sac():
 
         # learn temperature via convex optimisation (dual gradient descent approximation)
         self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
-        self.log_alpha = T.tensor(float(inputs_dict['initial_logtemp']), requires_grad=True, device=self.device)
+        self.log_alpha = T.tensor(float(inputs_dict['initial_logtemp']), 
+                                  requires_grad=True, device=self.device)
         self.temp_optimiser = T.optim.Adam([self.log_alpha], lr=self.lr_kappa)
         self.entropy_target = -int(self.num_actions)    # heuristic assumption
 
         # required for method intialisation
         self._mini_batch()
-        self._multi_step_target(None, None, None, None, None)
+        self._multi_step_target(None, None, None, None, )
         self._update_critic_parameters(self.tau)
 
     def store_transistion(self, state: np.ndarray, action: np.ndarray, reward: float, 
@@ -165,7 +164,7 @@ class Agent_sac():
         return numpy_next_action, next_action
 
     def _mini_batch(self) -> Tuple[T.FloatTensor, T.FloatTensor, T.FloatTensor, 
-                                   T.FloatTensor, T.BoolTensor, T.FloatTensor, T.IntTensor]:
+                                   T.FloatTensor, T.BoolTensor, T.IntTensor]:
         """
         Uniform sampling from replay buffer and send to GPU.
 
@@ -175,32 +174,25 @@ class Agent_sac():
             rewards: batch of (discounted multi-step) rewards from current states
             next_states: batch of next environment states
             dones (bool): batch of done flags
-            epis_rewards: batch of cumulative sum of episodic rewards
             eff_length: batch of effective multi-step episode lengths
         """
         if self.memory.mem_idx < self.batch_size:
-            return np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan
+            return np.nan, np.nan, np.nan, np.nan, np.nan, np.nan
             
-        states, actions, rewards, next_states, dones, epis_rewards, eff_length = \
-                self.memory.sample_exp()
+        states, actions, rewards, next_states, dones, eff_length = self.memory.sample_exp()
 
         batch_states = T.tensor(states, dtype=T.float).to(self.critic_1.device)
         batch_actions = T.tensor(actions, dtype=T.float).to(self.critic_1.device)
         batch_rewards = T.tensor(rewards, dtype=T.float).to(self.critic_1.device)
         batch_next_states = T.tensor(next_states, dtype=T.float).to(self.critic_1.device)
         batch_dones = T.tensor(dones, dtype=T.bool).to(self.critic_1.device)
-        batch_epis_rewards = epis_rewards
         batch_eff_length = T.tensor(eff_length, dtype=T.int).to(self.critic_1.device)
 
-        if self.dyna == 'M':
-            batch_epis_rewards = T.tensor(epis_rewards, dtype=T.float).to(self.critic_1.device)
-
-        return batch_states, batch_actions, batch_rewards, batch_next_states, batch_dones, \
-               batch_epis_rewards, batch_eff_length 
+        return batch_states, batch_actions, batch_rewards, batch_next_states, \
+               batch_dones, batch_eff_length 
 
     def _multi_step_target(self, batch_rewards: T.FloatTensor, batch_next_states: T.FloatTensor, 
-                           batch_dones: T.BoolTensor, batch_epis_rewards: T.FloatTensor, 
-                           batch_eff_length: T.IntTensor) -> T.FloatTensor:
+                           batch_dones: T.BoolTensor, batch_eff_length: T.IntTensor) -> T.FloatTensor:
         """
         Multi-step target soft Q-values for mini-batch. 
 
@@ -208,7 +200,6 @@ class Agent_sac():
             batch_rewards: batch of (discounted multi-step) rewards from current states
             batch_next_states: batch of next environment states
             batch_dones: batch of done flags
-            batch_epis_rewards: batch of cumulative sum of episodic rewards
             batch_eff_length: batch of effective multi-step episode lengths
         
         Returns:
@@ -236,7 +227,6 @@ class Agent_sac():
         # clipped double target critic with bootstrapping
         soft_q_target = T.min(q1_target, q2_target)
         soft_q_target = self.reward_scale * batch_rewards + self.gamma**batch_eff_length * soft_q_target
-        soft_q_target = soft_q_target if self.dyna == 'A' else soft_q_target / batch_epis_rewards
 
         # soft value as an advantage function
         soft_value = soft_q_target - self.log_alpha.exp() * batch_next_logprob_actions    
@@ -262,18 +252,15 @@ class Agent_sac():
             return loss, cpu_logtmep, loss_params
 
         # uniformly sample from replay buffer (off-policy)
-        batch_states, batch_actions, batch_rewards, batch_next_states, \
-        batch_dones, batch_epis_rewards, batch_eff_length = self._mini_batch()
+        batch_states, batch_actions, batch_rewards, \
+             batch_next_states, batch_dones, batch_eff_length = self._mini_batch()
 
         # estimate target critic value
-        batch_target = self._multi_step_target(batch_rewards, batch_next_states, batch_dones, 
-                                               batch_epis_rewards, batch_eff_length)
+        batch_target = self._multi_step_target(batch_rewards, batch_next_states, batch_dones, batch_eff_length)
 
         # obtain twin current state soft Q-values for mini-batch
         q1 = self.critic_1.forward(batch_states, batch_actions).view(-1)
         q2 = self.critic_2.forward(batch_states, batch_actions).view(-1)
-        q1 = q1 if self.dyna == 'A' else q1 / batch_epis_rewards
-        q2 = q2 if self.dyna == 'A' else q2 / batch_epis_rewards
         q1, q2 = q1.view(self.batch_size, 1), q2.view(self.batch_size, 1)
         
         # updates CIM kernel size empirically
@@ -284,10 +271,14 @@ class Agent_sac():
         self.critic_1.optimiser.zero_grad()
         self.critic_2.optimiser.zero_grad()
 
-        q1_mean, q1_min, q1_max, q1_shadow, q1_alpha = utils.loss_function(q1, batch_target, self.shadow_low_mul, self.shadow_high_mul,
-                                                                           self.zipf_x, self.zipf_x2, self.loss_type, self.cauchy_scale_1, kernel_1)
-        q2_mean, q2_min, q2_max, q2_shadow, q2_alpha = utils.loss_function(q2, batch_target, self.shadow_low_mul, self.shadow_high_mul,
-                                                                           self.zipf_x, self.zipf_x2, self.loss_type, self.cauchy_scale_2, kernel_2)
+        q1_mean, q1_min, q1_max, \
+             q1_shadow, q1_alpha = utils.loss_function(q1, batch_target, self.shadow_low_mul, self.shadow_high_mul,
+                                                       self.zipf_x, self.zipf_x2, self.loss_type, 
+                                                       self.cauchy_scale_1, kernel_1)
+        q2_mean, q2_min, q2_max, \
+            q2_shadow, q2_alpha = utils.loss_function(q2, batch_target, self.shadow_low_mul, self.shadow_high_mul,
+                                                      self.zipf_x, self.zipf_x2, self.loss_type, 
+                                                      self.cauchy_scale_2, kernel_2)
 
         # ensure consistent mean selection for learning
         if self.critic_mean == 'E':
@@ -337,7 +328,6 @@ class Agent_sac():
         q1 = self.critic_1.forward(batch_states, batch_stoc_actions)
         q2 = self.critic_2.forward(batch_states, batch_stoc_actions)
         soft_q = T.min(q1, q2).view(-1)
-        soft_q = soft_q if self.dyna == 'A' else (1 + soft_q / batch_epis_rewards)
 
         # learn stochastic actor policy by minimising KL divergence (advantage function)
         self.actor.optimiser.zero_grad()

@@ -58,24 +58,20 @@ inputs = {
     'multi_steps': 1,                           # bootstrapping of target critic values and discounted rewards
     'trail': 50,                                # moving average of training episode scores used for model saving
     'cauchy_scale': 1,                          # Cauchy scale parameter initialisation value
+    'r_abs_zero': None,                         # defined absolute zero value for rewards
     'continue': False,                          # whether to continue learning with same parameters across trials
 
     # critic loss aggregation
     'critic_mean_type': 'E',                    # critic mean estimation method either empirical 'E' or shadow 'S' 
-    'shadow_low_mul': 0e0,                      # lower bound multiplier of minimum for critic power law  
+    'shadow_low_mul': 0e0,                      # lower bound multiplier of minimum for critic difference power law  
     'shadow_high_mul': 1e1,                     # finite improbable upper bound multiplier of maximum for critic difference power law
 
     # ergodicity
     'dynamics': 'A',                            # gambling dynamics either 'A' (additive) or 'M' (multiplicative)
-    'game_over': 0.99,                          # threshold for ending episode for all cumualtive rewards
-    'initial_reward': 1e1,                      # intial cumulative reward value of each episode
-    'unique_hist': 'Y',                         # whether each step in episode creates 'Y' or 'N' a unique history
-    'compounding': 'N',                         # if multiplicative, whether compounding 'Y' or 'N' multi-steps 
-    'r_abs_zero': None,                         # defined absolute zero value for rewards
-     
+
     # execution parameters
     'n_trials': 3,                              # number of total unique training trials
-    'n_cumsteps': 3e3,                          # maximum cumulative steps per trial (must be greater than warmup)
+    'n_cumsteps': 3e4,                          # maximum cumulative steps per trial (must be greater than warmup)
     'eval_freq': 1e3,                           # interval of steps between evaluation episodes
     'max_eval_reward': 1e4,                     # maximum reward per evaluation episode
     'n_eval': 1e2                               # number of evalution episodes
@@ -104,14 +100,14 @@ gym_envs = {
         '13': ['HumanoidDeepMimicBackflipBulletEnv-v1', 197, 36, 1e4]
         }
 
-ENV_KEY = 7
-algo_name = ['TD3', 'SAC']                # off-policy models 'SAC', 'TD3'
+ENV_KEY = 6
+algo_name = ['SAC', 'TD3']         # off-policy models 'SAC', 'TD3'
 surrogate_critic_loss = ['MSE']    # 'MSE', 'Huber', 'MAE', 'HSC', 'Cauchy', 'CIM', 'MSE2', 'MSE4', 'MSE6'
 multi_steps = [1]                  # 1, 3, 5, 7 (any positive integer > 0)
 
 env = gym.make(gym_envs[str(ENV_KEY)][0])
 inputs = {'input_dims': env.observation_space.shape, 'num_actions': env.action_space.shape[0], 
-          'max_action': env.action_space.high[0], 'min_action': env.action_space.low[0], 
+          'max_action': env.action_space.high.min(), 'min_action': env.action_space.low.max(), 
           'env_id': gym_envs[str(ENV_KEY)][0], 'random': gym_envs[str(ENV_KEY)][3], 
           'loss_fn': 'MSE', 'algo': 'TD3', **inputs}
 env = env.env    # allow access to setting enviroment state and remove episode step limit
@@ -142,8 +138,7 @@ if __name__ == '__main__':
                     while cum_steps < int(inputs['n_cumsteps']):
                         start_time = time.perf_counter()            
                         state = env.reset()
-                        done, step = False, 0
-                        score = 0 if inputs['dynamics'] == 'A' else inputs['initial_reward']
+                        done, step, score = False, 0, 0
 
                         while not done:
                             action, _ = agent.select_next_action(state)

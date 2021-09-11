@@ -1,3 +1,4 @@
+from algos.algo_sac import Agent_sac
 from algos.algo_td3 import Agent_td3
 from datetime import datetime
 import envs.gbm_envs as gbm_envs
@@ -8,6 +9,11 @@ import numpy as np
 import os
 import time
 
+assert hasattr(Agent_sac, 'select_next_action'), 'missing agent action selection'
+assert hasattr(Agent_sac, 'store_transistion'), 'missing transition storage functionality'
+assert hasattr(Agent_sac, 'learn'), 'missing agent learning functionality'
+assert hasattr(Agent_sac, 'save_models'), 'missing agent save functionality'
+assert hasattr(Agent_sac, 'load_models'), 'missing agent load functionality'
 assert hasattr(Agent_td3, 'select_next_action'), 'missing agent action selection'
 assert hasattr(Agent_td3, 'store_transistion'), 'missing transition storage functionality'
 assert hasattr(Agent_td3, 'learn'), 'missing agent learning functionality'
@@ -15,6 +21,19 @@ assert hasattr(Agent_td3, 'save_models'), 'missing agent save functionality'
 assert hasattr(Agent_td3, 'load_models'), 'missing agent load functionality'
 
 inputs = {
+    # SAC hyperparameters
+    'sac_actor_learn_rate': 3e-4,               # actor learning rate (Adam optimiser)
+    'sac_critic_learn_rate': 3e-4,              # critic learning rate (Adam optimiser)
+    'sac_temp_learn_rate': 3e-4,                # log temperature learning rate (Adam optimiser)
+    'sac_layer_1_units': 256,                   # nodes in first fully connected layer
+    'sac_layer_2_units': 256,                   # nodes in second fully connected layer
+    'sac_actor_step_update': 1,                 # actor policy network update frequency (steps)
+    'sac_temp_step_update': 1,                  # temperature update frequency (steps)
+    'sac_target_critic_update': 1,              # target critic networks update frequency (steps)
+    'initial_logtemp': 0,                       # log weighting given to entropy maximisation
+    'reward_scale': 1,                          # constant scaling factor of next reward ('inverse temperature')
+    'reparam_noise': 1e-6,                      # miniscule constant to keep logarithm bounded
+
     # TD3 hyperparameters          
     'td3_actor_learn_rate': 1e-3,               # ibid.
     'td3_critic_learn_rate': 1e-3,              # ibid.
@@ -39,20 +58,16 @@ inputs = {
     'multi_steps': 1,                           # bootstrapping of target critic values and discounted rewards
     'trail': 50,                                # moving average of training episode scores used for model saving
     'cauchy_scale': 1,                          # Cauchy scale parameter initialisation value
+    'r_abs_zero': None,                         # defined absolute zero value for rewards
     'continue': False,                          # whether to continue learning with same parameters across trials
 
     # critic loss aggregation
     'critic_mean_type': 'E',                    # critic mean estimation method either empirical 'E' or shadow 'S' 
-    'shadow_low_mul': 0e0,                      # lower bound multiplier of minimum for critic power law  
+    'shadow_low_mul': 0e0,                      # lower bound multiplier of minimum for critic difference power law  
     'shadow_high_mul': 1e1,                     # finite improbable upper bound multiplier of maximum for critic difference power law
 
     # ergodicity
-    'dynamics': 'A',                            # gambling dynamics either 'A' (additive) or 'M' (multiplicative)
-    'game_over': 0.99,                          # threshold for ending episode for all cumualtive rewards
-    'initial_reward': 1e1,                      # intial cumulative reward value of each episode
-    'unique_hist': 'Y',                         # whether each step in episode creates 'Y' or 'N' a unique history
-    'compounding': 'N',                         # if multiplicative, whether compounding 'Y' or 'N' multi-steps 
-    'r_abs_zero': None,                         # defined absolute zero value for rewards
+    'dynamics': 'M',                            # gambling dynamics either 'A' (additive) or 'M' (multiplicative)
      
     # execution parameters
     'n_trials': 1,                              # number of total unique training trials
@@ -66,27 +81,30 @@ gym_envs = {
         # ENV_KEY: [env_id, input_dim, action_dim, intial warmup steps (generate random seed)]
 
         # three investor categories for the equally likely +50%/-40% gamble
-        # investor 1: portfolio of one, two and ten assets 
+        # investor 1: portfolio of one, two and ten assets
         '1': ['Investor1_1x', 2, 1, 1e3],
         '2': ['Investor1_2x', 3, 3, 1e3],
         '3': ['Investor1_10x', 11, 11, 1e3],
 
-        # # investor 2: portfolio of one, two and ten assets 
+        # # investor 2: portfolio of one, two and ten assets
         '4': ['Investor2_1x', 2, 2, 1e3],
         '5': ['Investor2_2x', 3, 4, 1e3],
         '6': ['Investor2_10x', 11, 12, 1e3],
 
-        # # investor 3: portfolio of one, two and ten assets 
+        # # investor 3: portfolio of one, two and ten assets
         '7': ['Investor3_1x', 2, 3, 1e3],
         '8': ['Investor3_2x', 3, 5, 1e3],
         '9': ['Investor3_10x', 11, 13, 1e3],
 
-        # # # three investor categories for assets following GBM
-        # # '10': ['Investor1GBM_1x', 2, 1, 3e3]
+        # three investor categories for assets following GBM
+        # investor 1: portfolio of one, two and ten assets 
+        '10': ['Investor1GBM_1x', 2, 1, 1e3],
+        '11': ['Investor1GBM_2x', 3, 3, 1e3],
+        '12': ['Investor1GBM_10x', 11, 11, 1e3]
         }
 
-ENV_KEY = 9
-algo_name = ['TD3']                # off-policy model 'TD3'
+ENV_KEY = 1
+algo_name = ['TD3']                # off-policy model 'SAC', 'TD3'
 surrogate_critic_loss = ['MSE']    # 'MSE', 'Huber', 'MAE', 'HSC', 'Cauchy', 'CIM', 'MSE2', 'MSE4', 'MSE6'
 multi_steps = [1]                  # 1
 
@@ -111,17 +129,19 @@ if __name__ == '__main__':
                 for round in range(inputs['n_trials']):
 
                     time_log, score_log, step_log, logtemp_log, loss_log, loss_params_log = [], [], [], [], [], []
-                    agent = Agent_td3(env, inputs)
                     cum_steps, eval_run, episode = 0, 0, 1
                     best_score = env.reward_range[0]
+                    if inputs['continue'] == True:
+                        inputs['initial_logtemp'] = logtemp if round > 1 else False    # load existing SAC parameter to continue learning
 
-                    agent = Agent_td3(env, inputs)
+                    agent = Agent_td3(env, inputs) if inputs['algo'] == 'TD3' else Agent_sac(env, inputs)
+                    if inputs['continue'] == True:
+                        agent.load_models() if round > 1 else False    # load existing actor-critic parameters to continue learning
 
                     while cum_steps < int(inputs['n_cumsteps']):
                         start_time = time.perf_counter()            
                         state = env.reset()
-                        done, step = False, 0
-                        score = 0 if inputs['dynamics'] == 'A' else inputs['initial_reward']
+                        done, step, score = False, 0, 0
 
                         while not done:
                             action, _ = agent.select_next_action(state)
@@ -144,9 +164,9 @@ if __name__ == '__main__':
                             logtemp_log.append(logtemp)
                             loss_params_log.append(loss_params)
 
-                            print('ep/st/cst {}/{}/{} {:1.0f}/s: V/g/[risk] ${}/{:1.6f}%/{}, C/Cm/Cs {:1.2f}/{:1.2f}/{:1.2f}, a/c/k/A {:1.2f}/{:1.2f}/{:1.2f}/{:1.2f}'
-                                  .format(episode, step, cum_steps, step/time_log[-1], risk[0], risk[1], np.round(risk[2:]*100, 0), np.mean(loss[0:2]), 
-                                          np.mean(loss[4:6]), np.mean(loss[6:8]),np.mean(loss[8:10]), np.mean(loss_params[0:2]), np.mean(loss_params[2:4]), loss[8]))
+                            print('ep/st/cst {}/{}/{} {:1.0f}/s: V/g/[risk] ${}/{:1.6f}%/{}, C/Cm/Cs {:1.2f}/{:1.2f}/{:1.2f}, a/c/k/A/T {:1.2f}/{:1.2f}/{:1.2f}/{:1.2f}'
+                                  .format(episode, step, cum_steps, step/time_log[-1], risk[0], risk[1], np.round(risk[2:]*100, 0), np.mean(loss[0:2]), np.mean(loss[4:6]), 
+                                          np.mean(loss[6:8]),np.mean(loss[8:10]), np.mean(loss_params[0:2]), np.mean(loss_params[2:4]), loss[8], np.exp(logtemp)))
 
                             if cum_steps > int(inputs['n_cumsteps']-1):
                                 break
