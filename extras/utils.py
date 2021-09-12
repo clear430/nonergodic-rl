@@ -106,7 +106,8 @@ def save_directory(inputs: dict, round: int) -> str:
 
     return directory
 
-def cauchy(estimated: T.FloatTensor, target: T.FloatTensor, scale: float) -> T.FloatTensor:
+def cauchy(estimated: T.cuda.FloatTensor, target: T.cuda.FloatTensor, scale: float) \
+        -> T.cuda.FloatTensor:
     """
     Cauchy loss function.
 
@@ -123,7 +124,8 @@ def cauchy(estimated: T.FloatTensor, target: T.FloatTensor, scale: float) -> T.F
 
     return T.log(1 + arg)
 
-def nagy_algo(estimated: T.FloatTensor, target: T.FloatTensor, scale: float) -> float:
+def nagy_algo(estimated: T.cuda.FloatTensor, target: T.cuda.FloatTensor, scale: float) \
+        -> float:
     """
     Use the Nagy alogrithm to estimate the Cauchy scale paramter based on residual errors based on
     Eq. 18 in http://www.jucs.org/jucs_12_9/parameter_estimation_of_the/jucs_12_09_1332_1344_nagy.pdf
@@ -149,7 +151,8 @@ def nagy_algo(estimated: T.FloatTensor, target: T.FloatTensor, scale: float) -> 
     else:
         return scale.detach().cpu().numpy()
 
-def correntropy(estimated: T.FloatTensor, target: T.FloatTensor, kernel: float) -> T.FloatTensor:
+def correntropy(estimated: T.cuda.FloatTensor, target: T.cuda.FloatTensor, kernel: float) \
+        -> T.cuda.FloatTensor:
     """
     Correntropy-Induced Metric (CIM) loss function.
 
@@ -166,7 +169,7 @@ def correntropy(estimated: T.FloatTensor, target: T.FloatTensor, kernel: float) 
 
     return (1 - T.exp(-arg/(2 * kernel**2)) / T.sqrt(2 * np.pi * kernel))
 
-def cim_size(estimated: T.FloatTensor, target: T.FloatTensor) -> float:
+def cim_size(estimated: T.cuda.FloatTensor, target: T.cuda.FloatTensor) -> float:
     """
     Empirically estimated kernel size for CIM taken as the average reconstruction error
     based on Eq. 25 in  https://lcs.ios.ac.cn/~ydshen/ICDM-12.pdf.
@@ -183,7 +186,8 @@ def cim_size(estimated: T.FloatTensor, target: T.FloatTensor) -> float:
 
     return kernel.cpu().numpy()
 
-def hypersurface(estimated: T.FloatTensor, target: T.FloatTensor) -> T.FloatTensor:
+def hypersurface(estimated: T.cuda.FloatTensor, target: T.cuda.FloatTensor) \
+        -> T.cuda.FloatTensor:
     """
     Hypersurface cost based loss function.
 
@@ -198,7 +202,8 @@ def hypersurface(estimated: T.FloatTensor, target: T.FloatTensor) -> T.FloatTens
 
     return (T.sqrt(1 + arg) - 1) 
 
-def mse(estimated: T.FloatTensor, target: T.FloatTensor, exp:int =0) -> T.FloatTensor:
+def mse(estimated: T.cuda.FloatTensor, target: T.cuda.FloatTensor, exp:int =0) \
+        -> T.cuda.FloatTensor:
     """
     MSE loss function.
 
@@ -212,7 +217,8 @@ def mse(estimated: T.FloatTensor, target: T.FloatTensor, exp:int =0) -> T.FloatT
     """
     return (target-estimated)**(int(2 + exp))
     
-def mae(estimated: T.FloatTensor, target: T.FloatTensor) -> T.FloatTensor:
+def mae(estimated: T.cuda.FloatTensor, target: T.cuda.FloatTensor) \
+        -> T.cuda.FloatTensor:
     """
     MAE loss function.
 
@@ -225,7 +231,8 @@ def mae(estimated: T.FloatTensor, target: T.FloatTensor) -> T.FloatTensor:
     """
     return T.abs(target-estimated)
 
-def huber(estimated: T.FloatTensor, target: T.FloatTensor) -> T.FloatTensor:
+def huber(estimated: T.cuda.FloatTensor, target: T.cuda.FloatTensor) \
+        -> T.cuda.FloatTensor:
     """
     Huber loss function.
 
@@ -241,7 +248,7 @@ def huber(estimated: T.FloatTensor, target: T.FloatTensor) -> T.FloatTensor:
 
     return loss
 
-def hill_est(values: T.FloatTensor) -> T.FloatTensor:
+def hill_est(values: T.cuda.FloatTensor) -> T.cuda.FloatTensor:
     """
     Calculates using extreme value thoery the Hill estimator as a proxy for the tail index 
     of a power law provided alpha > 0. Treats all values as extreme.
@@ -267,7 +274,8 @@ def hill_est(values: T.FloatTensor) -> T.FloatTensor:
 
     return 1 / gamma
 
-def zipf_plot(values: T.FloatTensor, zipf_x: T.FloatTensor, zipf_x2: T.FloatTensor) -> T.FloatTensor:
+def zipf_plot(values: T.cuda.FloatTensor, zipf_x: T.cuda.FloatTensor, zipf_x2: T.cuda.FloatTensor) \
+        -> T.cuda.FloatTensor:
     """
     Obtain gradient of Zipf (or Pareto Q-Q) plot using ordered statistics.
 
@@ -290,9 +298,11 @@ def zipf_plot(values: T.FloatTensor, zipf_x: T.FloatTensor, zipf_x2: T.FloatTens
 
     return 1 / gamma
 
-def aggregator(values: T.FloatTensor, shadow_low_mul: T.FloatTensor, shadow_high_mul: T.FloatTensor, 
-               zipf_x: T.FloatTensor, zipf_x2: T.FloatTensor) -> Tuple[T.FloatTensor, T.FloatTensor, 
-               T.FloatTensor, T.FloatTensor, T.FloatTensor]:
+def aggregator(values: T.cuda.FloatTensor, shadow_low_mul: T.cuda.FloatTensor, 
+               shadow_high_mul: T.cuda.FloatTensor, zipf_x: T.cuda.FloatTensor, 
+               zipf_x2: T.cuda.FloatTensor) \
+    -> Tuple[T.cuda.FloatTensor, T.cuda.FloatTensor, T.cuda.FloatTensor, 
+             T.cuda.FloatTensor, T.cuda.FloatTensor]:
     """
     Aggregates several mini-batch summary statistics: 'empirical' mean (strong LLN approach), min/max, 
     uses power law heuristics to estimate the shadow mean, and the tail exponent.
@@ -300,7 +310,7 @@ def aggregator(values: T.FloatTensor, shadow_low_mul: T.FloatTensor, shadow_high
     Parameters:
         values: critic loss per sample in the mini-batch without aggregation
         shadow_low_mul: lower bound multiplier of sample minimum to form minimum threshold of interest
-        shadow_high_mul: finite improbable upper bound multiplier of sample maximum for tail distributions
+        shadow_high_mul: upper bound multiplier of sample maximum for tail distributions
         zipf_x: array for Zipf plot x-axis
         zipf_x2: sum of squared deviations form the mean for Zipf plot x-axis
     
@@ -324,18 +334,20 @@ def aggregator(values: T.FloatTensor, shadow_low_mul: T.FloatTensor, shadow_high
 
     return mean, min, max, shadow, alpha
 
-def loss_function(estimated: T.FloatTensor, target: T.FloatTensor, shadow_low_mul: T.FloatTensor, 
-                  shadow_high_mul: T.FloatTensor, zipf_x: T.FloatTensor, zipf_x2: T.FloatTensor, 
-                  loss_type: str, scale: float, kernel: float) -> Tuple[T.FloatTensor, T.FloatTensor, 
-                  T.FloatTensor, T.FloatTensor, T.FloatTensor]:
+def loss_function(estimated: T.cuda.FloatTensor, target: T.cuda.FloatTensor, 
+                  shadow_low_mul: T.cuda.FloatTensor, shadow_high_mul: T.cuda.FloatTensor, 
+                  zipf_x: T.cuda.FloatTensor, zipf_x2: T.cuda.FloatTensor, 
+                  loss_type: str, scale: float, kernel: float) \
+        -> Tuple[T.cuda.FloatTensor, T.cuda.FloatTensor, T.cuda.FloatTensor, 
+                 T.cuda.FloatTensor, T.cuda.FloatTensor]:
     """
     Gives scalar critic loss value (retaining graph) for network backpropagation.
     
     Parameters:
         estimated: current Q-values from mini-batch
         target: raget Q-values from mini-batch
-        shadow_low_mul: lower bound multiplier of minimum for which values greater than are of interest
-        shadow_high_mul: finite improbable upper bound multiplier of maximum of distributions
+        shadow_low_mul: lower bound multiplier of sample minimum to form minimum threshold of interest
+        shadow_high_mul: upper bound multiplier of maximum of distributions
         zipf_x: array for Zipf plot x-axis
         zipf_x2: sum of squared deviations form the mean for Zipf plot x-axis
         loss_type: loss function title
@@ -351,41 +363,49 @@ def loss_function(estimated: T.FloatTensor, target: T.FloatTensor, shadow_low_mu
     """
     if loss_type == "MSE":
         values = mse(estimated, target, 0)
-        mean, min, max, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, zipf_x, zipf_x2)
+        mean, min, max, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul,
+                                                   zipf_x, zipf_x2)
         return mean, min, max, shadow, alpha
 
     elif loss_type == "Huber":
         values = huber(estimated, target)
-        mean, min, max, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, zipf_x, zipf_x2)
+        mean, min, max, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, 
+                                                   zipf_x, zipf_x2)
         return mean, min, max, shadow, alpha
 
     elif loss_type == "MAE":
         values = mae(estimated, target)
-        mean, min, max, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, zipf_x, zipf_x2)
+        mean, min, max, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, 
+                                                   zipf_x, zipf_x2)
         return mean, min, max, shadow, alpha
 
     elif loss_type == "HSC":
         values = hypersurface(estimated, target)
-        mean, min, max, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, zipf_x, zipf_x2)
+        mean, min, max, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, 
+                                                   zipf_x, zipf_x2)
         return mean, min, max, shadow, alpha
 
     elif loss_type == "Cauchy":
         values = cauchy(estimated, target, scale)
-        mean, min, max, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, zipf_x, zipf_x2)
+        mean, min, max, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, 
+                                                   zipf_x, zipf_x2)
         return mean, min, max, shadow, alpha
 
     elif loss_type == "CIM":
         values = correntropy(estimated, target, kernel)
-        mean, min, max, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, zipf_x, zipf_x2)
+        mean, min, max, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, 
+                                                   zipf_x, zipf_x2)
         return mean, min, max, shadow, alpha
 
     elif loss_type[0:3] == "MSE" and type(int(loss_type[3:])) == int:
         values = mse(estimated, target, int(loss_type[3:]))
-        mean, min, max, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, zipf_x, zipf_x2)
+        mean, min, max, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, 
+                                                   zipf_x, zipf_x2)
         return mean, min, max, shadow, alpha
 
-def shadow_means(alpha: np.ndarray, min: np.ndarray, max: np.ndarray, min_mul: float, 
-                 max_mul: float) -> np.ndarray:
+def shadow_means(alpha: np.ndarray, min: np.ndarray, max: np.ndarray, 
+                 min_mul: float, max_mul: float) \
+        -> np.ndarray:
     """
     Construct shadow mean given the tail exponent and sample min/max for varying multipliers.
 

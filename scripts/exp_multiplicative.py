@@ -4,8 +4,8 @@ sys.path.append("./")
 from algos.algo_sac import Agent_sac
 from algos.algo_td3 import Agent_td3
 from datetime import datetime
-# import envs.gbm_envs as gbm_envs
 import envs.coin_flip_envs as coin_flip_envs
+# import envs.gbm_envs as gbm_envs
 import extras.plots as plots
 import extras.utils as utils
 import numpy as np
@@ -82,9 +82,9 @@ def multiplicative_env(gym_envs: dict, inputs: dict, ENV_KEY: int):
                             logtemp_log.append(logtemp)
                             loss_params_log.append(loss_params)
 
-                            print('ep/st/cst {}/{}/{} {:1.0f}/s: V/g/[risk] ${}/{:1.6f}%/{}, C/Cm/Cs {:1.2f}/{:1.2f}/{:1.2f}, a/c/k/A/T {:1.2f}/{:1.2f}/{:1.2f}/{:1.2f}'
+                            print('ep/st/cst {}/{}/{} {:1.0f}/s: V/g/[risk] ${:1.6f}/{:1.6f}%/{}, C/Cm/Cs {:1.2f}/{:1.2f}/{:1.2f}, a/c/k/A/T {:1.2f}/{:1.2f}/{:1.2f}/{:1.2f}/{:1.2f}'
                                   .format(episode, step, cum_steps, step/time_log[-1], risk[0], risk[1], np.round(risk[2:]*100, 0), np.mean(loss[0:2]), np.mean(loss[4:6]), 
-                                          np.mean(loss[6:8]),np.mean(loss[8:10]), np.mean(loss_params[0:2]), np.mean(loss_params[2:4]), loss[8], np.exp(logtemp)))
+                                          np.mean(loss[6:8]), np.mean(loss[8:10]), np.mean(loss_params[0:2]), np.mean(loss_params[2:4]), loss[8]+3, np.exp(logtemp)+5))
 
                             if cum_steps > int(inputs['n_cumsteps']-1):
                                 break

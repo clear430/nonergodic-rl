@@ -120,8 +120,8 @@ class ReplayBuffer():
          
         self.mem_idx += 1
 
-    def _contruct_history(self, step: int, epis_history: np.ndarray) -> Tuple[np.ndarray, 
-                          np.ndarray, np.ndarray]:
+    def _contruct_history(self, step: int, epis_history: np.ndarray) \
+            -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         Given a single mini-batch sample (or step), obtain the history of rewards, and 
         state-action pairs.
@@ -169,7 +169,8 @@ class ReplayBuffer():
             
         return rewards, states, actions
 
-    def _episode_rewards_states_actions(self, batch: List[int]) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def _episode_rewards_states_actions(self, batch: List[int]) \
+            -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         Collect respective histories for each sample in the mini-batch.
 
@@ -191,8 +192,8 @@ class ReplayBuffer():
         return sample_epis_rewards, sample_epis_states, sample_epis_actions
 
     def _multi_step_rewards_states_actions(self, reward_history: np.ndarray, state_history: np.ndarray, 
-                                           action_history: np.ndarray, multi_length: int) -> Tuple[np.ndarray, 
-                                           np.ndarray, np.ndarray]:
+                                           action_history: np.ndarray, multi_length: int) \
+            -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         For a single mini-batch sample, generate multi-step rewards and identify intial state-action pair.
 
@@ -228,9 +229,9 @@ class ReplayBuffer():
 
         return multi_reward, intial_state, intial_action
     
-    def _multi_step_batch(self, step_rewards: List[np.ndarray], step_states: List[np.ndarray],
-                          step_actions: List[np.ndarray])-> Tuple[np.ndarray, np.ndarray, 
-                          np.ndarray, np.ndarray]:
+    def _multi_step_batch(self, step_rewards: List[np.ndarray], 
+                          step_states: List[np.ndarray], step_actions: List[np.ndarray]) \
+            -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
         Collect respective multi-step returns and intial state-action pairs for each sample in the mini-batch.
 

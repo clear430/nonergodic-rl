@@ -1,14 +1,14 @@
 from scripts.exp_additive import additive_env
 from scripts.exp_multiplicative import multiplicative_env
 
-# off-policy models 'SAC', 'TD3'
+# off-policy models: 'SAC', 'TD3'
 algo_name = ['TD3']
-# 'MSE', 'Huber', 'MAE', 'HSC', 'Cauchy', 'CIM', 'MSE2', 'MSE4', 'MSE6'
+# critic loss function: 'MSE', 'Huber', 'MAE', 'HSC', 'Cauchy', 'CIM', 'MSE2', 'MSE4', 'MSE6'
 critic_loss = ['MSE']
-# additive: any positive integer > 0, multiplicative: only 1 
+# bootstrapping: additive = integer > 0, multiplicative = 1 
 multi_steps = [1]
 
-ENV_KEY = 0
+ENV_KEY = 14
 
 gym_envs = {
     # ENV_KEY: [env_id, input_dim, action_dim, intial warmup steps to generate random seed]
@@ -37,29 +37,29 @@ gym_envs = {
     # MULTIPLICATVE ENVIRONMENTS
     # assets following the equally likely +50%/-40% gamble
     # investor 1: portfolio of one, two and ten assets
-    '14': ['Investor1_1x', 2, 1, 1e3],
-    '15': ['Investor1_2x', 3, 3, 1e3],
-    '16': ['Investor1_10x', 11, 11, 1e3],
+    '14': ['Investor1_1x', 2, 1, 3e3],
+    '15': ['Investor1_2x', 3, 2, 1e3],
+    '16': ['Investor1_10x', 11, 10, 1e3],
     # investor 2: portfolio of one, two and ten assets
     '17': ['Investor2_1x', 2, 2, 1e3],
-    '18': ['Investor2_2x', 3, 4, 1e3],
-    '19': ['Investor2_10x', 11, 12, 1e3],
+    '18': ['Investor2_2x', 3, 3, 1e3],
+    '19': ['Investor2_10x', 11, 11, 1e3],
     # investor 3: portfolio of one, two and ten assets
     '20': ['Investor3_1x', 2, 3, 1e3],
-    '21': ['Investor3_2x', 3, 5, 1e3],
-    '22': ['Investor3_10x', 11, 13, 1e3],
+    '21': ['Investor3_2x', 3, 4, 1e3],
+    '22': ['Investor3_10x', 11, 12, 1e3],
 
     # assets following GBM
     # investor 1: portfolio of one, two and ten assets 
     '23': ['Investor1GBM_1x', 2, 1, 1e3],
-    '24': ['Investor1GBM_2x', 3, 3, 1e3],
-    '25': ['Investor1GBM_10x', 11, 11, 1e3]
+    '24': ['Investor1GBM_2x', 3, 2, 1e3],
+    '25': ['Investor1GBM_10x', 11, 10, 1e3]
     }
 
 inputs_dict = {
     # execution parameters
     'n_trials': 3,                              # number of total unique training trials
-    'n_cumsteps': 1e4,                          # maximum cumulative steps per trial (must be greater than warmup)
+    'n_cumsteps': 4e4,                          # maximum cumulative steps per trial (must be greater than warmup)
     'eval_freq': 1e3,                           # interval of steps between evaluation episodes
     'max_eval_reward': 1e4,                     # maximum reward per evaluation episode
     'n_eval': 1e2,                              # number of evalution episodes
@@ -117,6 +117,6 @@ inputs_dict = {
 if __name__ == '__main__':
 
     if ENV_KEY <= 13:
-        additive_env(gym_envs, inputs=inputs_dict, ENV_KEY=ENV_KEY)
+        additive_env(gym_envs=gym_envs, inputs=inputs_dict, ENV_KEY=ENV_KEY)
     else:
-        multiplicative_env(gym_envs, inputs=inputs_dict, ENV_KEY=ENV_KEY)
+        multiplicative_env(gym_envs=gym_envs, inputs=inputs_dict, ENV_KEY=ENV_KEY)

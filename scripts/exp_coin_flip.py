@@ -95,11 +95,13 @@ def fixed_final_lev(outcomes: T.FloatTensor, top: int, value_0: T.FloatTensor, u
                  avg mean/med/mad/std:  $ {:1.2e} / {:1.2e} / {:1.1e} / {:1.1e}
                  top mean/med/mad/std:  $ {:1.2e} / {:1.2e} / {:1.1e} / {:1.1e}
                  adj mean/med/mad/std:  $ {:1.2e} / {:1.2e} / {:1.1e} / {:1.1e}"""
-                 .format(lev*100, mean, med, mad, std, mean_top, med_top, mad_top, std_top, mean_adj, med_adj, mad_adj, std_adj))
+                 .format(lev*100, mean, med, mad, std, mean_top, med_top, mad_top, std_top, 
+                         mean_adj, med_adj, mad_adj, std_adj))
 
 def smart_lev(outcomes: T.FloatTensor, investors: T.IntTensor, horizon: T.IntTensor, top: int, 
               value_0: T.FloatTensor, up_r: T.FloatTensor, down_r: T.FloatTensor, lev_low: float, 
-              lev_high: float, lev_incr: float) -> Tuple[np.ndarray, np.ndarray]:
+              lev_high: float, lev_incr: float) \
+        -> Tuple[np.ndarray, np.ndarray]:
     """
     Valuations across all time for fixed leverages.
 
@@ -154,8 +156,8 @@ def smart_lev(outcomes: T.FloatTensor, investors: T.IntTensor, horizon: T.IntTen
             med_adj = T.median(adj_value)
             mad_adj = T.mean(T.abs(adj_value - mean_adj))
 
-            data[i, :, t] = T.tensor([mean, mean_top, mean_adj, mad, mad_top, mad_adj, std, std_top, std_adj, 
-                                      med, med_top, med_adj, lev])
+            data[i, :, t] = T.tensor([mean, mean_top, mean_adj, mad, mad_top, mad_adj, 
+                                      std, std_top, std_adj, med, med_top, med_adj, lev])
 
         data_T[i, :] = value_t 
 
@@ -192,10 +194,11 @@ def optimal_lev(value_t: float, value_0: float, value_min: float, lev_factor: fl
         
     return opt_lev
 
-def big_brain_lev(outcomes: T.FloatTensor, investors: T.IntTensor, horizon: T.IntTensor, top: int, 
-                  value_0: T.FloatTensor, up_r: T.FloatTensor, down_r: T.FloatTensor, lev_factor: float, 
-                  stop_min: float, stop_max: float, stop_incr: float, roll_max: float, roll_min: float, 
-                  roll_incr: float) -> np.ndarray:
+def big_brain_lev(outcomes: T.FloatTensor, investors: T.IntTensor, horizon: T.IntTensor, 
+                  top: int, value_0: T.FloatTensor, up_r: T.FloatTensor, down_r: T.FloatTensor, 
+                  lev_factor: float, stop_min: float, stop_max: float, stop_incr: float, 
+                  roll_max: float, roll_min: float, roll_incr: float) \
+        -> np.ndarray:
     """
     Valuations across all time for variable stop-losses and retention ratios that calculates optimal leverage
     at each time step for each investor.
@@ -259,8 +262,9 @@ def big_brain_lev(outcomes: T.FloatTensor, investors: T.IntTensor, horizon: T.In
                 lmed_adj = T.median(adj_lev)
                 lmad_adj = T.mean(T.abs(adj_lev - lmean_adj))
 
-                data[j, i, 12:26, t] = T.tensor([lmean, lmean_top, lmean_adj, lmad, lmad_top, lmad_adj, lstd, lstd_top, lstd_adj, 
-                                                lmed, lmed_top, lmed_adj, stop_level, roll_level])
+                data[j, i, 12:26, t] = T.tensor([lmean, lmean_top, lmean_adj, lmad, lmad_top, lmad_adj, 
+                                                 lstd, lstd_top, lstd_adj, lmed, lmed_top, lmed_adj, 
+                                                 stop_level, roll_level])
 
                 # calculate one-period change in valuations
                 value_t = initial * (1 + sample_lev * gambles[:, t + 1])
@@ -285,8 +289,8 @@ def big_brain_lev(outcomes: T.FloatTensor, investors: T.IntTensor, horizon: T.In
                 med_adj = T.median(adj_value)
                 mad_adj = T.mean(T.abs(adj_value - mean_adj))
 
-                data[j, i, 0:12, t] = T.tensor([mean, mean_top, mean_adj, mad, mad_top, mad_adj, std, std_top, std_adj, 
-                                                med, med_top, med_adj])
+                data[j, i, 0:12, t] = T.tensor([mean, mean_top, mean_adj, mad, mad_top, mad_adj, 
+                                                std, std_top, std_adj, med, med_top, med_adj])
 
             i += 1
 
@@ -301,8 +305,9 @@ def big_brain_lev(outcomes: T.FloatTensor, investors: T.IntTensor, horizon: T.In
 
     return data.cpu().numpy()
 
-def galaxy_brain_lev(ru_min: float, ru_max: float, ru_incr: float, rd_min: float, rd_max: float, rd_incr: float,
-                     pu_min: float, pu_max: float, pu_incr: float) -> np.ndarray:
+def galaxy_brain_lev(ru_min: float, ru_max: float, ru_incr: float, rd_min: float, rd_max: float, 
+                     rd_incr: float, pu_min: float, pu_max: float, pu_incr: float) \
+        -> np.ndarray:
     """
     Optimal leverage determined using the Kelly criterion to maximise the geometric return of a binary payout
     valid across all time steps.

@@ -74,7 +74,7 @@ class ActorNetwork(nn.Module):
 
         self.to(self.device)
 
-    def forward(self, state: T.FloatTensor) -> T.FloatTensor:
+    def forward(self, state: T.cuda.FloatTensor) -> T.cuda.FloatTensor:
         """
         Forward propogation of state to obtain fixed Gaussian distribution parameters
         (moments) for each possible action component. 
@@ -94,7 +94,8 @@ class ActorNetwork(nn.Module):
 
         return moments
     
-    def stochastic_uv(self, state: T.FloatTensor) -> Tuple[T.FloatTensor, T.FloatTensor]:
+    def stochastic_uv(self, state: T.cuda.FloatTensor) \
+            -> Tuple[T.cuda.FloatTensor, T.cuda.FloatTensor]:
         """ 
         Stochastic action selection sampled from several unbounded univarite distirbution
         using the reparameterisation trick from https://arxiv.org/pdf/1312.6114.pdf. Addition
@@ -108,7 +109,7 @@ class ActorNetwork(nn.Module):
 
         Returns:
             bounded_action: action truncated by tanh and scaled by max action
-            bounded_logprob_action: log probability of sampled truncated action 
+            bounded_logprob_action: log probability (log likelihood) of sampled truncated action 
         """
         moments = self.forward(state)
         mu, log_scale = moments[:, :self.num_actions], moments[:, self.num_actions:]
@@ -132,7 +133,8 @@ class ActorNetwork(nn.Module):
 
         return bounded_action, bounded_logprob_action
     
-    def stochastic_mv_gaussian(self, state: T.FloatTensor) -> Tuple[T.FloatTensor]:
+    def stochastic_mv_gaussian(self, state: T.cuda.FloatTensor) \
+            -> Tuple[T.cuda.FloatTensor, T.cuda.FloatTensor]:
         """
         Stochastic action selection sampled from unbounded spherical Gaussian input 
         noise with tanh bounding using Jacobian transformation. Allows each mini-batch 
@@ -247,7 +249,8 @@ class CriticNetwork(nn.Module):
 
         self.to(self.device)
 
-    def forward(self, state: T.FloatTensor, action: T.FloatTensor) -> T.FloatTensor:
+    def forward(self, state: T.cuda.FloatTensor, action: T.cuda.FloatTensor) \
+            -> T.cuda.FloatTensor:
         """
         Forward propogation of state-action pair to obtain soft Q-value.
 

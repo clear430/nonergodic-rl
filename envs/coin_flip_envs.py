@@ -6,7 +6,7 @@ from typing import List, Tuple
 
 MIN_VALUE = 1e0             # minimum portfolio value (important for Q-value convergence)
 INITIAL_VALUE = 1e2         # intial portfolio value 
-MAX_VALUE = 1e20            # maximium potfolio value for normalisation
+MAX_VALUE = 1e16            # maximium potfolio value for normalisation
 MAX_VALUE_RATIO = 1         # maximum possible value realtive to MAX_VALUE
 
 MAX_ABS_ACTION = 0.99       # maximum normalised (absolute) action value (epsilon_1)
@@ -53,7 +53,7 @@ class Investor1_1x(gym.Env):
         self.observation_space = spaces.Box(low=0, high=MAX_VALUE_RATIO, 
                                             shape=(2,), dtype=np.float64)
 
-        # action space: [leverage]
+        # action space: [leverage 0]
         self.action_space = spaces.Box(low=-MAX_ABS_ACTION, high=MAX_ABS_ACTION, 
                                        shape=(1,), dtype=np.float64)
 
@@ -167,9 +167,9 @@ class Investor1_2x(gym.Env):
         self.observation_space = spaces.Box(low=0, high=MAX_VALUE_RATIO, 
                                             shape=(3,), dtype=np.float64)
 
-        # action space: [leverage, pseudo-weights 0-1]
+        # action space: [leverage 0-1]
         self.action_space = spaces.Box(low=-MAX_ABS_ACTION, high=MAX_ABS_ACTION, 
-                                       shape=(3,), dtype=np.float64)
+                                       shape=(2,), dtype=np.float64)
 
         self.seed()
         self.reset()
@@ -200,10 +200,8 @@ class Investor1_2x(gym.Env):
         initial_wealth = self.wealth
         initial_asset0, initial_asset1 = self.asset0, self.asset1
         
-        # obtain leverage and pseudo-weights from neural network
-        total_lev = action[0]
-        pseudo_weights = action[1:]
-        lev = pseudo_weights * total_lev
+        # obtain leverages from neural network
+        lev = action
 
         # sample binary return
         r = np.where(np.random.binomial(n=1, p=UP_PROB, size=2)==1, UP_R, DOWN_R)
@@ -283,9 +281,9 @@ class Investor1_10x(gym.Env):
         self.observation_space = spaces.Box(low=0, high=MAX_VALUE_RATIO, 
                                             shape=(11,), dtype=np.float64)
 
-        # action space: [leverage, pseudo-weights 0]
+        # action space: [leverage 0-9]
         self.action_space = spaces.Box(low=-MAX_ABS_ACTION, high=MAX_ABS_ACTION, 
-                                       shape=(11,), dtype=np.float64)
+                                       shape=(10,), dtype=np.float64)
 
         self.seed()
         self.reset()
@@ -320,10 +318,8 @@ class Investor1_10x(gym.Env):
         initial_asset6, initial_asset7 = self.asset6, self.asset7
         initial_asset8, initial_asset9 = self.asset8, self.asset9
         
-        # obtain leverage and weights from neural network
-        total_lev = action[0]
-        pseudo_weights = action[1:]
-        lev = pseudo_weights * total_lev
+        # obtain leverages from neural network
+        lev = action
 
         # sample binary return
         r = np.where(np.random.binomial(n=1, p=UP_PROB, size=10)==1, UP_R, DOWN_R)
@@ -415,7 +411,7 @@ class Investor2_1x(gym.Env):
         self.observation_space = spaces.Box(low=0, high=MAX_VALUE_RATIO, 
                                             shape=(2,), dtype=np.float64)
 
-        # action space: [leverage, stop-loss]
+        # action space: [leverage 0, stop-loss]
         self.action_space = spaces.Box(low=-MAX_ABS_ACTION, high=MAX_ABS_ACTION, 
                                        shape=(2,), dtype=np.float64)
 
@@ -448,9 +444,9 @@ class Investor2_1x(gym.Env):
         initial_wealth = self.wealth
         initial_asset0 = self.asset0
         
-        # obtain leverage and stop-loss from neural network
-        lev = action[0] * LEV_FACTOR
-        stop_loss = (action[1] + 1) / 2
+        # obtain leverages and stop-loss from neural network
+        stop_loss = (action[0] + 1) / 2
+        lev = action[1] * LEV_FACTOR
         
         # sample binary return
         r = np.where(np.random.binomial(n=1, p=UP_PROB, size=None)==1, UP_R, DOWN_R)
@@ -535,9 +531,9 @@ class Investor2_2x(gym.Env):
         self.observation_space = spaces.Box(low=0, high=MAX_VALUE_RATIO, 
                                             shape=(3,), dtype=np.float64)
 
-        # action space: [leverage, stop loss, pseudo-weights 0-1]
+        # action space: [leverage 0-1, stop-loss]
         self.action_space = spaces.Box(low=-MAX_ABS_ACTION, high=MAX_ABS_ACTION, 
-                                       shape=(4,), dtype=np.float64)
+                                       shape=(3,), dtype=np.float64)
 
         self.seed()
         self.reset()
@@ -568,11 +564,9 @@ class Investor2_2x(gym.Env):
         initial_wealth = self.wealth
         initial_asset0, initial_asset1 = self.asset0, self.asset1
         
-        # obtain leverage, stop-loss and pseudo-weights from neural network
-        total_lev = action[0] * LEV_FACTOR
-        stop_loss = (action[1] + 1) / 2
-        pseudo_weights = action[2:]
-        lev = pseudo_weights * total_lev
+        # obtain leverages and stop-loss from neural network
+        stop_loss = (action[0] + 1) / 2
+        lev = action[1:] * LEV_FACTOR
 
         # sample binary return
         r = np.where(np.random.binomial(n=1, p=UP_PROB, size=2)==1, UP_R, DOWN_R)
@@ -657,9 +651,9 @@ class Investor2_10x(gym.Env):
         self.observation_space = spaces.Box(low=0, high=MAX_VALUE_RATIO, 
                                             shape=(11,), dtype=np.float64)
 
-        # action space: [leverage, stop loss, pseudo-weights 0-9]
+        # action space: [leverage 0-9, stop-loss]
         self.action_space = spaces.Box(low=-MAX_ABS_ACTION, high=MAX_ABS_ACTION, 
-                                       shape=(12,), dtype=np.float64)
+                                       shape=(11,), dtype=np.float64)
 
         self.seed()
         self.reset()
@@ -694,11 +688,9 @@ class Investor2_10x(gym.Env):
         initial_asset6, initial_asset7 = self.asset6, self.asset7
         initial_asset8, initial_asset9 = self.asset8, self.asset9
         
-        # obtain leverage and weights from neural network
-        total_lev = action[0] * LEV_FACTOR
-        stop_loss = (action[1] + 1) / 2
-        pseudo_weights = action[2:]
-        lev = pseudo_weights * total_lev
+        # obtain leverages and stop-loss from neural network
+        stop_loss = (action[0] + 1) / 2
+        lev = action[1:] * LEV_FACTOR
 
         # sample binary return
         r = np.where(np.random.binomial(n=1, p=UP_PROB, size=10)==1, UP_R, DOWN_R)
@@ -796,7 +788,7 @@ class Investor3_1x(gym.Env):
         self.observation_space = spaces.Box(low=0, high=MAX_VALUE_RATIO, 
                                             shape=(2,), dtype=np.float64)
 
-        # action space: [leverage, stop-loss, retention ratio]
+        # action space: [leverage 0, stop-loss, retention ratio]
         self.action_space = spaces.Box(low=-MAX_ABS_ACTION, high=MAX_ABS_ACTION, 
                                        shape=(3,), dtype=np.float64)
 
@@ -829,10 +821,10 @@ class Investor3_1x(gym.Env):
         initial_wealth = self.wealth
         initial_asset0 = self.asset0
         
-        # obtain leverage and stop-loss from neural network
-        lev = action[0] * LEV_FACTOR
-        stop_loss = (action[1] + 1) / 2
-        retention = (action[2] + 1) / 2
+        # obtain leverages, stop-loss, and retention ratio from neural network
+        stop_loss = (action[0] + 1) / 2
+        retention = (action[1] + 1) / 2
+        lev = action[2] * LEV_FACTOR
         
         # sample binary return
         r = np.where(np.random.binomial(n=1, p=UP_PROB, size=None)==1, UP_R, DOWN_R)
@@ -873,7 +865,7 @@ class Investor3_1x(gym.Env):
                     or np.abs(lev) < MIN_WEIGHT
                     or np.any(next_state > 1))
 
-        risk = np.array([self.wealth, reward, step_return, lev, stop_loss, retention], 
+        risk = np.array([self.wealth, reward, step_return, stop_loss, retention, lev], 
                         dtype=np.float64)
 
         self.time += 1
@@ -925,9 +917,9 @@ class Investor3_2x(gym.Env):
         self.observation_space = spaces.Box(low=0, high=MAX_VALUE_RATIO, 
                                             shape=(3,), dtype=np.float64)
 
-        # action space: [leverage, stop loss, pseudo-weights 0-1]
+        # action space: [leverage 0-1, stop-loss, retention ratio]
         self.action_space = spaces.Box(low=-MAX_ABS_ACTION, high=MAX_ABS_ACTION, 
-                                       shape=(5,), dtype=np.float64)
+                                       shape=(4,), dtype=np.float64)
 
         self.seed()
         self.reset()
@@ -958,12 +950,10 @@ class Investor3_2x(gym.Env):
         initial_wealth = self.wealth
         initial_asset0, initial_asset1 = self.asset0, self.asset1
         
-        # obtain leverage, stop-loss and pseudo-weights from neural network
-        total_lev = action[0] * LEV_FACTOR
-        stop_loss = (action[1] + 1) / 2
-        retention = (action[2] + 1) / 2
-        pseudo_weights = action[3:]
-        lev = pseudo_weights * total_lev
+        # obtain leverages, stop-loss, and retention ratio from neural network
+        stop_loss = (action[0] + 1) / 2
+        retention = (action[1] + 1) / 2
+        lev = action[2:] * LEV_FACTOR
 
         # sample binary return
         r = np.where(np.random.binomial(n=1, p=UP_PROB, size=2)==1, UP_R, DOWN_R)
@@ -1056,9 +1046,9 @@ class Investor3_10x(gym.Env):
         self.observation_space = spaces.Box(low=0, high=MAX_VALUE_RATIO, 
                                             shape=(11,), dtype=np.float64)
 
-        # action space: [leverage, stop loss, pseudo-weights 0-9]
+        # action space: [leverage 0-9, stop-loss, retention ratio]
         self.action_space = spaces.Box(low=-MAX_ABS_ACTION, high=MAX_ABS_ACTION, 
-                                       shape=(13,), dtype=np.float64)
+                                       shape=(12,), dtype=np.float64)
 
         self.seed()
         self.reset()
@@ -1093,12 +1083,10 @@ class Investor3_10x(gym.Env):
         initial_asset6, initial_asset7 = self.asset6, self.asset7
         initial_asset8, initial_asset9 = self.asset8, self.asset9
         
-        # obtain leverage and weights from neural network
-        total_lev = action[0] * LEV_FACTOR
-        stop_loss = (action[1] + 1) / 2
-        retention = (action[2] + 1) / 2
-        pseudo_weights = action[3:]
-        lev = pseudo_weights * total_lev
+        # obtain leverages, stop-loss, and retention ratio from neural network
+        stop_loss = (action[0] + 1) / 2
+        retention = (action[1] + 1) / 2
+        lev = action[2:] * LEV_FACTOR
 
         # sample binary return
         r = np.where(np.random.binomial(n=1, p=UP_PROB, size=10)==1, UP_R, DOWN_R)
@@ -1145,7 +1133,7 @@ class Investor3_10x(gym.Env):
                     or np.all(np.abs(lev) < MIN_WEIGHT)
                     or np.any(next_state > 1))
 
-        risk = np.array([self.wealth, reward, step_return, stop_loss, retention,lev[0], 
+        risk = np.array([self.wealth, reward, step_return, stop_loss, retention, lev[0], 
                          lev[1], lev[2], lev[3], lev[4], lev[5], lev[6], lev[7], lev[8], 
                          lev[9]], dtype=np.float64)
 

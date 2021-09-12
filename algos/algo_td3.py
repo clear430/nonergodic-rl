@@ -144,7 +144,7 @@ class Agent_td3():
         """
         self.memory.store_exp(state, action, reward, next_state, done)
 
-    def select_next_action(self, state: T.FloatTensor) -> Tuple[np.ndarray, T.FloatTensor]:
+    def select_next_action(self, state: T.cuda.FloatTensor) -> Tuple[np.ndarray, T.cuda.FloatTensor]:
         """
         Agent selects next action from determinstic policy with noise added to each component, 
         or during warmup a random action taken.
@@ -175,8 +175,8 @@ class Agent_td3():
         
         return numpy_next_action, next_action
     
-    def _mini_batch(self) -> Tuple[T.FloatTensor, T.FloatTensor, T.FloatTensor, 
-                                   T.FloatTensor, T.BoolTensor, T.IntTensor]:
+    def _mini_batch(self) -> Tuple[T.cuda.FloatTensor, T.cuda.FloatTensor, T.cuda.FloatTensor, 
+                                   T.cuda.FloatTensor, T.BoolTensor, T.IntTensor]:
         """
         Uniform sampling from replay buffer and send to GPU.
 
@@ -193,18 +193,20 @@ class Agent_td3():
             
         states, actions, rewards, next_states, dones, eff_length = self.memory.sample_exp()
 
-        batch_states = T.tensor(states, dtype=T.float).to(self.critic_1.device)
-        batch_actions = T.tensor(actions, dtype=T.float).to(self.critic_1.device)
-        batch_rewards = T.tensor(rewards, dtype=T.float).to(self.critic_1.device)
-        batch_next_states = T.tensor(next_states, dtype=T.float).to(self.critic_1.device)
-        batch_dones = T.tensor(dones, dtype=T.bool).to(self.critic_1.device)
-        batch_eff_length = T.tensor(eff_length, dtype=T.int).to(self.critic_1.device)
+        batch_states = T.tensor(states, dtype=T.float, device=self.critic_1.device)
+        batch_actions = T.tensor(actions, dtype=T.float, device=self.critic_1.device)
+        batch_rewards = T.tensor(rewards, dtype=T.float, device=self.critic_1.device)
+        batch_next_states = T.tensor(next_states, dtype=T.float, device=self.critic_1.device)
+        batch_dones = T.tensor(dones, dtype=T.bool, device=self.critic_1.device)
+        batch_eff_length = T.tensor(eff_length, dtype=T.int, device=self.critic_1.device)
 
         return batch_states, batch_actions, batch_rewards, batch_next_states, \
                batch_dones, batch_eff_length 
 
-    def _multi_step_target(self, batch_rewards: T.FloatTensor, batch_next_states: T.FloatTensor, 
-                           batch_dones: T.BoolTensor, batch_eff_length: T.IntTensor) -> T.FloatTensor:
+    def _multi_step_target(self, batch_rewards: T.cuda.FloatTensor, 
+                           batch_next_states: T.cuda.FloatTensor, batch_dones: T.BoolTensor, 
+                           batch_eff_length: T.IntTensor) \
+            -> T.cuda.FloatTensor:
         """
         Multi-step target Q-values for mini-batch with regularisation through noise addition. 
 
@@ -241,8 +243,8 @@ class Agent_td3():
 
         return batch_target
 
-    def learn(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, 
-                             np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    def learn(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, 
+                             np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
         Agent learning via TD3 algorithm with multi-step bootstrapping and robust critic loss.
 

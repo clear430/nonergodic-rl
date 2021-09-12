@@ -58,7 +58,7 @@ class ActorNetwork(nn.Module):
 
         self.to(self.device)
 
-    def forward(self, state: T.FloatTensor) -> T.FloatTensor:
+    def forward(self, state: T.cuda.FloatTensor) -> T.cuda.FloatTensor:
         """
         Forward propogation of mini-batch states to obtain next actor actions.
 
@@ -138,7 +138,8 @@ class CriticNetwork(nn.Module):
 
         self.to(self.device)
 
-    def forward(self, state: T.FloatTensor, action: T.FloatTensor) -> T.FloatTensor:
+    def forward(self, state: T.cuda.FloatTensor, action: T.cuda.FloatTensor) \
+            -> T.cuda.FloatTensor:
         """
         Forward propogation of mini-batch state-action pairs to obtain Q-value.
 
