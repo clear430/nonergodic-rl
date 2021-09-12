@@ -70,6 +70,7 @@ inputs_dict = {
     'multi_steps': 1,                           # bootstrapping of target critic values and discounted rewards
     'trail': 50,                                # moving average of training episode scores used for model saving
     'cauchy_scale': 1,                          # Cauchy scale parameter initialisation value
+    'actor_percentile': 1,                      # bottom percentile of actor mini-batch to be maximised (>0, <=1)
     'r_abs_zero': None,                         # defined absolute zero value for rewards
     'continue': False,                          # whether to continue learning with same parameters across trials
 

@@ -91,6 +91,9 @@ class Agent_td3():
         self.multi_steps = int(inputs_dict['multi_steps'])
         self.cauchy_scale_1 = inputs_dict['cauchy_scale']
         self.cauchy_scale_2 = inputs_dict['cauchy_scale']
+        
+        self.actor_percentile = inputs_dict['actor_percentile']
+        self.actor_bottom_count = int(self.actor_percentile * self.batch_size)
 
         self.warmup = int(inputs_dict['random'])      
         self.loss_type = str(inputs_dict['loss_fn'])
@@ -324,7 +327,12 @@ class Agent_td3():
         # deterministic policy gradient ascent approximation
         self.actor.optimiser.zero_grad()
         batch_next_actions = self.actor.forward(batch_states)
-        actor_q1_loss = self.critic_1.forward(batch_states, batch_next_actions)
+        actor_q1_loss = self.critic_1.forward(batch_states, batch_next_actions).view(-1)
+
+        if self.actor_percentile != 1:
+            actor_q1_loss = actor_q1_loss.sort(descending=False)[0]
+            actor_q1_loss = actor_q1_loss[:self.actor_bottom_count]
+
         actor_q1_loss = -T.mean(actor_q1_loss)
         actor_q1_loss.backward()
         

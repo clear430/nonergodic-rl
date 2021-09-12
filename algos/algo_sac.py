@@ -81,6 +81,9 @@ class Agent_sac():
         self.cauchy_scale_1 = inputs_dict['cauchy_scale']
         self.cauchy_scale_2 = inputs_dict['cauchy_scale']
 
+        self.actor_percentile = inputs_dict['actor_percentile']
+        self.actor_bottom_count = int(self.actor_percentile * self.batch_size)
+
         self.warmup = int(inputs_dict['random'])
         self.loss_type = str(inputs_dict['loss_fn'])
 
@@ -333,8 +336,13 @@ class Agent_sac():
 
         # learn stochastic actor policy by minimising KL divergence (advantage function)
         self.actor.optimiser.zero_grad()
-        actor_loss = (self.log_alpha.exp() * batch_logprob_actions - soft_q)
-        actor_loss = T.mean(actor_loss)
+        actor_loss = (soft_q - self.log_alpha.exp() * batch_logprob_actions).view(-1)
+
+        if self.actor_percentile != 1:
+            actor_loss = actor_loss.sort(descending=False)[0]
+            actor_loss = actor_loss[:self.actor_bottom_count]
+        
+        actor_loss = -T.mean(actor_loss)
         actor_loss.backward()
         self.actor.optimiser.step()
 
