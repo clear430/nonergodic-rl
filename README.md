@@ -4,11 +4,9 @@ Research encompasses several overlapping areas:
 1. Peculiarities regarding use of critic loss functions, tail exponents, and shadow means
 2. Multi-step returns and replay buffer coupling in continuous action spaces
 3. Reinforcement learning in multiplicative (or non-ergodic) domains, maximising the time-average growth rate
-4. Designing energy efficient multi-stage actors for operation in extremely remote (multiplicative) environments
+4. Designing energy efficient multi-stage actors for operation in extremely remote environments
 
-Based on extending a Capstone project ([r-grewal/data5709](https://github.com/r-grewal/data5709)) submitted in June 2021 at the University of Sydney.
-
-Implementation using Python 3.9.7 and PyTorch 1.9.0 with CUDA 11.1. Code tested on Windows 10 21H1, Ubuntu 20.04 LTS, and Pop!\_OS 21.04 using an AMD Ryzen 7 5800X, Nvidia RTX 3070, 64GB RAM, and a Samsung SSD 980 Pro. 
+Implementation using Python 3.9.7 and PyTorch 1.9.0 with CUDA 11.1. Code tested on Windows 10 21H1, Ubuntu 20.04 LTS, and Pop!\_OS 21.04 using an AMD Ryzen 7 5800X, Nvidia RTX 3070, 64GB RAM, and a Samsung SSD 980 Pro. Research based on extending a Capstone project submitted in June 2021 at the University of Sydney.
 
 ## References
 * Reinforcement learning ([Szepesvári 2009](https://sites.ualberta.ca/~szepesva/papers/RLAlgsInMDPs.pdf), [Sutton and Bartow 2018](http://incompleteideas.net/book/RLbook2020.pdf))
