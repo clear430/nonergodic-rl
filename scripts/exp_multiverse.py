@@ -3,7 +3,7 @@ sys.path.append("./")
 
 import numpy as np
 import os
-import extras.plots as plots
+import extras.plots_multiverse as plots_multiverse
 import time
 import torch as T
 from torch.distributions.bernoulli import Bernoulli
@@ -15,6 +15,8 @@ if VRAM == 1:
 else:
     device = T.device('cpu' if T.cuda.is_available() else 'cpu')
     # still need 8GB of free RAM or reduce number of investors
+
+dir = 'results/multiverse/'    # directory for saving numpy arrays
 
 INVESTORS = 1.5e5           # number of random investors
 HORIZON = 3e3               # total time steps
@@ -379,29 +381,29 @@ if __name__ == '__main__':
 
     ## save experiment data
 
-    # if not os.path.exists('./results/inv_data'):
-    #     os.makedirs('./results/inv_data')
+    # if not os.path.exists('./' + dir):
+    #     os.makedirs('./' + dir)
 
-    # np.save('results\inv_data\inv1_val.npy', inv1_val_data)
-    # np.save('results\inv_data\inv1_val_T.npy', inv1_val_data_T)
-    # np.save('results\inv_data\inv2_val.npy', inv2_val_data)
-    # np.save('results\inv_data\inv3_val.npy', inv3_val_data)
-    # np.save('results\inv_data\inv4_lev.npy', inv4_lev_data)
+    # np.save(dir + 'inv1_val.npy', inv1_val_data)
+    # np.save(dir + 'inv1_val_T.npy', inv1_val_data_T)
+    # np.save(dir + 'inv2_val.npy', inv2_val_data)
+    # np.save(dir + 'inv3_val.npy', inv3_val_data)
+    # np.save(dir + 'inv4_lev.npy', inv4_lev_data)
 
     # load experiment data and save figures
 
     if not os.path.exists('./docs/figs'):
             os.makedirs('./docs/figs')
 
-    inv4_lev_data = np.load('results/inv_data/inv4_lev.npy')
-    plots.plot_inv4(inv4_lev_data, 'docs/figs/inv4.png')
+    inv4_lev_data = np.load(dir + '/inv4_lev.npy')
+    plots_multiverse.plot_inv4(inv4_lev_data, 'docs/figs/inv4.png')
 
-    inv3_val_data = np.load('results/inv_data/inv3_val.npy')
-    plots.plot_inv3(inv3_val_data, 'docs/figs/inv3.png')
+    inv3_val_data = np.load(dir + 'inv3_val.npy')
+    plots_multiverse.plot_inv3(inv3_val_data, 'docs/figs/inv3.png')
 
-    inv2_val_data = np.load('results/inv_data/inv2_val.npy')
-    plots.plot_inv2(inv2_val_data, 'docs/figs/inv2.png')
+    inv2_val_data = np.load(dir + 'inv2_val.npy')
+    plots_multiverse.plot_inv2(inv2_val_data, 'docs/figs/inv2.png')
 
-    inv1_val_data = np.load('results/inv_data/inv1_val.npy')
-    inv1_val_data_T = np.load('results/inv_data/inv1_val_T.npy')
-    plots.plot_inv1(inv1_val_data, inv1_val_data_T, 'docs/figs/inv1.png')
+    inv1_val_data = np.load(dir + 'inv1_val.npy')
+    inv1_val_data_T = np.load(dir + 'inv1_val_T.npy')
+    plots_multiverse.plot_inv1(inv1_val_data, inv1_val_data_T, 'docs/figs/inv1.png')

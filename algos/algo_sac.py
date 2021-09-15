@@ -167,7 +167,7 @@ class Agent_sac():
         return numpy_next_action, next_action
 
     def _mini_batch(self) -> Tuple[T.cuda.FloatTensor, T.cuda.FloatTensor, T.cuda.FloatTensor, 
-                                   T.cuda.FloatTensor, T.BoolTensor, T.IntTensor]:
+                                   T.cuda.FloatTensor, T.cuda.BoolTensor, T.cuda.IntTensor]:
         """
         Uniform sampling from replay buffer and send to GPU.
 
@@ -195,8 +195,8 @@ class Agent_sac():
                batch_dones, batch_eff_length 
 
     def _multi_step_target(self, batch_rewards: T.cuda.FloatTensor, 
-                           batch_next_states: T.cuda.FloatTensor, batch_dones: T.BoolTensor, 
-                           batch_eff_length: T.IntTensor) \
+                           batch_next_states: T.cuda.FloatTensor, batch_dones: T.cuda.BoolTensor, 
+                           batch_eff_length: T.cuda.IntTensor) \
             -> T.cuda.FloatTensor:
         """
         Multi-step target soft Q-values for mini-batch. 
@@ -220,7 +220,7 @@ class Agent_sac():
                             self.actor.stochastic_uv(batch_next_states)
         else:
             batch_next_stoc_actions, batch_next_logprob_actions = \
-                                        self.actor.stochastic_mv_gaussian(batch_next_states)
+                            self.actor.stochastic_mv_gaussian(batch_next_states)
 
         batch_next_logprob_actions = batch_next_logprob_actions.view(-1)
 

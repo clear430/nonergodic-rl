@@ -57,11 +57,10 @@ class ReplayBuffer():
         self.next_state_memory = np.zeros((self.mem_size, self.input_dims))
         self.terminal_memory = np.zeros(self.mem_size, dtype=np.bool8)
 
-        self.epis_idx = [0]
+        self.epis_idx = [np.nan]
         self.epis_reward_memory = []
         self.epis_state_memory = []
         self.epis_action_memory = []
-        self.alive_memory = np.zeros(self.mem_size, dtype=np.bool8)
 
         # required for intialisation
         self._contruct_history(1, 0)
@@ -106,18 +105,32 @@ class ReplayBuffer():
                     current_state_memory = self.next_state_memory[0:idx + 1]
                     current_action_memory = self.action_memory[0:idx + 1]
                 except:
-                    # used for the the very first training step of the first episode
+                    # used for the very first training step of the first episode
                     current_reward_memory = self.reward_memory[idx]
                     current_state_memory = self.next_state_memory[idx]
                     current_action_memory = self.action_memory[idx]
-            
-            # log the aggregated history upon termination of the training episode
+
+            #  log history for the very first training episode
+            if np.all(self.terminal_memory != True) and done is not True:
+                self.epis_idx = [idx + 1]
+                self.epis_reward_memory = [current_reward_memory]
+                self.epis_state_memory = [current_state_memory]
+                self.epis_action_memory = [current_action_memory]
+ 
+            # reset history once the very first training episode has concluded
+            if (self.terminal_memory == True).sum() == 1 and done is True:
+                self.epis_idx = [idx]
+                self.epis_reward_memory = []
+                self.epis_state_memory = []
+                self.epis_action_memory = []
+
+            # log the aggregated history upon termination of all subsequent training episode
             if done is True:
                 self.epis_idx.append(idx + 1)
                 self.epis_reward_memory.append(current_reward_memory)
                 self.epis_state_memory.append(current_state_memory)
                 self.epis_action_memory.append(current_action_memory)
-         
+
         self.mem_idx += 1
 
     def _contruct_history(self, step: int, epis_history: np.ndarray) \
@@ -217,12 +230,6 @@ class ReplayBuffer():
             multi_reward = np.sum(discounted_rewards)
         else:
             multi_reward = np.prod(discounted_rewards)
-
-            try:
-                multi_reward = multi_reward**(1 / (idx - 1))
-            except:
-                # required for intialisation
-                multi_reward = multi_reward
 
         intial_state = state_history[-idx]
         intial_action = action_history[-idx]

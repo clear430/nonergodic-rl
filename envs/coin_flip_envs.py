@@ -4,20 +4,22 @@ from gym.utils import seeding
 import numpy as np
 from typing import List, Tuple
 
-MIN_VALUE = 1e0             # minimum portfolio value (important for Q-value convergence)
-INITIAL_VALUE = 1e2         # intial portfolio value 
-MAX_VALUE = 1e16            # maximium potfolio value for normalisation
-MAX_VALUE_RATIO = 1         # maximum possible value realtive to MAX_VALUE
+MAX_VALUE = 1e16                                # maximium potfolio value for normalisation
+INITIAL_PRICE = 1e3                             # intial price of all assets
+INITIAL_VALUE = 1e2                             # intial portfolio value
+MIN_VALUE_RATIO = 1e-2                          # minimum portfolio value ratio (psi)
+MIN_VALUE = MIN_VALUE_RATIO * INITIAL_VALUE
+MAX_VALUE_RATIO = 1                             # maximum possible value realtive to MAX_VALUE
 
-MAX_ABS_ACTION = 0.99       # maximum normalised (absolute) action value (epsilon_1)
-MIN_REWARD = 1e-6           # minimum step reward (epsilon_2)
-MIN_RETURN = -0.99          # minimum step return (epsilon_3)
-MIN_WEIGHT = 1e-6           # minimum all asset weights (epsilon_4)
+MAX_ABS_ACTION = 0.99                           # maximum normalised (absolute) action value (epsilon_1)
+MIN_REWARD = 1e-6                               # minimum step reward (epsilon_2)
+MIN_RETURN = -0.99                              # minimum step return (epsilon_3)
+MIN_WEIGHT = 1e-6                               # minimum all asset weights (epsilon_4)
 
 # hyperparameters for the coin flip gamble for investors 1-3
-UP_PROB = 0.5               # probability of up move
-UP_R = 0.5                  # upside return (>=0)
-DOWN_R = -0.4               # downside return (0<=)
+UP_PROB = 0.5                                   # probability of up move
+UP_R = 0.5                                      # upside return (>=0)
+DOWN_R = -0.4                                   # downside return (0<=)
 
 # maximum (absolute) portfolio leverage (eta)
 if np.abs(UP_R) > np.abs(DOWN_R):
@@ -131,7 +133,7 @@ class Investor1_1x(gym.Env):
         """
         self.time = 1
         self.wealth = INITIAL_VALUE
-        self.asset0 = INITIAL_VALUE
+        self.asset0 = INITIAL_PRICE
 
         state = np.array([self.wealth, self.asset0], dtype=np.float64)
         state /= MAX_VALUE
@@ -245,7 +247,7 @@ class Investor1_2x(gym.Env):
         """
         self.time = 1
         self.wealth = INITIAL_VALUE
-        self.asset0, self.asset1 = INITIAL_VALUE, INITIAL_VALUE
+        self.asset0, self.asset1 = INITIAL_PRICE, INITIAL_PRICE
 
         state = np.array([self.wealth, self.asset0, self.asset1], dtype=np.float64)
         state /= MAX_VALUE
@@ -370,11 +372,11 @@ class Investor1_10x(gym.Env):
         """
         self.time = 1
         self.wealth = INITIAL_VALUE
-        self.asset0, self.asset1 = INITIAL_VALUE, INITIAL_VALUE
-        self.asset2, self.asset3 = INITIAL_VALUE, INITIAL_VALUE
-        self.asset4, self.asset5 = INITIAL_VALUE, INITIAL_VALUE
-        self.asset6, self.asset7 = INITIAL_VALUE, INITIAL_VALUE
-        self.asset8, self.asset9 = INITIAL_VALUE, INITIAL_VALUE
+        self.asset0, self.asset1 = INITIAL_PRICE, INITIAL_PRICE
+        self.asset2, self.asset3 = INITIAL_PRICE, INITIAL_PRICE
+        self.asset4, self.asset5 = INITIAL_PRICE, INITIAL_PRICE
+        self.asset6, self.asset7 = INITIAL_PRICE, INITIAL_PRICE
+        self.asset8, self.asset9 = INITIAL_PRICE, INITIAL_PRICE
 
         state = np.array([self.wealth, self.asset0, self.asset1, self.asset2, self.asset3,
                           self.asset4, self.asset5, self.asset6, self.asset7, self.asset9, 
@@ -495,7 +497,7 @@ class Investor2_1x(gym.Env):
         """
         self.time = 1
         self.wealth = INITIAL_VALUE
-        self.asset0 = INITIAL_VALUE
+        self.asset0 = INITIAL_PRICE
 
         state = np.array([self.wealth, self.asset0], dtype=np.float64)
         state /= MAX_VALUE
@@ -615,7 +617,7 @@ class Investor2_2x(gym.Env):
         """
         self.time = 1
         self.wealth = INITIAL_VALUE
-        self.asset0, self.asset1 = INITIAL_VALUE, INITIAL_VALUE
+        self.asset0, self.asset1 = INITIAL_PRICE, INITIAL_PRICE
 
         state = np.array([self.wealth, self.asset0, self.asset1], dtype=np.float64)
         state /= MAX_VALUE
@@ -747,11 +749,11 @@ class Investor2_10x(gym.Env):
         """
         self.time = 1
         self.wealth = INITIAL_VALUE
-        self.asset0, self.asset1 = INITIAL_VALUE, INITIAL_VALUE
-        self.asset2, self.asset3 = INITIAL_VALUE, INITIAL_VALUE
-        self.asset4, self.asset5 = INITIAL_VALUE, INITIAL_VALUE
-        self.asset6, self.asset7 = INITIAL_VALUE, INITIAL_VALUE
-        self.asset8, self.asset9 = INITIAL_VALUE, INITIAL_VALUE
+        self.asset0, self.asset1 = INITIAL_PRICE, INITIAL_PRICE
+        self.asset2, self.asset3 = INITIAL_PRICE, INITIAL_PRICE
+        self.asset4, self.asset5 = INITIAL_PRICE, INITIAL_PRICE
+        self.asset6, self.asset7 = INITIAL_PRICE, INITIAL_PRICE
+        self.asset8, self.asset9 = INITIAL_PRICE, INITIAL_PRICE
 
         state = np.array([self.wealth, self.asset0, self.asset1, self.asset2, self.asset3,
                           self.asset4, self.asset5, self.asset6, self.asset7, self.asset9, 
@@ -881,7 +883,7 @@ class Investor3_1x(gym.Env):
         """
         self.time = 1
         self.wealth = INITIAL_VALUE
-        self.asset0 = INITIAL_VALUE
+        self.asset0 = INITIAL_PRICE
 
         state = np.array([self.wealth, self.asset0], dtype=np.float64)
         state /= MAX_VALUE
@@ -1010,7 +1012,7 @@ class Investor3_2x(gym.Env):
         """
         self.time = 1
         self.wealth = INITIAL_VALUE
-        self.asset0, self.asset1 = INITIAL_VALUE, INITIAL_VALUE
+        self.asset0, self.asset1 = INITIAL_PRICE, INITIAL_PRICE
 
         state = np.array([self.wealth, self.asset0, self.asset1], dtype=np.float64)
         state /= MAX_VALUE
@@ -1150,11 +1152,11 @@ class Investor3_10x(gym.Env):
         """
         self.time = 1
         self.wealth = INITIAL_VALUE
-        self.asset0, self.asset1 = INITIAL_VALUE, INITIAL_VALUE
-        self.asset2, self.asset3 = INITIAL_VALUE, INITIAL_VALUE
-        self.asset4, self.asset5 = INITIAL_VALUE, INITIAL_VALUE
-        self.asset6, self.asset7 = INITIAL_VALUE, INITIAL_VALUE
-        self.asset8, self.asset9 = INITIAL_VALUE, INITIAL_VALUE
+        self.asset0, self.asset1 = INITIAL_PRICE, INITIAL_PRICE
+        self.asset2, self.asset3 = INITIAL_PRICE, INITIAL_PRICE
+        self.asset4, self.asset5 = INITIAL_PRICE, INITIAL_PRICE
+        self.asset6, self.asset7 = INITIAL_PRICE, INITIAL_PRICE
+        self.asset8, self.asset9 = INITIAL_PRICE, INITIAL_PRICE
 
         state = np.array([self.wealth, self.asset0, self.asset1, self.asset2, self.asset3,
                           self.asset4, self.asset5, self.asset6, self.asset7, self.asset9, 

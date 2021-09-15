@@ -5,8 +5,9 @@ from algos.algo_sac import Agent_sac
 from algos.algo_td3 import Agent_td3
 from datetime import datetime
 import envs.coin_flip_envs as coin_flip_envs
+# import envs.dice_roll_envs as dice_roll_envs
 # import envs.gbm_envs as gbm_envs
-import extras.plots as plots
+# import extras.plots_multiplicative as plots
 import extras.utils as utils
 import numpy as np
 import os
@@ -30,7 +31,7 @@ def multiplicative_env(gym_envs: dict, inputs: dict, ENV_KEY: int):
     if ENV_KEY <= 22:
         env = eval('coin_flip_envs.'+gym_envs[str(ENV_KEY)][0]+'()')
     else:
-        env = eval('gbm_envs.'+gym_envs[str(ENV_KEY)][0]+'()')
+        env = eval('dice_roll_envs.'+gym_envs[str(ENV_KEY)][0]+'()')
 
     inputs = {'input_dims': env.observation_space.shape, 'num_actions': env.action_space.shape[0], 
             'max_action': env.action_space.high.min(), 'min_action': env.action_space.low.max(),    # assume all elements span equal domain 
@@ -83,7 +84,7 @@ def multiplicative_env(gym_envs: dict, inputs: dict, ENV_KEY: int):
                             loss_params_log.append(loss_params)
 
                             print('ep/st/cst {}/{}/{} {:1.0f}/s: V/g/[risk] ${:1.6f}/{:1.6f}%/{}, C/Cm/Cs {:1.2f}/{:1.2f}/{:1.2f}, a/c/k/A/T {:1.2f}/{:1.2f}/{:1.2f}/{:1.2f}/{:1.2f}'
-                                  .format(episode, step, cum_steps, step/time_log[-1], risk[0], risk[1], np.round(risk[2:]*100, 0), np.mean(loss[0:2]), np.mean(loss[4:6]), 
+                                  .format(episode, step, cum_steps, step/time_log[-1], risk[0], risk[1]-1, np.round(risk[2:]*100, 0), np.mean(loss[0:2]), np.mean(loss[4:6]), 
                                           np.mean(loss[6:8]), np.mean(loss[8:10]), np.mean(loss_params[0:2]), np.mean(loss_params[2:4]), loss[8]+3, np.exp(logtemp)+5))
 
                             if cum_steps > int(inputs['n_cumsteps']-1):

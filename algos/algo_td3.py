@@ -179,7 +179,7 @@ class Agent_td3():
         return numpy_next_action, next_action
     
     def _mini_batch(self) -> Tuple[T.cuda.FloatTensor, T.cuda.FloatTensor, T.cuda.FloatTensor, 
-                                   T.cuda.FloatTensor, T.BoolTensor, T.IntTensor]:
+                                   T.cuda.FloatTensor, T.cuda.BoolTensor, T.cuda.IntTensor]:
         """
         Uniform sampling from replay buffer and send to GPU.
 
@@ -207,8 +207,8 @@ class Agent_td3():
                batch_dones, batch_eff_length 
 
     def _multi_step_target(self, batch_rewards: T.cuda.FloatTensor, 
-                           batch_next_states: T.cuda.FloatTensor, batch_dones: T.BoolTensor, 
-                           batch_eff_length: T.IntTensor) \
+                           batch_next_states: T.cuda.FloatTensor, batch_dones: T.cuda.BoolTensor, 
+                           batch_eff_length: T.cuda.IntTensor) \
             -> T.cuda.FloatTensor:
         """
         Multi-step target Q-values for mini-batch with regularisation through noise addition. 

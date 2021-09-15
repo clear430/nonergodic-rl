@@ -1,95 +1,16 @@
-from datetime import datetime
-import gym
 import numpy as np
-import pybullet_envs
 import scipy.special as sp
-import time
 import torch as T
-from torch.distributions.gamma import Gamma
-import torch.nn.functional as F
 from typing import Tuple
 
-def eval_policy(agent: object, inputs: dict, eval_log: np.ndarray, cum_steps: int, round: int, 
-                eval_run: int, loss: Tuple[float, float, float, float, float, float], logtemp: float, 
-                loss_params: Tuple[float, float, float, float]):
-    """
-    Evaluates agent policy on environment without learning for a fixed number of episodes.
-
-    Parameters:
-        agent: RL agent algorithm
-        inputs: dictionary containing all execution details
-        eval_log: array of exiting evalaution results
-        cum_steps: current amount of cumulative steps
-        round: current round of trials
-        eval_run: current evaluation count
-        loss: loss values of critic 1, critic 2 and actor
-        logtemp: log entropy adjustment factor (temperature)
-        loss_params: values of Cauchy scale parameters and kernel sizes for critics
-    """
-    print('{} {}-{}-{}-{} {} Evaluations cst {}:'.format(datetime.now().strftime('%d %H:%M:%S'), 
-    inputs['algo'], inputs['s_dist'], inputs['loss_fn'], round+1, int(inputs['n_eval']), cum_steps))
-
-    print('{} Training Summary: T/Cg/Cs {:1.2f}/{:1.2f}/{:1.2f}, C/A {:1.1f}/{:1.1f}'
-    .format(datetime.now().strftime('%d %H:%M:%S'), np.exp(logtemp), sum(loss_params[0:2])/2, 
-        sum(loss_params[2:4])/2, sum(loss[0:2]), loss[-1]))
-    
-    eval_env = gym.make(inputs['env_id'])
-    
-    for eval in range(int(inputs['n_eval'])):
-        start_time = time.perf_counter()
-        run_state = eval_env.reset()
-        run_done = False
-        run_step, run_reward = 0, 0
-
-        while not run_done:
-            run_action, _ = agent.select_next_action(run_state)
-            run_next_state, eval_reward, run_done, _ = eval_env.step(run_action)
-            run_reward += eval_reward
-            run_state = run_next_state
-            run_step += 1
-
-            # prevent evaluation from running forever
-            if run_reward >= int(inputs['max_eval_reward']):
-                    break
-        
-        end_time = time.perf_counter()
-        
-        eval_log[round, eval_run, eval, 0] = end_time - start_time
-        eval_log[round, eval_run, eval, 1] = run_reward
-        eval_log[round, eval_run, eval, 2] = run_step
-        eval_log[round, eval_run, eval, 3:14] = loss
-        eval_log[round, eval_run, eval, 14] = logtemp
-        eval_log[round, eval_run, eval, 15:19] = loss_params
-        eval_log[round, eval_run, eval, 19] = cum_steps
-    
-        print('{} Episode {}: r/st {:1.0f}/{}'
-        .format(datetime.now().strftime('%d %H:%M:%S'), eval, run_reward, run_step))
-
-    run = eval_log[round, eval_run, :, 1]
-    mean_run = np.mean(run)
-    mad_run = np.mean(np.abs(run - mean_run))
-    std_run = np.std(run, ddof=0)
-
-    step = eval_log[round, eval_run, :, 2]
-    mean_step = np.mean(step)
-    mad_step = np.mean(np.abs(step - mean_step))
-    std_step = np.std(step, ddof=0)
-
-    stats = [mean_run, mean_step, mad_run, mad_step, std_run, std_step]
-
-    steps_sec = np.sum(eval_log[round, eval_run, :, 2]) / np.sum(eval_log[round, eval_run, :, 3])
-
-    print("{} Evaluations Summary {:1.0f}/s r/st: mean {:1.0f}/{:1.0f}, mad {:1.0f}/{:1.0f}, std {:1.0f}/{:1.0f}"
-    .format(datetime.now().strftime('%d %H:%M:%S'), steps_sec, 
-            stats[0], stats[1], stats[2], stats[3], stats[4], stats[5]))
-
-def save_directory(inputs: dict, round: int) -> str:
+def save_directory(inputs: dict, round: int, additive: bool) -> str:
     """
     Provides string directory for data and plot saving names.
 
     Parameters:
         inputs: dictionary containg all execution details
         round: current round of trials
+        additive: whether additive (1) or multiplicative (0) experiment
 
     Returns:
         directory: file path and name to give to current experiment plots
@@ -97,14 +18,43 @@ def save_directory(inputs: dict, round: int) -> str:
     step_exp = int(len(str(int(inputs['n_cumsteps']))) - 1)
     buff_exp = int(len(str(int(inputs['buffer']))) - 1)
 
-    dir1 = 'results/'+inputs['env_id']+'/'
-    dir2 = inputs['env_id']+'--'+inputs['algo']+'-'+inputs['s_dist']+'_d'+inputs['dynamics']
-    dir3 = '_'+inputs['loss_fn']+'_c'+str(inputs['critic_mean_type'])+'_'+str(buff_exp-1)+'b'+str(int(inputs['buffer']))[0:2]
-    dir4 = '_m'+str(inputs['multi_steps']) +'_'+str(step_exp-1)+'s'+str(int(inputs['n_cumsteps']))[0:2]+'_n'+str(round+1)
+    dir = ['results/', 
+           'additive/' if additive == True else 'multiplicative/',
+           inputs['env_id']+'/',
+           inputs['env_id']+'--',
+           inputs['dynamics']+'_',
+           inputs['algo']+'-',
+           inputs['s_dist'],
+           '_'+inputs['loss_fn'],
+           '-'+str(inputs['critic_mean_type']),
+           '_B'+str(int(inputs['buffer']))[0:2]+'e'+str(buff_exp-1),
+           '_M'+str(inputs['multi_steps']),
+           '_S'+str(int(inputs['n_cumsteps']))[0]+'e'+str(step_exp),
+           '_N'+str(round+1)  
+           ]
 
-    directory = dir1 + dir2 + dir3 + dir4
+    directory = ''.join(dir)
 
     return directory
+
+def get_exponent(array: np.ndarray) -> int:
+    """
+    Obtain expoenent for maximum array value used for scaling and axis labels.
+
+    Parameters:
+        array: array of usually cumulative steps in trial
+
+    Returns:
+        exp: exponent of max cumulative steps
+    """
+    max_step = np.max(array)
+
+    if str(max_step)[0] == 1:
+        exp = int(len(str(int(max_step))))
+    else:
+        exp = int(len(str(int(max_step))) - 1)
+
+    return exp
 
 def cauchy(estimated: T.cuda.FloatTensor, target: T.cuda.FloatTensor, scale: float) \
         -> T.cuda.FloatTensor:
@@ -301,8 +251,8 @@ def zipf_plot(values: T.cuda.FloatTensor, zipf_x: T.cuda.FloatTensor, zipf_x2: T
 def aggregator(values: T.cuda.FloatTensor, shadow_low_mul: T.cuda.FloatTensor, 
                shadow_high_mul: T.cuda.FloatTensor, zipf_x: T.cuda.FloatTensor, 
                zipf_x2: T.cuda.FloatTensor) \
-    -> Tuple[T.cuda.FloatTensor, T.cuda.FloatTensor, T.cuda.FloatTensor, 
-             T.cuda.FloatTensor, T.cuda.FloatTensor]:
+        -> Tuple[T.cuda.FloatTensor, T.cuda.FloatTensor, T.cuda.FloatTensor, 
+                 T.cuda.FloatTensor, T.cuda.FloatTensor]:
     """
     Aggregates several mini-batch summary statistics: 'empirical' mean (strong LLN approach), min/max, 
     uses power law heuristics to estimate the shadow mean, and the tail exponent.

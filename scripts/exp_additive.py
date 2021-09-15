@@ -4,7 +4,8 @@ sys.path.append("./")
 from algos.algo_sac import Agent_sac
 from algos.algo_td3 import Agent_td3
 from datetime import datetime
-import extras.plots as plots
+import extras.eval_episodes as eval_episodes
+import extras.plots_additive as plots
 import extras.utils as utils
 import gym
 import numpy as np
@@ -45,7 +46,7 @@ def additive_env(gym_envs: dict, inputs: dict, ENV_KEY: int):
 
                 for round in range(inputs['n_trials']):
 
-                    directory = utils.save_directory(inputs, round)
+                    directory = utils.save_directory(inputs, round, additive=True)
                     time_log, score_log, step_log, logtemp_log, loss_log, loss_params_log = [], [], [], [], [], []
                     cum_steps, eval_run, episode = 0, 0, 1
                     best_score = env.reward_range[0]
@@ -78,7 +79,7 @@ def additive_env(gym_envs: dict, inputs: dict, ENV_KEY: int):
 
                             # conduct periodic agent evaluation episodes without learning
                             if cum_steps % int(inputs['eval_freq']) == 0:
-                                utils.eval_policy(agent, inputs, eval_log, cum_steps, round, eval_run, loss, logtemp, loss_params)
+                                eval_episodes.additive(agent, inputs, eval_log, cum_steps, round, eval_run, loss, logtemp, loss_params)
                                 eval_run += 1
 
                             if cum_steps > int(inputs['n_cumsteps']-1):
@@ -114,8 +115,8 @@ def additive_env(gym_envs: dict, inputs: dict, ENV_KEY: int):
                     trial_log[round, :count, 2], trial_log[round, :count, 3:14] = step_log, loss_log
                     trial_log[round, :count, 14], trial_log[round, :count, 15:] = logtemp_log, loss_params_log
 
-                    if not os.path.exists('./results/'+inputs['env_id']):
-                        os.makedirs('./results/'+inputs['env_id'])
+                    if not os.path.exists('./results/additive/'+inputs['env_id']):
+                        os.makedirs('./results/additive/'+inputs['env_id'])
 
                     if inputs['n_trials'] == 1:
                         plots.plot_learning_curve(inputs, trial_log[round], directory+'.png')
@@ -129,7 +130,7 @@ def additive_env(gym_envs: dict, inputs: dict, ENV_KEY: int):
                 np.save(directory+'_eval.npy', eval_log)
 
                 if inputs['n_trials'] > 1:
-                    plots.plot_trial_curve(inputs, trial_log, directory+'_trial.png')    # plot of agent training with linear interpolation across all trials
                     # plots.plot_eval_curve(inputs, eval_log, directory+'_eval.png')       # plot of agent evaluation round scores across all trials
                     plots.plot_eval_loss_2d(inputs, eval_log, directory+'_2d.png')       # plot of agent evaluation round scores and training critic losses across all trials
                     plots.plot_eval_loss_3d(inputs, eval_log, directory+'_3d.png')       # 3D plot of agent evaluation round scores and training critic losses across all trials
+                    plots.plot_trial_curve(inputs, trial_log, directory+'_trial.png')    # plot of agent training with linear interpolation across all trials
