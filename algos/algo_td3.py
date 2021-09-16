@@ -7,15 +7,6 @@ from torch.distributions.normal import Normal
 from torch.distributions.laplace import Laplace
 from typing import Tuple
 
-assert hasattr(ActorNetwork, 'forward'), 'missing actor forward propagation'
-assert hasattr(ActorNetwork, 'save_checkpoint'), 'missing actor saving functionality'
-assert hasattr(ActorNetwork, 'load_checkpoint'), 'missing actor load functionality'
-assert hasattr(CriticNetwork, 'forward'), 'missing critic forward propagation'
-assert hasattr(CriticNetwork, 'save_checkpoint'), 'missing critic saving functionality'
-assert hasattr(CriticNetwork, 'load_checkpoint'), 'missing critic load functionality'
-assert hasattr(ReplayBuffer, 'store_exp'), 'missing transition store functionality'
-assert hasattr(ReplayBuffer, 'sample_exp'), 'missing uniform transition sampling functionality'
-
 class Agent_td3():
     """
     DDPG policy optimisation based on https://arxiv.org/pdf/1509.02971.pdf.

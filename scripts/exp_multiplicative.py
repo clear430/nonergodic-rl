@@ -5,46 +5,50 @@ from algos.algo_sac import Agent_sac
 from algos.algo_td3 import Agent_td3
 from datetime import datetime
 import envs.coin_flip_envs as coin_flip_envs
-# import envs.dice_roll_envs as dice_roll_envs
+import envs.dice_roll_envs as dice_roll_envs
+# import envs.dice_roll_sh_envs as dice_roll_sh_envs
 # import envs.gbm_envs as gbm_envs
-# import extras.plots_multiplicative as plots
+# import envs.gbm_sh_envs as gbm_sh_envs
+import extras.plots_additive as plots
+import extras.eval_episodes as eval_episodes
 import extras.utils as utils
 import numpy as np
 import os
 import time
 
-assert hasattr(Agent_sac, 'select_next_action'), 'missing agent action selection'
-assert hasattr(Agent_sac, 'store_transistion'), 'missing transition storage functionality'
-assert hasattr(Agent_sac, 'learn'), 'missing agent learning functionality'
-assert hasattr(Agent_sac, 'save_models'), 'missing agent save functionality'
-assert hasattr(Agent_sac, 'load_models'), 'missing agent load functionality'
-assert hasattr(Agent_td3, 'select_next_action'), 'missing agent action selection'
-assert hasattr(Agent_td3, 'store_transistion'), 'missing transition storage functionality'
-assert hasattr(Agent_td3, 'learn'), 'missing agent learning functionality'
-assert hasattr(Agent_td3, 'save_models'), 'missing agent save functionality'
-assert hasattr(Agent_td3, 'load_models'), 'missing agent load functionality'
-
-def multiplicative_env(gym_envs: dict, inputs: dict, ENV_KEY: int):
+def multiplicative_env(gym_envs: dict, inputs: dict):
     """
     Conduct experiments for multiplicative environments.
     """
-    if ENV_KEY <= 22:
-        env = eval('coin_flip_envs.'+gym_envs[str(ENV_KEY)][0]+'()')
-    else:
-        env = eval('dice_roll_envs.'+gym_envs[str(ENV_KEY)][0]+'()')
+    if inputs['ENV_KEY'] <= 22:
+        env = eval('coin_flip_envs.'+gym_envs[str(inputs['ENV_KEY'])][0]+'()')
+
+    elif inputs['ENV_KEY'] <= 31:
+        env = eval('dice_roll_envs.'+gym_envs[str(inputs['ENV_KEY'])][0]+'()')
+    elif inputs['ENV_KEY'] <= 40:
+        env = eval('dice_roll_insured_envs.'+gym_envs[str(inputs['ENV_KEY'])][0]+'()')
+    elif inputs['ENV_KEY'] <= 49:
+        env = eval('gbm_envs.'+gym_envs[str(inputs['ENV_KEY'])][0]+'()')
+    elif inputs['ENV_KEY'] <= 58:
+        env = eval('gbm_insured_envs.'+gym_envs[str(inputs['ENV_KEY'])][0]+'()') 
 
     inputs = {'input_dims': env.observation_space.shape, 'num_actions': env.action_space.shape[0], 
-            'max_action': env.action_space.high.min(), 'min_action': env.action_space.low.max(),    # assume all elements span equal domain 
-            'env_id': gym_envs[str(ENV_KEY)][0], 'random': gym_envs[str(ENV_KEY)][3], 
-            'dynamics': 'M',    # gambling dynamics 'M' (multiplicative)
-            'loss_fn': 'MSE', 'algo': 'TD3', **inputs}
+              'max_action': env.action_space.high.min(), 'min_action': env.action_space.low.max(),    # assume all elements span equal domain 
+              'env_id': gym_envs[str(inputs['ENV_KEY'])][0], 'random': gym_envs[str(inputs['ENV_KEY'])][3], 
+              'dynamics': 'M',    # gambling dynamics 'M' (multiplicative)
+              'loss_fn': 'MSE', 'algo': 'TD3', **inputs
+              }
+    
+    directory = utils.save_directory(inputs, results=True)
+    trial_log = np.zeros((inputs['n_trials'], int(inputs['n_cumsteps']), 19))
+    eval_log = np.zeros((inputs['n_trials'], int(inputs['n_cumsteps'] / inputs['eval_freq']), int(inputs['n_eval']), 20))
 
     for algo in inputs['algo_name']:
         for loss_fn in inputs['critic_loss']:
             for mstep in inputs['multi_steps']:
 
-                inputs['loss_fn'], inputs['algo'], inputs['multi_steps'] = loss_fn.upper(), algo.upper(), mstep
-
+                inputs['loss_fn'], inputs['algo'], inputs['multi_steps'] = loss_fn, algo, mstep
+                
                 for round in range(inputs['n_trials']):
 
                     time_log, score_log, step_log, logtemp_log, loss_log, loss_params_log = [], [], [], [], [], []
@@ -67,14 +71,29 @@ def multiplicative_env(gym_envs: dict, inputs: dict, ENV_KEY: int):
                             next_state, reward, done, risk = env.step(action)
                             agent.store_transistion(state, action, reward, next_state, done)
 
+                            # gradient update interval (perform backpropagation)
                             if cum_steps % int(inputs['grad_step'][inputs['algo']]) == 0:
                                 loss, logtemp, loss_params = agent.learn()
 
                             state = next_state
-                            score += reward
+                            score = reward
                             step += 1
                             cum_steps += 1
                             end_time = time.perf_counter()
+
+                            # conduct periodic agent evaluation episodes without learning
+                            if cum_steps % int(inputs['eval_freq']) == 0:
+                                
+                                if inputs['ENV_KEY'] <= 58:
+                                    eval_episodes.eval_multiplicative(agent, inputs, eval_log, cum_steps, round, 
+                                                                      eval_run, loss, logtemp, loss_params)
+                                else:
+                                    pass
+
+                                eval_run += 1
+
+                            if cum_steps > int(inputs['n_cumsteps']-1):
+                                break
 
                             time_log.append(end_time - start_time)
                             score_log.append(score)
@@ -83,11 +102,40 @@ def multiplicative_env(gym_envs: dict, inputs: dict, ENV_KEY: int):
                             logtemp_log.append(logtemp)
                             loss_params_log.append(loss_params)
 
+                            # save actor-critic neural network weights for checkpointing
+                            trail_score = np.mean(score_log[-inputs['trail']:])
+                            if trail_score > best_score:
+                                best_score = trail_score
+                                agent.save_models()
+                                print('New high trailing score!')
+
                             print('ep/st/cst {}/{}/{} {:1.0f}/s: V/g/[risk] ${:1.6f}/{:1.6f}%/{}, C/Cm/Cs {:1.2f}/{:1.2f}/{:1.2f}, a/c/k/A/T {:1.2f}/{:1.2f}/{:1.2f}/{:1.2f}/{:1.2f}'
-                                  .format(episode, step, cum_steps, step/time_log[-1], risk[0], risk[1]-1, np.round(risk[2:]*100, 0), np.mean(loss[0:2]), np.mean(loss[4:6]), 
+                                  .format(episode, step, cum_steps, step/time_log[-1], next_state[0]*1e16, reward-1, np.round(risk[:5]*100, 0), np.mean(loss[0:2]), np.mean(loss[4:6]), 
                                           np.mean(loss[6:8]), np.mean(loss[8:10]), np.mean(loss_params[0:2]), np.mean(loss_params[2:4]), loss[8]+3, np.exp(logtemp)+5))
 
-                            if cum_steps > int(inputs['n_cumsteps']-1):
-                                break
-
                         episode += 1
+
+                    count = len(score_log)
+                    trial_log[round, :count, 0], trial_log[round, :count, 1] =  time_log, score_log
+                    trial_log[round, :count, 2], trial_log[round, :count, 3:14] = step_log, loss_log
+                    trial_log[round, :count, 14], trial_log[round, :count, 15:] = logtemp_log, loss_params_log
+
+                    if not os.path.exists('./results/multiplicative/'+inputs['env_id']):
+                        os.makedirs('./results/multiplicative/'+inputs['env_id'])
+
+                    if inputs['n_trials'] == 1:
+                        plots.plot_learning_curve(inputs, trial_log[round], directory+'.png')
+
+                # truncate training trial log array up to maximum episodes
+                count_episodes = [np.min(np.where(trial_log[trial, :, 0] == 0)) for trial in range(int(inputs['n_trials']))]
+                max_episode = np.max(count_episodes) 
+                trial_log = trial_log[:, :max_episode, :]
+
+                np.save(directory+'_trial.npy', trial_log)
+                np.save(directory+'_eval.npy', eval_log)
+
+                if inputs['n_trials'] > 1:
+                    # plots.plot_eval_curve(inputs, eval_log, directory+'_eval.png')       # plot of agent evaluation round scores across all trials
+                    plots.plot_eval_loss_2d(inputs, eval_log, directory+'_2d.png')       # plot of agent evaluation round scores and training critic losses across all trials
+                    # plots.plot_eval_loss_3d(inputs, eval_log, directory+'_3d.png')       # 3D plot of agent evaluation round scores and training critic losses across all trials
+                    plots.plot_trial_curve(inputs, trial_log, directory+'_trial.png')    # plot of agent training with linear interpolation across all trials

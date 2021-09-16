@@ -3,14 +3,13 @@ import scipy.special as sp
 import torch as T
 from typing import Tuple
 
-def save_directory(inputs: dict, round: int, additive: bool) -> str:
+def save_directory(inputs: dict, results: bool) -> str:
     """
     Provides string directory for data and plot saving names.
 
     Parameters:
         inputs: dictionary containg all execution details
-        round: current round of trials
-        additive: whether additive (1) or multiplicative (0) experiment
+        results: whether results (True) or model (False)
 
     Returns:
         directory: file path and name to give to current experiment plots
@@ -19,7 +18,7 @@ def save_directory(inputs: dict, round: int, additive: bool) -> str:
     buff_exp = int(len(str(int(inputs['buffer']))) - 1)
 
     dir = ['results/', 
-           'additive/' if additive == True else 'multiplicative/',
+           'additive/' if inputs['dynamics'] == 'A' else 'multiplicative/',
            inputs['env_id']+'/',
            inputs['env_id']+'--',
            inputs['dynamics']+'_',
@@ -30,12 +29,44 @@ def save_directory(inputs: dict, round: int, additive: bool) -> str:
            '_B'+str(int(inputs['buffer']))[0:2]+'e'+str(buff_exp-1),
            '_M'+str(inputs['multi_steps']),
            '_S'+str(int(inputs['n_cumsteps']))[0]+'e'+str(step_exp),
-           '_N'+str(round+1)  
+           '_N'+str(inputs['n_trials'])  
            ]
+
+    if results == False:
+        dir[0] = 'models/'
 
     directory = ''.join(dir)
 
     return directory
+
+def plot_subtitles(inputs: dict):
+    """
+    Generate subtitles for plots and figures.
+
+    Parameters:
+        inputs: dictionary containg all execution details
+    
+    Returns:
+        sub: subtitle to be used in plots
+    """
+    step_exp = int(len(str(int(inputs['n_cumsteps']))) - 1)
+    buff_exp = int(len(str(int(inputs['buffer']))) - 1)
+
+    sub = [inputs['env_id']+'--',
+           inputs['dynamics']+'_',
+           inputs['algo']+'-',
+           inputs['s_dist'],
+           '_'+inputs['loss_fn'],
+           '-'+str(inputs['critic_mean_type']),
+           '_B'+str(int(inputs['buffer']))[0:2]+'e'+str(buff_exp-1),
+           '_M'+str(inputs['multi_steps']),
+           '_S'+str(int(inputs['n_cumsteps']))[0]+'e'+str(step_exp),
+           '_N'+str(inputs['n_trials'])  
+           ]
+    
+    sub = ''.join(sub)
+    
+    return sub
 
 def get_exponent(array: np.ndarray) -> int:
     """
@@ -317,7 +348,7 @@ def loss_function(estimated: T.cuda.FloatTensor, target: T.cuda.FloatTensor,
                                                    zipf_x, zipf_x2)
         return mean, min, max, shadow, alpha
 
-    elif loss_type == "Huber":
+    elif loss_type == "HUB":
         values = huber(estimated, target)
         mean, min, max, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, 
                                                    zipf_x, zipf_x2)
@@ -335,7 +366,7 @@ def loss_function(estimated: T.cuda.FloatTensor, target: T.cuda.FloatTensor,
                                                    zipf_x, zipf_x2)
         return mean, min, max, shadow, alpha
 
-    elif loss_type == "Cauchy":
+    elif loss_type == "CAU":
         values = cauchy(estimated, target, scale)
         mean, min, max, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, 
                                                    zipf_x, zipf_x2)

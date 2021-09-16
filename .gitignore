@@ -13,3 +13,5 @@ docs/figs/
 historical_prices/
 latex/
 models/
+results/additive
+results/multiplicative

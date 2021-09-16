@@ -1,3 +1,4 @@
+import extras.utils as utils 
 import os
 import torch as T
 import torch.nn as nn
@@ -32,9 +33,6 @@ class ActorNetwork(nn.Module):
         self.num_actions = int(inputs_dict['num_actions'])
         self.max_action = float(inputs_dict['max_action'])
 
-        env_id = str(inputs_dict['env_id'])
-        algo_name = str(inputs_dict['algo'])
-        loss_type = str(inputs_dict['loss_fn'])
         nn_name = 'actor' if target == 0 else 'actor_target'
         
         fc1_dim = int(inputs_dict['td3_layer_1_units'])
@@ -42,11 +40,15 @@ class ActorNetwork(nn.Module):
         lr_alpha = inputs_dict['td3_actor_learn_rate']
         
         # directory to save network checkpoints
-        if not os.path.exists('./models/'+'/'+env_id):
-            os.makedirs('./models/'+'/'+env_id)
-        self.file_checkpoint = os.path.join('./models/'+'/'+env_id, env_id
-                                            +'--'+algo_name+'_'+loss_type
-                                            +'_'+nn_name)
+        dir = './models/'
+        dir += 'additive/' if inputs_dict['dynamics'] == 'A' else 'multiplicative/'
+        dir += str(inputs_dict['env_id'])
+
+        if not os.path.exists(dir):
+            os.makedirs(dir)
+        
+        file = utils.save_directory(inputs_dict, results=False) + '_' + nn_name + '.pt'
+        self.file_checkpoint = os.path.join(file)
 
         # network inputs environment state space features
         self.fc1 = nn.Linear(self.input_dims, fc1_dim)
@@ -111,9 +113,6 @@ class CriticNetwork(nn.Module):
         self.num_actions = int(inputs_dict['num_actions'])
         self.max_action = float(inputs_dict['max_action'])
 
-        env_id = str(inputs_dict['env_id'])
-        algo_name = str(inputs_dict['algo'])
-        loss_type = str(inputs_dict['loss_fn'])
         nn_name = 'critic' if target == 0 else 'target_critic'
         nn_name += '_'+str(critic)
         
@@ -122,11 +121,15 @@ class CriticNetwork(nn.Module):
         lr_beta = inputs_dict['td3_critic_learn_rate']
 
         # directory to save network checkpoints
-        if not os.path.exists('./models/'+'/'+env_id):
-            os.makedirs('./models/'+'/'+env_id)
-        self.file_checkpoint = os.path.join('./models/'+'/'+env_id, env_id
-                                            +'--'+algo_name+'_'+loss_type
-                                            +'_'+nn_name)
+        dir = './models/'
+        dir += 'additive/' if inputs_dict['dynamics'] == 'A' else 'multiplicative/'
+        dir += str(inputs_dict['env_id'])
+
+        if not os.path.exists(dir):
+            os.makedirs(dir)
+        
+        file = utils.save_directory(inputs_dict, results=False) + '_' + nn_name + '.pt'
+        self.file_checkpoint = os.path.join(file)
 
         # network inputs environment state space features and number of actions
         self.fc1 = nn.Linear(self.input_dims + self.num_actions, fc1_dim)

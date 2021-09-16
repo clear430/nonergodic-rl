@@ -5,8 +5,8 @@ import numpy as np
 from typing import List, Tuple
 
 MAX_VALUE = 1e16                                # maximium potfolio value for normalisation
-INITIAL_PRICE = 1e3                             # intial price of all assets
-INITIAL_VALUE = 1e2                             # intial portfolio value
+INITIAL_PRICE = 1e4                             # intial price of all assets
+INITIAL_VALUE = 1e4                             # intial portfolio value
 MIN_VALUE_RATIO = 1e-2                          # minimum portfolio value ratio (psi)
 MIN_VALUE = MIN_VALUE_RATIO * INITIAL_VALUE
 MAX_VALUE_RATIO = 1                             # maximum possible value realtive to MAX_VALUE
@@ -27,7 +27,7 @@ if np.abs(UP_R) > np.abs(DOWN_R):
 else:
     LEV_FACTOR = 1 / np.abs(UP_R)
 
-class Investor1_1x(gym.Env):
+class Coin_n1_Inv1(gym.Env):
     """
     OpenAI gym environment for determining the optimal leverage at each time step 
     for the equally likely +50%/-40% simple gamble.
@@ -47,11 +47,11 @@ class Investor1_1x(gym.Env):
         """
         Intialise class varaibles by creating state-action space and reward range
         """
-        super(Investor1_1x, self).__init__()
+        super(Coin_n1_Inv1, self).__init__()
 
         self.reward_range = (MIN_REWARD, np.inf)
 
-        #  state space: [cumulative reward, asset 0]
+        # state space: [cumulative reward, asset 0]
         self.observation_space = spaces.Box(low=0, high=MAX_VALUE_RATIO, 
                                             shape=(2,), dtype=np.float64)
 
@@ -118,7 +118,7 @@ class Investor1_1x(gym.Env):
                     or np.abs(lev) < MIN_WEIGHT
                     or np.any(next_state > 1))
 
-        risk = np.array([self.wealth, reward, step_return, lev], dtype=np.float64)
+        risk = np.array([step_return, lev], dtype=np.float64)
 
         self.time += 1
 
@@ -140,7 +140,7 @@ class Investor1_1x(gym.Env):
 
         return state
 
-class Investor1_2x(gym.Env):
+class Coin_n2_Inv1(gym.Env):
     """
     OpenAI gym environment for determining the optimal leverage at each time step 
     for the equally likely +50%/-40% simple gamble for a portfoilio of 
@@ -161,11 +161,11 @@ class Investor1_2x(gym.Env):
         """
         Intialise class varaibles by creating state-action space and reward range
         """
-        super(Investor1_2x, self).__init__()
+        super(Coin_n2_Inv1, self).__init__()
 
         self.reward_range = (MIN_REWARD, np.inf)
 
-        #  state space: [cumulative reward, asset 0-1]
+        # state space: [cumulative reward, asset 0-1]
         self.observation_space = spaces.Box(low=0, high=MAX_VALUE_RATIO, 
                                             shape=(3,), dtype=np.float64)
 
@@ -232,7 +232,7 @@ class Investor1_2x(gym.Env):
                     or np.all(np.abs(lev) < MIN_WEIGHT)
                     or np.any(next_state > 1))
 
-        risk = np.array([self.wealth, reward, step_return, lev[0], lev[1]], dtype=np.float64)
+        risk = np.array([step_return, np.mean(lev), lev[0], lev[1]], dtype=np.float64)
 
         self.time += 1
 
@@ -254,7 +254,7 @@ class Investor1_2x(gym.Env):
 
         return state
 
-class Investor1_10x(gym.Env):
+class Coin_n10_Inv1(gym.Env):
     """
     OpenAI gym environment for determining the optimal leverages at each time 
     step for the equally likely +50%/-40% simple gamble for a portfoilio of 
@@ -275,11 +275,11 @@ class Investor1_10x(gym.Env):
         """
         Intialise class varaibles by creating state-action space and reward range
         """
-        super(Investor1_10x, self).__init__()
+        super(Coin_n10_Inv1, self).__init__()
 
         self.reward_range = (MIN_REWARD, np.inf)
 
-        #  state space: [cumulative reward, asset 0-1]
+        # state space: [cumulative reward, asset 0-1]
         self.observation_space = spaces.Box(low=0, high=MAX_VALUE_RATIO, 
                                             shape=(11,), dtype=np.float64)
 
@@ -356,7 +356,7 @@ class Investor1_10x(gym.Env):
                     or np.all(np.abs(lev) < MIN_WEIGHT)
                     or np.any(next_state > 1))
 
-        risk = np.array([self.wealth, reward, step_return, lev[0], lev[1], lev[2], lev[3], 
+        risk = np.array([step_return, np.mean(lev), lev[0], lev[1], lev[2], lev[3], 
                          lev[4], lev[5], lev[6], lev[7], lev[8], lev[9]], dtype=np.float64)
 
         self.time += 1
@@ -385,7 +385,7 @@ class Investor1_10x(gym.Env):
 
         return state
 
-class Investor2_1x(gym.Env):
+class Coin_n1_Inv2(gym.Env):
     """
     OpenAI gym environment for determining the optimal [leverage, stop-loss] at each 
     time step for the equally likely +50%/-40% simple gamble.
@@ -405,11 +405,11 @@ class Investor2_1x(gym.Env):
         """
         Intialise class varaibles by creating state-action space and reward range
         """
-        super(Investor2_1x, self).__init__()
+        super(Coin_n1_Inv2, self).__init__()
 
         self.reward_range = (MIN_REWARD, np.inf)
 
-        #  state space: [cumulative reward, asset 0]
+        # state space: [cumulative reward, asset 0]
         self.observation_space = spaces.Box(low=0, high=MAX_VALUE_RATIO, 
                                             shape=(2,), dtype=np.float64)
 
@@ -482,7 +482,7 @@ class Investor2_1x(gym.Env):
                     or np.abs(lev) < MIN_WEIGHT
                     or np.any(next_state > 1))
 
-        risk = np.array([self.wealth, reward, step_return, lev, stop_loss], dtype=np.float64)
+        risk = np.array([step_return, lev, stop_loss], dtype=np.float64)
 
         self.time += 1
 
@@ -504,7 +504,7 @@ class Investor2_1x(gym.Env):
 
         return state
 
-class Investor2_2x(gym.Env):
+class Coin_n2_Inv2(gym.Env):
     """
     OpenAI gym environment for determining the optimal [leverage, stop-loss] at each 
     time step for the equally likely +50%/-40% simple gamble for a portfoilio of 
@@ -525,11 +525,11 @@ class Investor2_2x(gym.Env):
         """
         Intialise class varaibles by creating state-action space and reward range
         """
-        super(Investor2_2x, self).__init__()
+        super(Coin_n2_Inv2, self).__init__()
 
         self.reward_range = (MIN_REWARD, np.inf)
 
-        #  state space: [cumulative reward, asset 0-1]
+        # state space: [cumulative reward, asset 0-1]
         self.observation_space = spaces.Box(low=0, high=MAX_VALUE_RATIO, 
                                             shape=(3,), dtype=np.float64)
 
@@ -602,7 +602,7 @@ class Investor2_2x(gym.Env):
                     or np.all(np.abs(lev) < MIN_WEIGHT)
                     or np.any(next_state > 1))
 
-        risk = np.array([self.wealth, reward, step_return, stop_loss, lev[0], lev[1]], dtype=np.float64)
+        risk = np.array([step_return, np.mean(lev), stop_loss, lev[0], lev[1]], dtype=np.float64)
 
         self.time += 1
 
@@ -624,7 +624,7 @@ class Investor2_2x(gym.Env):
 
         return state
 
-class Investor2_10x(gym.Env):
+class Coin_n10_Inv2(gym.Env):
     """
     OpenAI gym environment for determining the optimal [leverage, stop-loss]
     at each time step for the equally likely +50%/-40% simple gamble for a 
@@ -645,11 +645,11 @@ class Investor2_10x(gym.Env):
         """
         Intialise class varaibles by creating state-action space and reward range
         """
-        super(Investor2_10x, self).__init__()
+        super(Coin_n10_Inv2, self).__init__()
 
         self.reward_range = (MIN_REWARD, np.inf)
 
-        #  state space: [cumulative reward, asset 0-1]
+        # state space: [cumulative reward, asset 0-1]
         self.observation_space = spaces.Box(low=0, high=MAX_VALUE_RATIO, 
                                             shape=(11,), dtype=np.float64)
 
@@ -732,7 +732,7 @@ class Investor2_10x(gym.Env):
                     or np.all(np.abs(lev) < MIN_WEIGHT)
                     or np.any(next_state > 1))
 
-        risk = np.array([self.wealth, reward, step_return, stop_loss, lev[0], lev[1], lev[2], 
+        risk = np.array([step_return, np.mean(lev), stop_loss, lev[0], lev[1], lev[2], 
                          lev[3], lev[4], lev[5], lev[6], lev[7], lev[8], lev[9]], 
                          dtype=np.float64)
 
@@ -762,7 +762,7 @@ class Investor2_10x(gym.Env):
 
         return state
 
-class Investor3_1x(gym.Env):
+class Coin_n1_Inv3(gym.Env):
     """
     OpenAI gym environment for determining the optimal [leverage, stop-loss, 
     retention ratio] at each time step for the equally likely +50%/-40% simple gamble.
@@ -782,11 +782,11 @@ class Investor3_1x(gym.Env):
         """
         Intialise class varaibles by creating state-action space and reward range
         """
-        super(Investor3_1x, self).__init__()
+        super(Coin_n1_Inv3, self).__init__()
 
         self.reward_range = (MIN_REWARD, np.inf)
 
-        #  state space: [cumulative reward, asset 0]
+        # state space: [cumulative reward, asset 0]
         self.observation_space = spaces.Box(low=0, high=MAX_VALUE_RATIO, 
                                             shape=(2,), dtype=np.float64)
 
@@ -867,8 +867,7 @@ class Investor3_1x(gym.Env):
                     or np.abs(lev) < MIN_WEIGHT
                     or np.any(next_state > 1))
 
-        risk = np.array([self.wealth, reward, step_return, stop_loss, retention, lev], 
-                        dtype=np.float64)
+        risk = np.array([step_return, lev, stop_loss, retention], dtype=np.float64)
 
         self.time += 1
 
@@ -890,7 +889,7 @@ class Investor3_1x(gym.Env):
 
         return state
 
-class Investor3_2x(gym.Env):
+class Coin_n2_Inv3(gym.Env):
     """
     OpenAI gym environment for determining the optimal [leverage, stop-loss, 
     retention ratio] at each time step for the equally likely +50%/-40% 
@@ -911,11 +910,11 @@ class Investor3_2x(gym.Env):
         """
         Intialise class varaibles by creating state-action space and reward range
         """
-        super(Investor3_2x, self).__init__()
+        super(Coin_n2_Inv3, self).__init__()
 
         self.reward_range = (MIN_REWARD, np.inf)
 
-        #  state space: [cumulative reward, asset 0-1]
+        # state space: [cumulative reward, asset 0-1]
         self.observation_space = spaces.Box(low=0, high=MAX_VALUE_RATIO, 
                                             shape=(3,), dtype=np.float64)
 
@@ -996,7 +995,7 @@ class Investor3_2x(gym.Env):
                     or np.all(np.abs(lev) < MIN_WEIGHT)
                     or np.any(next_state > 1))
 
-        risk = np.array([self.wealth, reward, step_return, stop_loss, retention,
+        risk = np.array([step_return, np.mean(lev), stop_loss, retention,
                          lev[0], lev[1]], dtype=np.float64)
 
         self.time += 1
@@ -1019,7 +1018,7 @@ class Investor3_2x(gym.Env):
 
         return state
 
-class Investor3_10x(gym.Env):
+class Coin_n10_Inv3(gym.Env):
     """
     OpenAI gym environment for determining the optimal [leverage, stop-loss, 
     retention ratio] at each time step for the equally likely +50%/-40% 
@@ -1040,11 +1039,11 @@ class Investor3_10x(gym.Env):
         """
         Intialise class varaibles by creating state-action space and reward range
         """
-        super(Investor3_10x, self).__init__()
+        super(Coin_n10_Inv3, self).__init__()
 
         self.reward_range = (MIN_REWARD, np.inf)
 
-        #  state space: [cumulative reward, asset 0-1]
+        # state space: [cumulative reward, asset 0-1]
         self.observation_space = spaces.Box(low=0, high=MAX_VALUE_RATIO, 
                                             shape=(11,), dtype=np.float64)
 
@@ -1135,7 +1134,7 @@ class Investor3_10x(gym.Env):
                     or np.all(np.abs(lev) < MIN_WEIGHT)
                     or np.any(next_state > 1))
 
-        risk = np.array([self.wealth, reward, step_return, stop_loss, retention, lev[0], 
+        risk = np.array([step_return, np.mean(lev), stop_loss, retention, lev[0], 
                          lev[1], lev[2], lev[3], lev[4], lev[5], lev[6], lev[7], lev[8], 
                          lev[9]], dtype=np.float64)
 

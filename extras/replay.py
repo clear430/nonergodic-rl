@@ -5,8 +5,6 @@ class ReplayBuffer():
     """
     Experience replay buffer with uniform sampling based on 
     https://link.springer.com/content/pdf/10.1023%2FA%3A1022628806385.pdf.
-    Multiplicative dyanmics and non-ergodic details are discussed in
-    https://aip.scitation.org/doi/pdf/10.1063/1.4940236.
 
     Methods:
         store_exp(state, action, reward, next_state, done):
@@ -24,7 +22,7 @@ class ReplayBuffer():
         _multi_step_batch(step_rewards, step_states, step_actions):
             Collect multi-step rewards and intial state-action pairs for the batch.
         
-        get_sample_exp():
+        sample_exp():
             Uniformly sample mini-batch from experience replay buffer.
     """
 

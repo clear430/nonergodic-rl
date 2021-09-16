@@ -5,16 +5,6 @@ import numpy as np
 import torch as T
 from typing import Tuple
 
-assert hasattr(ActorNetwork, 'stochastic_uv'), 'missing univariate sampling'
-assert hasattr(ActorNetwork, 'stochastic_mv_gaussian'), 'missing multi-variate Gaussian sampling'
-assert hasattr(ActorNetwork, 'save_checkpoint'), 'missing actor saving functionality'
-assert hasattr(ActorNetwork, 'load_checkpoint'), 'missing actor load functionality'
-assert hasattr(CriticNetwork, 'forward'), 'missing critic forward propagation'
-assert hasattr(CriticNetwork, 'save_checkpoint'), 'missing critic saving functionality'
-assert hasattr(CriticNetwork, 'load_checkpoint'), 'missing critic load functionality'
-assert hasattr(ReplayBuffer, 'store_exp'), 'missing transition store functionality'
-assert hasattr(ReplayBuffer, 'sample_exp'), 'missing uniform transition sampling functionality'
-
 class Agent_sac():
     """
     Causal entropy arguments based on https://www.cs.cmu.edu/~bziebart/publications/thesis-bziebart.pdf.

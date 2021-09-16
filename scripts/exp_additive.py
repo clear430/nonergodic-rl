@@ -13,40 +13,33 @@ import os
 import pybullet_envs
 import time
 
-assert hasattr(Agent_sac, 'select_next_action'), 'missing agent action selection'
-assert hasattr(Agent_sac, 'store_transistion'), 'missing transition storage functionality'
-assert hasattr(Agent_sac, 'learn'), 'missing agent learning functionality'
-assert hasattr(Agent_sac, 'save_models'), 'missing agent save functionality'
-assert hasattr(Agent_sac, 'load_models'), 'missing agent load functionality'
-assert hasattr(Agent_td3, 'select_next_action'), 'missing agent action selection'
-assert hasattr(Agent_td3, 'store_transistion'), 'missing transition storage functionality'
-assert hasattr(Agent_td3, 'learn'), 'missing agent learning functionality'
-assert hasattr(Agent_td3, 'save_models'), 'missing agent save functionality'
-assert hasattr(Agent_td3, 'load_models'), 'missing agent load functionality'
-
-def additive_env(gym_envs: dict, inputs: dict, ENV_KEY: int):
+def additive_env(gym_envs: dict, inputs: dict):
     """
     Conduct experiments for additive environments.
     """
-    env = gym.make(gym_envs[str(ENV_KEY)][0])
+    env = gym.make(gym_envs[str(inputs['ENV_KEY'])][0])
+
     inputs = {'input_dims': env.observation_space.shape, 'num_actions': env.action_space.shape[0], 
-            'max_action': env.action_space.high.min(), 'min_action': env.action_space.low.max(), 
-            'env_id': gym_envs[str(ENV_KEY)][0], 'random': gym_envs[str(ENV_KEY)][3],
-            'dynamics': 'A',    # gambling dynamics 'A' (additive)
-            'loss_fn': 'MSE', 'algo': 'TD3', **inputs}
+              'max_action': env.action_space.high.min(), 'min_action': env.action_space.low.max(), 
+              'env_id': gym_envs[str(inputs['ENV_KEY'])][0], 'random': gym_envs[str(inputs['ENV_KEY'])][3],
+              'dynamics': 'A',    # gambling dynamics 'A' (additive)
+              'loss_fn': 'MSE', 'algo': 'TD3', **inputs
+              }
+              
     env = env.env    # allow access to setting enviroment state and remove episode step limit
+
+    directory = utils.save_directory(inputs, results=True)
+    trial_log = np.zeros((inputs['n_trials'], int(inputs['n_cumsteps']), 19))
+    eval_log = np.zeros((inputs['n_trials'], int(inputs['n_cumsteps'] / inputs['eval_freq']), int(inputs['n_eval']), 20))
 
     for algo in inputs['algo_name']:
         for loss_fn in inputs['critic_loss']:
             for mstep in inputs['multi_steps']:
 
-                inputs['loss_fn'], inputs['algo'], inputs['multi_steps'] = loss_fn.upper(), algo.upper(), mstep
-                trial_log = np.zeros((inputs['n_trials'], int(inputs['n_cumsteps']), 19))
-                eval_log = np.zeros((inputs['n_trials'], int(inputs['n_cumsteps'] / inputs['eval_freq']), int(inputs['n_eval']), 20))
+                inputs['loss_fn'], inputs['algo'], inputs['multi_steps'] = loss_fn, algo, mstep
 
                 for round in range(inputs['n_trials']):
 
-                    directory = utils.save_directory(inputs, round, additive=True)
                     time_log, score_log, step_log, logtemp_log, loss_log, loss_params_log = [], [], [], [], [], []
                     cum_steps, eval_run, episode = 0, 0, 1
                     best_score = env.reward_range[0]
@@ -79,7 +72,8 @@ def additive_env(gym_envs: dict, inputs: dict, ENV_KEY: int):
 
                             # conduct periodic agent evaluation episodes without learning
                             if cum_steps % int(inputs['eval_freq']) == 0:
-                                eval_episodes.additive(agent, inputs, eval_log, cum_steps, round, eval_run, loss, logtemp, loss_params)
+                                eval_episodes.eval_additive(agent, inputs, eval_log, cum_steps, round, 
+                                                            eval_run, loss, logtemp, loss_params)
                                 eval_run += 1
 
                             if cum_steps > int(inputs['n_cumsteps']-1):
@@ -104,7 +98,7 @@ def additive_env(gym_envs: dict, inputs: dict, ENV_KEY: int):
                                 inputs['algo'], inputs['s_dist'], inputs['loss_fn'], round+1,  episode, step, cum_steps, step/time_log[-1], 
                                 score, inputs['trail'], trail_score,  np.mean(loss[0:2]), np.mean(loss[4:6]), np.mean(loss[6:8]),
                                 np.mean(loss[8:10]), np.mean(loss_params[0:2]), np.mean(loss_params[2:4]),  loss[8], np.exp(logtemp)))
-                        # rl_algorithm-sampling_sitribution-loss_function-trial,  ep/st/cst = episode/steps/cumulative_steps,  /s = training_steps_per_second,
+                        # rl_algorithm-sampling_distribution-loss_function-trial,  ep/st/cst = episode/steps/cumulative_steps,  /s = training_steps_per_second,
                         # r = episode_reward, tr = trailing_episode_reward,  C/Cm/Cs = avg_critic_loss/max_critic_loss/shadow_critic_loss
                         # c/k/a = avg_Cauchy_scale/avg_CIM_kernel_size/avg_tail_exponent,  A/T = avg_actor_loss/sac_entropy_temperature
 
@@ -132,5 +126,5 @@ def additive_env(gym_envs: dict, inputs: dict, ENV_KEY: int):
                 if inputs['n_trials'] > 1:
                     # plots.plot_eval_curve(inputs, eval_log, directory+'_eval.png')       # plot of agent evaluation round scores across all trials
                     plots.plot_eval_loss_2d(inputs, eval_log, directory+'_2d.png')       # plot of agent evaluation round scores and training critic losses across all trials
-                    plots.plot_eval_loss_3d(inputs, eval_log, directory+'_3d.png')       # 3D plot of agent evaluation round scores and training critic losses across all trials
+                    # plots.plot_eval_loss_3d(inputs, eval_log, directory+'_3d.png')       # 3D plot of agent evaluation round scores and training critic losses across all trials
                     plots.plot_trial_curve(inputs, trial_log, directory+'_trial.png')    # plot of agent training with linear interpolation across all trials

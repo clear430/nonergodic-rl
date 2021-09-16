@@ -1,13 +1,17 @@
+import sys
+sys.path.append("./")
+
 import extras.utils as utils
 import matplotlib.pyplot as plt
 import numpy as np
+import extras.utils as utils
 
-def plot_learning_curve(input_dict: dict, trial_log: np.ndarray, filename_png: str):
+def plot_learning_curve(inputs: dict, trial_log: np.ndarray, filename_png: str):
     """
     Plot of game running average score and critic loss for environment.
     
     Parameters:
-        input_dict: dictionary containing all execution details
+        inputs: dictionary containing all execution details
         trial_log: log of episode data of a single trial
         filename_png (directory): save path of plot
     """
@@ -43,7 +47,7 @@ def plot_learning_curve(input_dict: dict, trial_log: np.ndarray, filename_png: s
     x_steps = cum_steps/10**(exp)
     
     # calculate moving averages
-    trail = input_dict['trail']
+    trail = inputs['trail']
     running_avg1 = np.zeros(length)
     for i in range(length-offset):
         running_avg1[i+offset] = np.mean(score_log[max(0, i-trail):(i+1)])
@@ -52,7 +56,7 @@ def plot_learning_curve(input_dict: dict, trial_log: np.ndarray, filename_png: s
     for i in range(length-offset):
         running_avg2[i+offset] = np.mean(critic_log[max(0, i-trail):(i+1)])
 
-    warmup_end_idx = np.min(np.where(np.array(x_steps) - input_dict['random']/10**(exp) > 0))
+    warmup_end_idx = np.min(np.where(np.array(x_steps) - inputs['random']/10**(exp) > 0))
     running_avg2[:warmup_end_idx] = [0 for x in range(warmup_end_idx)]
 
     fig = plt.figure()
@@ -62,7 +66,7 @@ def plot_learning_curve(input_dict: dict, trial_log: np.ndarray, filename_png: s
     ax1.plot(x_steps, running_avg1, color='C0')
     ax1.set_xlabel('Training Steps (1e'+str(exp)+')')
     ax1.yaxis.tick_left()
-    ax1.set_ylabel('Average Score', color='C0')
+    ax1.set_ylabel('Mean Reward', color='C0')
     ax1.yaxis.set_label_position('left')
     ax1.tick_params(axis='y', colors='C0')
     ax1.grid(True, linewidth=0.5)
@@ -74,7 +78,7 @@ def plot_learning_curve(input_dict: dict, trial_log: np.ndarray, filename_png: s
     ax2.plot(x_steps, running_avg2, color='C3')
     ax2.axes.get_xaxis().set_visible(False)
     ax2.yaxis.tick_right()
-    ax2.set_ylabel('Average Critic Loss', color='C3')
+    ax2.set_ylabel('Mean Critic Loss', color='C3')
     ax2.yaxis.set_label_position('right')
     ax2.tick_params(axis='y', colors='C3')
     
@@ -87,22 +91,21 @@ def plot_learning_curve(input_dict: dict, trial_log: np.ndarray, filename_png: s
     # make vertical line when algorithm begins learning
     # ax1.vlines(x=x_steps[warmup_end_idx], ymin=ymin, ymax=ymax, linestyles ="dashed", color='C7')
 
-    tit1 = 'Trailing '+str(int(input_dict['trail']))+' Episode Averages and '+str(partitions)[2:4]+'% Partitions \n'
-    tit2 = input_dict['algo']+'-'+input_dict['s_dist']+': \''+input_dict['env_id']+'\' '+'('+'d'+input_dict['dynamics']+', '
-    tit3 = input_dict['loss_fn']+', '+'b'+str(input_dict['buffer']/1e6)[0]+', '+'m'+str(input_dict['multi_steps'])+', '
-    tit4 = 'e'+str(int(length))+')'
-    title = tit1 + tit2 + tit3 + tit4
+    t1 = 'Trailing '+str(int(inputs['trail']))+' Episode Means and '+str(partitions)[2:4]+'% Partitions \n'
+    t2 = utils.plot_subtitles(inputs)
+    t3 = ', E'+str(int(length))
+    title = t1 + t2 + t3
 
     ax1.set_title(title)
 
     plt.savefig(filename_png, bbox_inches='tight', dpi=600, format='png')
 
-def plot_trial_curve(input_dict: dict, trial_log: np.ndarray, filename_png: str):
+def plot_trial_curve(inputs: dict, trial_log: np.ndarray, filename_png: str):
     """
     Plot of interpolated mean, MAD, and STD score and critic loss across all trials for environment.
     
     Parameters:
-        input_dict: dictionary containing all execution details
+        inputs: dictionary containing all execution details
         trial_log: log of episode data
         filename_png (directory): save path of plot
     """
@@ -183,7 +186,7 @@ def plot_trial_curve(input_dict: dict, trial_log: np.ndarray, filename_png: str)
     critic_std = np.std(critic_interp, ddof=0, axis=0)
     critic_std_up, critic_std_lo = np.minimum(critic_max, critic_mean+critic_std), np.maximum(critic_min, critic_mean-critic_std)
 
-    warmup_end_idx = np.min(np.where(np.array(count_x) - input_dict['random']/10**(exp) > 0))
+    warmup_end_idx = np.min(np.where(np.array(count_x) - inputs['random']/10**(exp) > 0))
     critic_mean[:warmup_end_idx] = [0 for x in range(warmup_end_idx)]
     critic_mad_up[:warmup_end_idx] = [0 for x in range(warmup_end_idx)]
     critic_mad_lo[:warmup_end_idx] = [0 for x in range(warmup_end_idx)]
@@ -199,7 +202,7 @@ def plot_trial_curve(input_dict: dict, trial_log: np.ndarray, filename_png: str)
     ax1.fill_between(count_x, score_std_lo, score_std_up, facecolor='C0', alpha=0.2)
     ax1.set_xlabel('Training Steps (1e'+str(exp)+')')
     ax1.yaxis.tick_left()
-    ax1.set_ylabel('Score', color='C0')
+    ax1.set_ylabel('Reward', color='C0')
     ax1.yaxis.set_label_position('left')
     ax1.tick_params(axis='y', colors='C0')
     ax1.grid(True, linewidth=0.5)
@@ -217,41 +220,40 @@ def plot_trial_curve(input_dict: dict, trial_log: np.ndarray, filename_png: str)
     ax2.yaxis.set_label_position('right')
     ax2.tick_params(axis='y', colors='C3')
 
-    tit1 = 'Linearly Interpolated Mean, MAD, and STD of '+str(input_dict['n_trials'])+' Trials \n'
-    tit2 = input_dict['algo']+'-'+input_dict['s_dist']+': \''+input_dict['env_id']+'\' '+'('+'d'+input_dict['dynamics']+', '
-    tit3 = input_dict['loss_fn']+', '+'b'+str(input_dict['buffer']/1e6)[0]+', '+'m'+str(input_dict['multi_steps'])+', '
-    tit4 = 'e'+str(int(length))+')'
-    title = tit1 + tit2 + tit3 + tit4
+    t1 = 'Linearly Interpolated Mean, MAD, and STD of '+str(inputs['n_trials'])+' Trials \n'
+    t2 = utils.plot_subtitles(inputs)
+    t3 = ', E'+str(int(length))
+    title = t1 + t2 + t3
 
     ax1.set_title(title)
     
     plt.savefig(filename_png, dpi=600, format='png')
 
-def plot_eval_curve(input_dict: dict, eval_log: np.ndarray, filename_png: str):
+def plot_eval_curve(inputs: dict, eval_log: np.ndarray, filename_png: str):
     """
-    Plot of mean, MAD and STD scores of evaluation episodes for all trials in environment.
+    Plot of mean and MAD scores of evaluation episodes for all trials in environment.
     
     Parameters:
-        input_dict: dictionary containing all execution details
+        inputs: dictionary containing all execution details
         eval_log: log of episode data for all trials
         filename_png (directory): save path of plot
     """
     cum_steps_log = eval_log[0, :, 0, -1]
 
-    eval_exp = utils.get_exponent(input_dict['eval_freq'])
+    eval_exp = utils.get_exponent(inputs['eval_freq'])
     exp = utils.get_exponent(cum_steps_log)
     x_steps = cum_steps_log/10**(exp)
 
-    count_x = int(input_dict['n_cumsteps'] / input_dict['eval_freq'])
-    count_y = int(input_dict['n_trials'] * int(input_dict['n_eval']))
+    count_x = int(inputs['n_cumsteps'] / inputs['eval_freq'])
+    count_y = int(inputs['n_trials'] * int(inputs['n_eval']))
     scores = np.zeros((count_x, count_y))
     max_score = np.zeros((count_x, count_y))
 
     for t in range(count_x):
-        for n in range(input_dict['n_trials']):
-            for s in range(int(input_dict['n_eval'])):
-                scores[t, s + n * int(input_dict['n_eval'])] = eval_log[n, t, s, 1]
-                max_score[t, s + n * int(input_dict['n_eval'])] = int(input_dict['max_eval_reward'])
+        for n in range(inputs['n_trials']):
+            for s in range(int(inputs['n_eval'])):
+                scores[t, s + n * int(inputs['n_eval'])] = eval_log[n, t, s, 1]
+                max_score[t, s + n * int(inputs['n_eval'])] = int(inputs['max_eval_reward'])
 
     score_limit = np.mean(max_score, axis=1, keepdims=True)
     score_mean = np.mean(scores, axis=1, keepdims=True)
@@ -270,53 +272,46 @@ def plot_eval_curve(input_dict: dict, eval_log: np.ndarray, filename_png: str):
     ax1.fill_between(x_steps, score_mad_lo, score_mad_up, facecolor='C0', alpha=0.4)
     ax1.set_xlabel('Steps (1e'+str(exp)+')')
     ax1.yaxis.tick_left()
-    ax1.set_ylabel('Mean Score')
+    ax1.set_ylabel('Mean Reward')
     ax1.yaxis.set_label_position('left')
     ax1.grid(True, linewidth=0.5)
 
-    tit1 = 'Mean and MAD of '+str(input_dict['n_trials'])+'x'+str(int(input_dict['n_eval']))+' Evaluations per '
-    tit2 = str(int(input_dict['eval_freq']))[0]+'e'+str(eval_exp)+' Steps \n'
-    tit3 = input_dict['algo']+'-'+input_dict['s_dist']+': \''+input_dict['env_id']+'\' '+'('+'d'+input_dict['dynamics']+', '
-    tit4 = input_dict['loss_fn']+', '+'b'+str(input_dict['buffer']/1e6)[0]+', '+'m'+str(input_dict['multi_steps'])+')'
-    title = tit1 + tit2 + tit3 + tit4
+    t1 = 'Mean and MAD of '+str(inputs['n_trials'])+'x'+str(int(inputs['n_eval']))+' Evaluations per '
+    t2 = str(int(inputs['eval_freq']))[0]+'e'+str(eval_exp)+' Steps \n'
+    t3 = utils.plot_subtitles(inputs)
+    title = t1 + t2 + t3
 
     ax1.set_title(title)
     
     plt.savefig(filename_png, dpi=600, format='png')
 
-def plot_eval_loss_2d(input_dict: dict, eval_log: np.ndarray, filename_png: str):
+def plot_eval_loss_2d(inputs: dict, eval_log: np.ndarray, filename_png: str):
     """
-    2D plot of Mean, MAD, and STD of scores and twin critic loss during evaluation episodes for all trials in environment.
+    2D plot of Mean and MAD of scores and twin critic loss during evaluation episodes for all trials in environment.
     
     Parameters:
-        input_dict: 
+        inputs: 
         eval_log: log of episode data for all trials
         filename_png (directory): save path of plot
     """
     cum_steps_log = eval_log[0, :, 0, -1]
 
-    eval_exp = utils.get_exponent(input_dict['eval_freq'])
+    eval_exp = utils.get_exponent(inputs['eval_freq'])
     exp = utils.get_exponent(cum_steps_log)
     x_steps = cum_steps_log/10**(exp)
 
-    count_x = int(input_dict['n_cumsteps'] / input_dict['eval_freq'])
-    count_y = int(input_dict['n_trials'] * int(input_dict['n_eval']))
+    count_x = int(inputs['n_cumsteps'] / inputs['eval_freq'])
+    count_y = int(inputs['n_trials'] * int(inputs['n_eval']))
 
     scores = np.zeros((count_x, count_y))
-    max_score = np.ones((count_x, count_y)) * int(input_dict['max_eval_reward'])
+    max_score = np.ones((count_x, count_y)) * int(inputs['max_eval_reward'])
     loss = np.zeros((count_x, count_y))
-    minl = np.zeros((count_x, count_y))
-    maxl = np.zeros((count_x, count_y))
-    shadow = np.zeros((count_x, count_y))
 
     for t in range(count_x):
-        for n in range(input_dict['n_trials']):
-            for s in range(int(input_dict['n_eval'])):
-                scores[t, s + n * int(input_dict['n_eval'])] = eval_log[n, t, s, 1]
-                loss[t, s + n * int(input_dict['n_eval'])] = np.mean(eval_log[n, t, s, 3:5])
-                # minl[t, s + n * int(input_dict['n_eval'])] = np.mean(eval_log[n, t, s, 5:7])
-                # maxl[t, s + n * int(input_dict['n_eval'])] = np.mean(eval_log[n, t, s, 7:9])
-                # shadow[t, s + n * int(input_dict['n_eval'])] = np.mean(eval_log[n, t, s, 9:11])
+        for n in range(inputs['n_trials']):
+            for s in range(int(inputs['n_eval'])):
+                scores[t, s + n * int(inputs['n_eval'])] = eval_log[n, t, s, 1]
+                loss[t, s + n * int(inputs['n_eval'])] = np.mean(eval_log[n, t, s, 3:5])
 
     score_limit = np.mean(max_score, axis=1, keepdims=True)
 
@@ -325,9 +320,6 @@ def plot_eval_loss_2d(input_dict: dict, eval_log: np.ndarray, filename_png: str)
     score_mad = np.mean(np.abs(scores - score_mean), axis=1, keepdims=True)
     score_mad_up = np.minimum(score_max, score_mean+score_mad, score_limit).reshape(-1)
     score_mad_lo = np.maximum(score_min, score_mean-score_mad).reshape(-1)
-    score_std = np.std(scores, axis=1, ddof=0, keepdims=True)
-    score_std_up = np.minimum(score_max, score_mean+score_std, score_limit).reshape(-1)
-    score_std_lo = np.maximum(score_min, score_mean-score_std).reshape(-1)
     score_mean = score_mean.reshape(-1)
 
     loss_mean = np.mean(loss, axis=1, keepdims=True)
@@ -336,50 +328,21 @@ def plot_eval_loss_2d(input_dict: dict, eval_log: np.ndarray, filename_png: str)
     loss_mad_up = np.minimum(loss_max, loss_mean+loss_mad).reshape(-1)
     loss_mad_lo = np.maximum(loss_min, loss_mean-loss_mad).reshape(-1)
     loss_mean = loss_mean.reshape(-1)
-
-    # minl_mean = np.mean(minl, axis=1, keepdims=True)
-    # minl_max, minl_min = np.max(minl, axis=1, keepdims=True), np.min(minl, axis=1, keepdims=True)
-    # minl_mad = np.mean(np.abs(minl - minl_mean), axis=1, keepdims=True)
-    # minl_mad_up = np.minimum(minl_max, minl_mean+minl_mad).reshape(-1)
-    # minl_mad_lo = np.maximum(minl_min, minl_mean-minl_mad).reshape(-1)
-    # minl_mean = minl_mean.reshape(-1)
-
-    # maxl_mean = np.mean(maxl, axis=1, keepdims=True)
-    # maxl_max, maxl_min = np.max(maxl, axis=1, keepdims=True), np.min(maxl, axis=1, keepdims=True)
-    # maxl_mad = np.mean(np.abs(maxl - maxl_mean), axis=1, keepdims=True)
-    # maxl_mad_up = np.minimum(maxl_max, maxl_mean+maxl_mad).reshape(-1)
-    # maxl_mad_lo = np.maximum(maxl_min, maxl_mean-maxl_mad).reshape(-1)
-    # maxl_mean = maxl_mean.reshape(-1)
-
-    # shadow_mean = np.mean(shadow, axis=1, keepdims=True)
-    # shadow_max, shadow_min = np.max(shadow, axis=1, keepdims=True), np.min(shadow, axis=1, keepdims=True)
-    # shadow_mad = np.mean(np.abs(shadow - shadow_mean), axis=1, keepdims=True)
-    # shadow_mad_up = np.minimum(shadow_max, shadow_mean+shadow_mad).reshape(-1)
-    # shadow_mad_lo = np.maximum(shadow_min, shadow_mean-shadow_mad).reshape(-1)
-    # shadow_mean = shadow_mean.reshape(-1)
-
     fig = plt.figure()
     ax1 = fig.add_subplot(1,1,1, label='score')
     ax2 = fig.add_subplot(1,1,1, label='loss', frame_on=False)
 
     ax1.plot(x_steps, score_mean, color='C0')
     ax1.fill_between(x_steps, score_mad_lo, score_mad_up, facecolor='C0', alpha=0.4)
-    ax1.fill_between(x_steps, score_std_lo, score_std_up, facecolor='C0', alpha=0.2)
     ax1.set_xlabel('Steps (1e'+str(exp)+')')
     ax1.yaxis.tick_left()
-    ax1.set_ylabel('Mean Score',  color='C0')
+    ax1.set_ylabel('Mean Reward',  color='C0')
     ax1.yaxis.set_label_position('left')
     ax1.tick_params(axis='y', colors='C0')
     ax1.grid(True, linewidth=0.5)
 
     ax2.plot(x_steps, loss_mean, color='C3')
     ax2.fill_between(x_steps, loss_mad_lo, loss_mad_up, facecolor='C3', alpha=0.4)
-    # ax2.plot(x_steps, minl_mean, color='C4')
-    # ax2.fill_between(x_steps, minl_mad_lo, minl_mad_up, facecolor='C4', alpha=0.4)
-    # ax2.plot(x_steps, maxl_mean, color='C5')
-    # ax2.fill_between(x_steps, maxl_mad_lo, maxl_mad_up, facecolor='C5', alpha=0.4)
-    # ax2.plot(x_steps, shadow_mean, color='C6')
-    # ax2.fill_between(x_steps, shadow_mad_lo, shadow_mad_up, facecolor='C6', alpha=0.4)
 
     ax2.axes.get_xaxis().set_visible(False)
     ax2.yaxis.tick_right()
@@ -390,43 +353,42 @@ def plot_eval_loss_2d(input_dict: dict, eval_log: np.ndarray, filename_png: str)
     ymin, ymax = ax2.get_ylim()
     ax2.set(ylim=(ymin, ymax))
 
-    tit1 = 'Mean, MAD, and STD of '+str(input_dict['n_trials'])+'x'+str(int(input_dict['n_eval']))+' Evaluations per '
-    tit2 = str(int(input_dict['eval_freq']))[0]+'e'+str(eval_exp)+' Steps \n'
-    tit3 = input_dict['algo']+'-'+input_dict['s_dist']+': \''+input_dict['env_id']+' ('+'d'+input_dict['dynamics']+', '
-    tit4 = input_dict['loss_fn']+', '+'b'+str(input_dict['buffer']/1e6)[0]+', '+'m'+str(input_dict['multi_steps'])+')'
-    title = tit1 + tit2 + tit3 + tit4
+    t1 = 'Mean and MAD of '+str(inputs['n_trials'])+'x'+str(int(inputs['n_eval']))+' Evaluations per '
+    t2 = str(int(inputs['eval_freq']))[0]+'e'+str(eval_exp)+' Steps \n'
+    t3 = utils.plot_subtitles(inputs)
+    title = t1 + t2 + t3
 
     ax1.set_title(title)
     
     plt.savefig(filename_png, dpi=600, format='png')
 
-def plot_eval_loss_3d(input_dict: dict, eval_log: np.ndarray, filename_png: str):
+def plot_eval_loss_3d(inputs: dict, eval_log: np.ndarray, filename_png: str):
     """
     3D plot of Mean and MAD of scores and twin critic loss during evaluation episodes for all trials in environment.
     
     Parameters:
-        input_dict: dictionary containing all execution details
+        inputs: dictionary containing all execution details
         eval_log: log of episode data for all trials
         filename_png (directory): save path of plot
     """
     cum_steps_log = eval_log[0, :, 0, -1]
 
-    eval_exp = utils.get_exponent(input_dict['eval_freq'])
+    eval_exp = utils.get_exponent(inputs['eval_freq'])
     exp = utils.get_exponent(cum_steps_log)
     x_steps = cum_steps_log/10**(exp)
 
-    count_x = int(input_dict['n_cumsteps'] / input_dict['eval_freq'])
-    count_y = int(input_dict['n_trials'] * int(input_dict['n_eval']))
+    count_x = int(inputs['n_cumsteps'] / inputs['eval_freq'])
+    count_y = int(inputs['n_trials'] * int(inputs['n_eval']))
 
     scores = np.zeros((count_x, count_y))
-    max_score = np.ones((count_x, count_y)) * int(input_dict['max_eval_reward'])
+    max_score = np.ones((count_x, count_y)) * int(inputs['max_eval_reward'])
     loss = np.zeros((count_x, count_y))
 
     for t in range(count_x):
-        for n in range(input_dict['n_trials']):
-            for s in range(int(input_dict['n_eval'])):
-                scores[t, s + n * int(input_dict['n_eval'])] = eval_log[n, t, s, 1]
-                loss[t, s + n * int(input_dict['n_eval'])] = np.mean(eval_log[n, t, s, 3:5])
+        for n in range(inputs['n_trials']):
+            for s in range(int(inputs['n_eval'])):
+                scores[t, s + n * int(inputs['n_eval'])] = eval_log[n, t, s, 1]
+                loss[t, s + n * int(inputs['n_eval'])] = np.mean(eval_log[n, t, s, 3:5])
 
     score_limit = np.mean(max_score, axis=1, keepdims=True)
 
@@ -456,14 +418,13 @@ def plot_eval_loss_3d(input_dict: dict, eval_log: np.ndarray, filename_png: str)
                 color='C3', alpha=0.5, linewidth=1)
 
     ax1.set_xlabel('Steps (1e'+str(exp)+')')
-    ax1.set_ylabel('Mean Score')
+    ax1.set_ylabel('Mean Reward')
     ax1.set_zlabel('Critic Loss')
 
-    tit1 = 'Mean and MAD of '+str(input_dict['n_trials'])+'x'+str(int(input_dict['n_eval']))+' Evaluations per '
-    tit2 = str(int(input_dict['eval_freq']))[0]+'e'+str(eval_exp)+' Steps \n'
-    tit3 = input_dict['algo']+'-'+input_dict['s_dist']+': \''+input_dict['env_id']+' ('+'d'+input_dict['dynamics']+', '
-    tit4 = input_dict['loss_fn']+', '+'b'+str(input_dict['buffer']/1e6)[0]+', '+'m'+str(input_dict['multi_steps'])+')'
-    title = tit1 + tit2 + tit3 + tit4
+    t1 = 'Mean and MAD of '+str(inputs['n_trials'])+'x'+str(int(inputs['n_eval']))+' Evaluations per '
+    t2 = str(int(inputs['eval_freq']))[0]+'e'+str(eval_exp)+' Steps \n'
+    t3 = utils.plot_subtitles(inputs)
+    title = t1 + t2 + t3
 
     ax1.set_title(title)
     
