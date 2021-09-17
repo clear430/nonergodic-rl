@@ -17,7 +17,7 @@ def save_directory(inputs: dict, results: bool) -> str:
     step_exp = int(len(str(int(inputs['n_cumsteps']))) - 1)
     buff_exp = int(len(str(int(inputs['buffer']))) - 1)
 
-    dir = ['results/', 
+    dir = ['./results/', 
            'additive/' if inputs['dynamics'] == 'A' else 'multiplicative/',
            inputs['env_id']+'/',
            inputs['env_id']+'--',
@@ -86,6 +86,30 @@ def get_exponent(array: np.ndarray) -> int:
         exp = int(len(str(int(max_step))) - 1)
 
     return exp
+
+def truncation(estimated: T.FloatTensor, target: T.FloatTensor) -> Tuple[T.FloatTensor, T.FloatTensor]:
+    """
+    Elements to be truncated based on Gaussian distribution assumption based on a correction of
+    Section 3.3 in https://arxiv.org/pdf/1906.00495.pdf.
+
+    Parameters:
+        estimated: current Q-values
+        target: Q-values from mini-batch
+
+    Returns:
+        estimated: truncated current Q-values
+        target: truncated Q-values from mini-batch
+    """  
+    sigma1, mean1 = T.std_mean(estimated, unbiased=False)
+    sigma2, mean2 = T.std_mean(target, unbiased=False)
+    zero1 = estimated - estimated
+    zero2 = target - target
+    
+    # 3-sigma rule
+    estimated = T.where(T.abs(estimated - mean1) > 3 * sigma1, zero1, estimated)   
+    target = T.where(T.abs(target - mean2) > 3 * sigma2, zero2, target)
+
+    return estimated, target
 
 def cauchy(estimated: T.cuda.FloatTensor, target: T.cuda.FloatTensor, scale: float) \
         -> T.cuda.FloatTensor:
@@ -367,6 +391,13 @@ def loss_function(estimated: T.cuda.FloatTensor, target: T.cuda.FloatTensor,
         return mean, min, max, shadow, alpha
 
     elif loss_type == "CAU":
+        values = cauchy(estimated, target, scale)
+        mean, min, max, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, 
+                                                   zipf_x, zipf_x2)
+        return mean, min, max, shadow, alpha
+
+    elif loss_type == "TCA":
+        estimated, target = truncation(estimated, target)
         values = cauchy(estimated, target, scale)
         mean, min, max, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, 
                                                    zipf_x, zipf_x2)

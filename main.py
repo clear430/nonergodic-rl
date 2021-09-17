@@ -7,15 +7,16 @@ from algos.networks_td3 import CriticNetwork as CriticNetwork_td3
 from extras.replay import ReplayBuffer
 from scripts.exp_additive import additive_env
 from scripts.exp_multiplicative import multiplicative_env
+import time
 
 # off-policy models: ['SAC', 'TD3']
-algo_name = ['TD3']
-# critic loss functions: ['MSE', 'HUB', 'MAE', 'HSC', 'CAU', 'CIM', 'MSE2', 'MSE4', 'MSE6']
+algo_name = ['SAC', 'TD3']
+# critic loss functions: ['MSE', 'HUB', 'MAE', 'HSC', 'CAU', 'TCA', 'CIM', 'MSE2', 'MSE4', 'MSE6']
 critic_loss = ['MSE']
 # bootstrapping of target critic values and discounted rewards: [list of integers > 0] 
 multi_steps = [1]
 
-ENV_KEY = 14
+ENV_KEY = 6
 
 gym_envs = {
     # ENV_KEY: [env_id, state_dim, action_dim, intial warm-up steps to generate random seed]
@@ -67,11 +68,11 @@ gym_envs = {
 
 inputs_dict = {
     # execution parameters
-    'n_trials': 2,                              # number of total unique training trials
-    'n_cumsteps': 2e3,                          # maximum cumulative steps per trial (must be greater than warm-up)
+    'n_trials': 5,                              # number of total unique training trials
+    'n_cumsteps': 5e3,                          # maximum cumulative steps per trial (must be greater than warm-up)
     'eval_freq': 1e3,                           # interval of steps between evaluation episodes
     'n_eval': 1e1,                              # number of evalution episodes
-    'max_eval_reward': 1e4,                     # maximum reward per evaluation episode
+    'max_eval_reward': 1e4,                     # maximum reward per evaluation episode for additive environments
     'max_eval_steps': 1e0,                      # maximum steps per evaluation episode for multiplicative environments
 
     # learning variables
@@ -122,7 +123,7 @@ inputs_dict = {
     # environment details
     'algo_name': [algo.upper() for algo in algo_name],
     'critic_loss': [loss.upper() for loss in critic_loss],
-    'multi_steps': multi_steps,
+    'bootstraps': multi_steps,
     'ENV_KEY': ENV_KEY
     }
 
@@ -137,7 +138,9 @@ assert isinstance(inputs_dict['n_trials'], (float, int)) and \
 assert isinstance(inputs_dict['n_cumsteps'], (float, int)) and \
     int(inputs_dict['n_cumsteps']) >= 1, gte1
 assert isinstance(inputs_dict['eval_freq'], (float, int)) and \
-    int(inputs_dict['eval_freq']) >= 1, gte1
+    int(inputs_dict['eval_freq']) >= 1 and \
+        int(inputs_dict['eval_freq']) <= int(inputs_dict['n_cumsteps']), \
+            'must be greater than or equal to 1 and less than or equal to n_cumsteps'
 assert isinstance(inputs_dict['n_eval'], (float, int)) and \
     int(inputs_dict['n_eval']) >= 1, gte1
 assert isinstance(inputs_dict['max_eval_reward'], (float, int)) and \
@@ -240,11 +243,11 @@ assert isinstance(inputs_dict['algo_name'], list) and \
     set(inputs_dict['algo_name']).issubset(set(['SAC', 'TD3'])), \
         'algorithms must be a list of "SAC" and/or "TD3"'
 assert isinstance(inputs_dict['critic_loss'], list) and \
-    set(inputs_dict['critic_loss']).issubset(set(['MSE', 'HUB', 'MAE', 'HSC', 'CAU', 'CIM', 'MSE2', 'MSE4', 'MSE6'])), \
-        'critic losses must be a list of "MSE", "HUB", "MAE", "HSC", "CAU", "CIM", "MSE2", "MSE4", and/or "MSE6"'
-assert isinstance(inputs_dict['multi_steps'], list) and \
-    all(isinstance(mstep, int) for mstep in inputs_dict['multi_steps']) and \
-        all(mstep >= 1 for mstep in inputs_dict['multi_steps']), \
+    set(inputs_dict['critic_loss']).issubset(set(['MSE', 'HUB', 'MAE', 'HSC', 'CAU', 'TCA', 'CIM', 'MSE2', 'MSE4', 'MSE6'])), \
+        'critic losses must be a list of "MSE", "HUB", "MAE", "HSC", "CAU", , "TCA", "CIM", "MSE2", "MSE4", and/or "MSE6"'
+assert isinstance(inputs_dict['bootstraps'], list) and \
+    all(isinstance(mstep, int) for mstep in inputs_dict['bootstraps']) and \
+        all(mstep >= 1 for mstep in inputs_dict['bootstraps']), \
             'multi-steps must be a list of positve integers'
 assert isinstance(inputs_dict['ENV_KEY'], int) and \
     inputs_dict['ENV_KEY'] >= 0 and inputs_dict['ENV_KEY'] < len(gym_envs.keys()), \
@@ -292,7 +295,14 @@ assert hasattr(ReplayBuffer, 'sample_exp'), 'missing uniform transition sampling
 
 if __name__ == '__main__':
 
+    start_time = time.perf_counter()
+
     if ENV_KEY <= 13:
         additive_env(gym_envs=gym_envs, inputs=inputs_dict)
     else:
         multiplicative_env(gym_envs=gym_envs, inputs=inputs_dict)
+    
+    end_time = time.perf_counter()
+    total_time = end_time-start_time
+
+    print('TOTAL TIME: {:1.0f}s = {:1.1f}m = {:1.2f}h'.format(total_time, total_time/60, total_time/3600))

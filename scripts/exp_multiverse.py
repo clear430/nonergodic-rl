@@ -9,18 +9,18 @@ import torch as T
 from torch.distributions.bernoulli import Bernoulli
 from typing import Tuple
 
-VRAM = 1  # do you have >= 8GB of VRAM?
-if VRAM == 1:
+VRAM = 0  # do you have >= 20GB of VRAM?
+if VRAM == True:
     device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
 else:
     device = T.device('cpu' if T.cuda.is_available() else 'cpu')
-    # still need 8GB of free RAM or reduce number of investors
+    # still need 20GB of free RAM or reduce number of investors
 
-dir = 'results/multiverse/'    # directory for saving numpy arrays
+dir = './results/multiverse/'    # directory for saving numpy arrays
 
-INVESTORS = 1.5e5           # number of random investors
+INVESTORS = 1e6             # number of random investors
 HORIZON = 3e3               # total time steps
-TOP= INVESTORS * 1e-4       # define top performers
+TOP = INVESTORS * 1e-4      # define top performers
 VALUE_0 = 1e2               # intial portfolio value of each investor
 UP_PROB = 0.5               # probability of up move
 UP_R = 0.5                  # upside return (>=0)
@@ -352,7 +352,7 @@ def galaxy_brain_lev(ru_min: float, ru_max: float, ru_incr: float, rd_min: float
 
 if __name__ == '__main__': 
 
-    ## run experiments
+    ## RUN EXPERIMENTS
 
     # start_time = time.perf_counter()
 
@@ -365,7 +365,7 @@ if __name__ == '__main__':
     # inv1_val_data, inv1_val_data_T = smart_lev(outcomes, INVESTORS, HORIZON, TOP, VALUE_0, UP_R, DOWN_R,
     #                                            lev_low=0.1, lev_high=1, lev_incr=0.1)
     
-    # inv2_val_data = big_brain_lev(outcomes, INVESTORS, HORIZON, TOP, VALUE_0, UP_R, DOWN_R, LEV_FACTOR 
+    # inv2_val_data = big_brain_lev(outcomes, INVESTORS, HORIZON, TOP, VALUE_0, UP_R, DOWN_R, LEV_FACTOR, 
     #                               stop_min=0.1, stop_max=0.1, stop_incr=0.1, roll_max=0.0,
     #                               roll_min=0.0, roll_incr=0.1)
 
@@ -377,12 +377,12 @@ if __name__ == '__main__':
     #                                  rd_incr=0.005, pu_min=0.25, pu_max=0.75, pu_incr=0.25)
     
     # end_time = time.perf_counter()
-    # print('time: {:1.1f}'.format(end_time-start_time))
+    # print('TOTAL TIME: {:1.1f}'.format(end_time-start_time))
 
-    ## save experiment data
+    ## SAVE EXPERIMENT DATA
 
-    # if not os.path.exists('./' + dir):
-    #     os.makedirs('./' + dir)
+    if not os.path.exists(dir):
+        os.makedirs(dir)
 
     # np.save(dir + 'inv1_val.npy', inv1_val_data)
     # np.save(dir + 'inv1_val_T.npy', inv1_val_data_T)
@@ -390,20 +390,20 @@ if __name__ == '__main__':
     # np.save(dir + 'inv3_val.npy', inv3_val_data)
     # np.save(dir + 'inv4_lev.npy', inv4_lev_data)
 
-    # load experiment data and save figures
+    ## LOAD EXPERIMENT DATA AND SAVE FIGURES
 
     if not os.path.exists('./docs/figs'):
             os.makedirs('./docs/figs')
 
-    inv4_lev_data = np.load(dir + '/inv4_lev.npy')
-    plots_multiverse.plot_inv4(inv4_lev_data, 'docs/figs/inv4.png')
+    # inv4_lev_data = np.load(dir + '/inv4_lev.npy')
+    # plots_multiverse.plot_inv4(inv4_lev_data, 'docs/figs/inv4.png')
 
-    inv3_val_data = np.load(dir + 'inv3_val.npy')
-    plots_multiverse.plot_inv3(inv3_val_data, 'docs/figs/inv3.png')
+    # inv3_val_data = np.load(dir + 'inv3_val.npy')
+    # plots_multiverse.plot_inv3(inv3_val_data, 'docs/figs/inv3.png')
 
-    inv2_val_data = np.load(dir + 'inv2_val.npy')
-    plots_multiverse.plot_inv2(inv2_val_data, 'docs/figs/inv2.png')
+    # inv2_val_data = np.load(dir + 'inv2_val.npy')
+    # plots_multiverse.plot_inv2(inv2_val_data, 'docs/figs/inv2.png')
 
-    inv1_val_data = np.load(dir + 'inv1_val.npy')
-    inv1_val_data_T = np.load(dir + 'inv1_val_T.npy')
-    plots_multiverse.plot_inv1(inv1_val_data, inv1_val_data_T, 'docs/figs/inv1.png')
+    # inv1_val_data = np.load(dir + 'inv1_val.npy')
+    # inv1_val_data_T = np.load(dir + 'inv1_val_T.npy')
+    # plots_multiverse.plot_inv1(inv1_val_data, inv1_val_data_T, 'docs/figs/inv1.png')

@@ -23,20 +23,20 @@ def additive_env(gym_envs: dict, inputs: dict):
               'max_action': env.action_space.high.min(), 'min_action': env.action_space.low.max(), 
               'env_id': gym_envs[str(inputs['ENV_KEY'])][0], 'random': gym_envs[str(inputs['ENV_KEY'])][3],
               'dynamics': 'A',    # gambling dynamics 'A' (additive)
-              'loss_fn': 'MSE', 'algo': 'TD3', **inputs
+              'algo': 'TD3', 'loss_fn': 'MSE', 'multi_steps': 1, **inputs
               }
               
     env = env.env    # allow access to setting enviroment state and remove episode step limit
 
-    directory = utils.save_directory(inputs, results=True)
-    trial_log = np.zeros((inputs['n_trials'], int(inputs['n_cumsteps']), 19))
-    eval_log = np.zeros((inputs['n_trials'], int(inputs['n_cumsteps'] / inputs['eval_freq']), int(inputs['n_eval']), 20))
-
     for algo in inputs['algo_name']:
         for loss_fn in inputs['critic_loss']:
-            for mstep in inputs['multi_steps']:
+            for mstep in inputs['bootstraps']:
 
                 inputs['loss_fn'], inputs['algo'], inputs['multi_steps'] = loss_fn, algo, mstep
+
+                trial_log = np.zeros((inputs['n_trials'], int(inputs['n_cumsteps']), 19))
+                eval_log = np.zeros((inputs['n_trials'], int(inputs['n_cumsteps'] / inputs['eval_freq']), int(inputs['n_eval']), 20))
+                directory = utils.save_directory(inputs, results=True)
 
                 for round in range(inputs['n_trials']):
 
@@ -105,6 +105,7 @@ def additive_env(gym_envs: dict, inputs: dict):
                         episode += 1
 
                     count = len(score_log)
+                    
                     trial_log[round, :count, 0], trial_log[round, :count, 1] =  time_log, score_log
                     trial_log[round, :count, 2], trial_log[round, :count, 3:14] = step_log, loss_log
                     trial_log[round, :count, 14], trial_log[round, :count, 15:] = logtemp_log, loss_params_log
