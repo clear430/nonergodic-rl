@@ -79,7 +79,7 @@ def plot_learning_curve(inputs: dict, trial_log: np.ndarray, filename_png: str):
     ax2.axes.get_xaxis().set_visible(False)
     ax2.yaxis.tick_right()
     ax2.set_ylabel('Mean Critic Loss', color='C3')
-    ax2.yaxis.set_label_position('right')
+    ax2.yaxis.set_label_position('right') 
     ax2.tick_params(axis='y', colors='C3')
     
     # make vertical lines splitting fractions of total episodes
@@ -98,7 +98,7 @@ def plot_learning_curve(inputs: dict, trial_log: np.ndarray, filename_png: str):
 
     ax1.set_title(title)
 
-    plt.savefig(filename_png, bbox_inches='tight', dpi=600, format='png')
+    plt.savefig(filename_png, bbox_inches='tight', dpi=400, format='png')
 
 def plot_trial_curve(inputs: dict, trial_log: np.ndarray, filename_png: str):
     """
@@ -227,7 +227,7 @@ def plot_trial_curve(inputs: dict, trial_log: np.ndarray, filename_png: str):
 
     ax1.set_title(title)
     
-    plt.savefig(filename_png, dpi=600, format='png')
+    plt.savefig(filename_png, dpi=400, format='png')
 
 def plot_eval_curve(inputs: dict, eval_log: np.ndarray, filename_png: str):
     """
@@ -283,7 +283,7 @@ def plot_eval_curve(inputs: dict, eval_log: np.ndarray, filename_png: str):
 
     ax1.set_title(title)
     
-    plt.savefig(filename_png, dpi=600, format='png')
+    plt.savefig(filename_png, dpi=400, format='png')
 
 def plot_eval_loss_2d(inputs: dict, eval_log: np.ndarray, filename_png: str):
     """
@@ -360,7 +360,7 @@ def plot_eval_loss_2d(inputs: dict, eval_log: np.ndarray, filename_png: str):
 
     ax1.set_title(title)
     
-    plt.savefig(filename_png, dpi=600, format='png')
+    plt.savefig(filename_png, dpi=400, format='png')
 
 def plot_eval_loss_3d(inputs: dict, eval_log: np.ndarray, filename_png: str):
     """
@@ -428,4 +428,4 @@ def plot_eval_loss_3d(inputs: dict, eval_log: np.ndarray, filename_png: str):
 
     ax1.set_title(title)
     
-    plt.savefig(filename_png, dpi=600, format='png')
+    plt.savefig(filename_png, dpi=400, format='png')

@@ -96,7 +96,7 @@ def plot_inv1(inv1_data: np.ndarray, inv1_data_T: np.ndarray, filename_png: str)
     axs[1, 0].tick_params(axis='both', which='major', labelsize='small')
     axs[1, 1].tick_params(axis='both', which='major', labelsize='small')
 
-    plt.savefig(filename_png, dpi=1000, format='png')
+    plt.savefig(filename_png, dpi=400, format='png')
     
 def plot_inv2(inv2_data: np.ndarray, filename_png: str):
     """
@@ -159,7 +159,7 @@ def plot_inv2(inv2_data: np.ndarray, filename_png: str):
 
     fig.subplots_adjust(bottom=0.25)
 
-    plt.savefig(filename_png, dpi=1000, format='png')
+    plt.savefig(filename_png, dpi=400, format='png')
 
 def plot_inv3(inv3_data: np.ndarray, filename_png: str):
     """
@@ -174,38 +174,60 @@ def plot_inv3(inv3_data: np.ndarray, filename_png: str):
 
     r_len = roll.shape[0]
     s_len = stop.shape[0]
+    mean = np.zeros((r_len, s_len))
     adj_mean = np.zeros((r_len, s_len))
+    med = np.zeros((r_len, s_len))
     adj_med = np.zeros((r_len, s_len))
 
     for r in range(r_len):
         for s in range(s_len):
+            mean[r, s] = inv3_data[r, s, 0, -1]
             adj_mean[r, s] = inv3_data[r, s, 2, -1]
-            adj_med[r, s] = inv3_data[r, s, 3, -1] 
+            med[r, s] = inv3_data[r, s, 9, -1]
+            adj_med[r, s] = inv3_data[r, s, 11, -1] 
 
+    mean, med = np.log10(mean), np.log10(med)
     adj_mean, adj_med = np.log10(adj_mean), np.log10(adj_med)
 
-    fig, axs = plt.subplots(nrows=1, ncols=2, figsize=(8, 3))
+    fig, axs = plt.subplots(nrows=2, ncols=2, figsize=(8, 8))
     
-    im0 = axs[0].pcolormesh(stop*100, roll*100, adj_mean, shading='gouraud', vmin=adj_mean.min(), vmax=adj_mean.max())
-    im1 = axs[1].pcolormesh(stop*100, roll*100, adj_med, shading='gouraud', vmin=adj_mean.min(), vmax=adj_mean.max())
-    cb1 = fig.colorbar(im1, ax=axs[1])
+    im0 = axs[0, 0].pcolormesh(stop*100, roll*100, mean, shading='gouraud', vmin=adj_mean.min(), vmax=mean.max())
+    im1 = axs[0, 1].pcolormesh(stop*100, roll*100, adj_mean, shading='gouraud', vmin=adj_mean.min(), vmax=mean.max())
+    cb1 = fig.colorbar(im1, ax=axs[0, 1])
 
-    axs[0].tick_params(axis='both', which='major', labelsize='small')
-    axs[0].set_ylabel('Retention Ratio Φ (%)', size='small')
-    axs[0].set_xlabel('Stop-Loss λ (%)', size='small')
-    axs[0].set_title('Adjusted Mean (log10)', size='medium')
-    axs[0].text(0.5, -0.325, "(a)", size='small', transform=axs[0].transAxes)
+    im2 = axs[1, 0].pcolormesh(stop*100, roll*100, med, shading='gouraud', vmin=adj_med.min(), vmax=med.max())
+    im3 = axs[1, 1].pcolormesh(stop*100, roll*100, adj_med, shading='gouraud', vmin=adj_med.min(), vmax=med.max())
+    cb2 = fig.colorbar(im3, ax=axs[1, 1])
 
-    axs[1].tick_params(axis='both', which='major', labelsize='small')
-    axs[1].set_ylabel('', size='small')
-    axs[1].set_xlabel('', size='small')
-    axs[1].set_title('Adjusted Median (log10)', size='medium')
-    axs[1].text(1.5, -0.325, "(b)", size='small', transform=axs[0].transAxes)
+    axs[0, 0].tick_params(axis='both', which='major', labelsize='small')
+    axs[0, 0].set_title('Mean (log10)', size='medium')
+    axs[0, 0].set_ylabel('Retention Ratio Φ (%)', size='small')
+    axs[0, 0].set_xlabel('Stop-Loss λ (%)', size='small')
+    axs[0, 0].text(0.5, -0.25, "(a)", size='small', transform=axs[0, 0].transAxes)
+
+    axs[0, 1].tick_params(axis='both', which='major', labelsize='small')
+    axs[0, 1].set_ylabel('', size='small')
+    axs[0, 1].set_xlabel('', size='small')
+    axs[0, 1].set_title('Adjusted Mean (log10)', size='medium')
+    axs[0, 1].text(0.5, -0.25, "(b)", size='small', transform=axs[0, 1].transAxes)
     cb1.ax.tick_params(labelsize='small')
 
-    fig.subplots_adjust(bottom=0.25)
+    axs[1, 0].tick_params(axis='both', which='major', labelsize='small')
+    axs[1, 0].set_ylabel('Retention Ratio Φ (%)', size='small')
+    axs[1, 0].set_xlabel('Stop-Loss λ (%)', size='small')
+    axs[1, 0].set_title('Median (log10)', size='medium')
+    axs[1, 0].text(0.5, -0.25, "(a)", size='small', transform=axs[1, 0].transAxes)
 
-    plt.savefig(filename_png, dpi=1000, format='png')
+    axs[1, 1].tick_params(axis='both', which='major', labelsize='small')
+    axs[1, 1].set_ylabel('', size='small')
+    axs[1, 1].set_xlabel('', size='small')
+    axs[1, 1].set_title('Adjusted Median (log10)', size='medium')
+    axs[1, 1].text(0.5, -0.25, "(b)", size='small', transform=axs[1, 1].transAxes)
+    cb2.ax.tick_params(labelsize='small')
+
+    fig.subplots_adjust(hspace=0.4)
+
+    plt.savefig(filename_png, dpi=400, format='png')
 
 def plot_inv4(inv4_data: np.ndarray, filename_png: str):
     """
@@ -262,4 +284,4 @@ def plot_inv4(inv4_data: np.ndarray, filename_png: str):
 
     fig.subplots_adjust(bottom=0.25)
     
-    plt.savefig(filename_png, dpi=1000, format='png')
+    plt.savefig(filename_png, dpi=400, format='png')

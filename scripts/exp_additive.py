@@ -5,7 +5,7 @@ from algos.algo_sac import Agent_sac
 from algos.algo_td3 import Agent_td3
 from datetime import datetime
 import extras.eval_episodes as eval_episodes
-import extras.plots_additive as plots
+import extras.plots_summary as plots
 import extras.utils as utils
 import gym
 import numpy as np

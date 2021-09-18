@@ -68,6 +68,19 @@ def plot_subtitles(inputs: dict):
     
     return sub
 
+def multi_trial_log(inputs: dict) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Generates risk-rlatd parameter log for multiplicative experiments with
+    dimensions dependent on the environment.
+
+    Parameters
+        inputs: dictionary containg all execution details
+        
+    Returns:
+        trial_risk_log: array of zeros for agent learning logs
+        eval_risk_log:  array of zeros for agent evaluation logs
+    """
+
 def get_exponent(array: np.ndarray) -> int:
     """
     Obtain expoenent for maximum array value used for scaling and axis labels.

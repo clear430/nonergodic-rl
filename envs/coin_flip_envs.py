@@ -27,7 +27,7 @@ if np.abs(UP_R) > np.abs(DOWN_R):
 else:
     LEV_FACTOR = 1 / np.abs(UP_R)
 
-class Coin_n1_Inv1(gym.Env):
+class Coin_n1_InvA(gym.Env):
     """
     OpenAI gym environment for determining the optimal leverage at each time step 
     for the equally likely +50%/-40% simple gamble.
@@ -47,7 +47,7 @@ class Coin_n1_Inv1(gym.Env):
         """
         Intialise class varaibles by creating state-action space and reward range
         """
-        super(Coin_n1_Inv1, self).__init__()
+        super(Coin_n1_InvA, self).__init__()
 
         self.reward_range = (MIN_REWARD, np.inf)
 
@@ -140,7 +140,7 @@ class Coin_n1_Inv1(gym.Env):
 
         return state
 
-class Coin_n2_Inv1(gym.Env):
+class Coin_n2_InvA(gym.Env):
     """
     OpenAI gym environment for determining the optimal leverage at each time step 
     for the equally likely +50%/-40% simple gamble for a portfoilio of 
@@ -161,7 +161,7 @@ class Coin_n2_Inv1(gym.Env):
         """
         Intialise class varaibles by creating state-action space and reward range
         """
-        super(Coin_n2_Inv1, self).__init__()
+        super(Coin_n2_InvA, self).__init__()
 
         self.reward_range = (MIN_REWARD, np.inf)
 
@@ -254,7 +254,7 @@ class Coin_n2_Inv1(gym.Env):
 
         return state
 
-class Coin_n10_Inv1(gym.Env):
+class Coin_n10_InvA(gym.Env):
     """
     OpenAI gym environment for determining the optimal leverages at each time 
     step for the equally likely +50%/-40% simple gamble for a portfoilio of 
@@ -275,7 +275,7 @@ class Coin_n10_Inv1(gym.Env):
         """
         Intialise class varaibles by creating state-action space and reward range
         """
-        super(Coin_n10_Inv1, self).__init__()
+        super(Coin_n10_InvA, self).__init__()
 
         self.reward_range = (MIN_REWARD, np.inf)
 
@@ -385,7 +385,7 @@ class Coin_n10_Inv1(gym.Env):
 
         return state
 
-class Coin_n1_Inv2(gym.Env):
+class Coin_n1_InvB(gym.Env):
     """
     OpenAI gym environment for determining the optimal [leverage, stop-loss] at each 
     time step for the equally likely +50%/-40% simple gamble.
@@ -405,7 +405,7 @@ class Coin_n1_Inv2(gym.Env):
         """
         Intialise class varaibles by creating state-action space and reward range
         """
-        super(Coin_n1_Inv2, self).__init__()
+        super(Coin_n1_InvB, self).__init__()
 
         self.reward_range = (MIN_REWARD, np.inf)
 
@@ -504,7 +504,7 @@ class Coin_n1_Inv2(gym.Env):
 
         return state
 
-class Coin_n2_Inv2(gym.Env):
+class Coin_n2_InvB(gym.Env):
     """
     OpenAI gym environment for determining the optimal [leverage, stop-loss] at each 
     time step for the equally likely +50%/-40% simple gamble for a portfoilio of 
@@ -525,7 +525,7 @@ class Coin_n2_Inv2(gym.Env):
         """
         Intialise class varaibles by creating state-action space and reward range
         """
-        super(Coin_n2_Inv2, self).__init__()
+        super(Coin_n2_InvB, self).__init__()
 
         self.reward_range = (MIN_REWARD, np.inf)
 
@@ -624,7 +624,7 @@ class Coin_n2_Inv2(gym.Env):
 
         return state
 
-class Coin_n10_Inv2(gym.Env):
+class Coin_n10_InvB(gym.Env):
     """
     OpenAI gym environment for determining the optimal [leverage, stop-loss]
     at each time step for the equally likely +50%/-40% simple gamble for a 
@@ -645,7 +645,7 @@ class Coin_n10_Inv2(gym.Env):
         """
         Intialise class varaibles by creating state-action space and reward range
         """
-        super(Coin_n10_Inv2, self).__init__()
+        super(Coin_n10_InvB, self).__init__()
 
         self.reward_range = (MIN_REWARD, np.inf)
 
@@ -762,7 +762,7 @@ class Coin_n10_Inv2(gym.Env):
 
         return state
 
-class Coin_n1_Inv3(gym.Env):
+class Coin_n1_InvC(gym.Env):
     """
     OpenAI gym environment for determining the optimal [leverage, stop-loss, 
     retention ratio] at each time step for the equally likely +50%/-40% simple gamble.
@@ -782,7 +782,7 @@ class Coin_n1_Inv3(gym.Env):
         """
         Intialise class varaibles by creating state-action space and reward range
         """
-        super(Coin_n1_Inv3, self).__init__()
+        super(Coin_n1_InvC, self).__init__()
 
         self.reward_range = (MIN_REWARD, np.inf)
 
@@ -889,7 +889,7 @@ class Coin_n1_Inv3(gym.Env):
 
         return state
 
-class Coin_n2_Inv3(gym.Env):
+class Coin_n2_InvC(gym.Env):
     """
     OpenAI gym environment for determining the optimal [leverage, stop-loss, 
     retention ratio] at each time step for the equally likely +50%/-40% 
@@ -910,7 +910,7 @@ class Coin_n2_Inv3(gym.Env):
         """
         Intialise class varaibles by creating state-action space and reward range
         """
-        super(Coin_n2_Inv3, self).__init__()
+        super(Coin_n2_InvC, self).__init__()
 
         self.reward_range = (MIN_REWARD, np.inf)
 
@@ -1018,7 +1018,7 @@ class Coin_n2_Inv3(gym.Env):
 
         return state
 
-class Coin_n10_Inv3(gym.Env):
+class Coin_n10_InvC(gym.Env):
     """
     OpenAI gym environment for determining the optimal [leverage, stop-loss, 
     retention ratio] at each time step for the equally likely +50%/-40% 
@@ -1039,7 +1039,7 @@ class Coin_n10_Inv3(gym.Env):
         """
         Intialise class varaibles by creating state-action space and reward range
         """
-        super(Coin_n10_Inv3, self).__init__()
+        super(Coin_n10_InvC, self).__init__()
 
         self.reward_range = (MIN_REWARD, np.inf)
 

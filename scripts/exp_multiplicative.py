@@ -9,7 +9,7 @@ import envs.dice_roll_envs as dice_roll_envs
 # import envs.dice_roll_sh_envs as dice_roll_sh_envs
 # import envs.gbm_envs as gbm_envs
 # import envs.gbm_sh_envs as gbm_sh_envs
-import extras.plots_additive as plots
+import extras.plots_summary as plots
 import extras.eval_episodes as eval_episodes
 import extras.utils as utils
 import numpy as np
@@ -22,7 +22,6 @@ def multiplicative_env(gym_envs: dict, inputs: dict):
     """
     if inputs['ENV_KEY'] <= 22:
         env = eval('coin_flip_envs.'+gym_envs[str(inputs['ENV_KEY'])][0]+'()')
-
     elif inputs['ENV_KEY'] <= 31:
         env = eval('dice_roll_envs.'+gym_envs[str(inputs['ENV_KEY'])][0]+'()')
     elif inputs['ENV_KEY'] <= 40:
@@ -48,7 +47,7 @@ def multiplicative_env(gym_envs: dict, inputs: dict):
                 trial_log = np.zeros((inputs['n_trials'], int(inputs['n_cumsteps']), 19))
                 eval_log = np.zeros((inputs['n_trials'], int(inputs['n_cumsteps'] / inputs['eval_freq']), int(inputs['n_eval']), 20))
                 directory = utils.save_directory(inputs, results=True)
-                
+
                 for round in range(inputs['n_trials']):
 
                     time_log, score_log, step_log, logtemp_log, loss_log, loss_params_log = [], [], [], [], [], []
@@ -109,8 +108,10 @@ def multiplicative_env(gym_envs: dict, inputs: dict):
                                 agent.save_models()
                                 print('New high trailing score!')
 
-                            print('ep/st/cst {}/{}/{} {:1.0f}/s: V/g/[risk] ${:1.6f}/{:1.6f}%/{}, C/Cm/Cs {:1.2f}/{:1.2f}/{:1.2f}, a/c/k/A/T {:1.2f}/{:1.2f}/{:1.2f}/{:1.2f}/{:1.2f}'
-                                  .format(episode, step, cum_steps, step/time_log[-1], next_state[0]*1e16, reward-1, np.round(risk[:5]*100, 0), np.mean(loss[0:2]), np.mean(loss[4:6]), 
+                            print('{} {}-{}-{}-{} ep/st/cst {}/{}/{} {:1.0f}/s: V/g/[risk] ${:1.2f}/{:1.6f}%/{}, C/Cm/Cs {:1.2f}/{:1.2f}/{:1.2f}, a/c/k/A/T {:1.2f}/{:1.2f}/{:1.2f}/{:1.2f}/{:1.2f}'
+                                  .format(datetime.now().strftime('%d %H:%M:%S'),
+                                          inputs['algo'], inputs['s_dist'], inputs['loss_fn'], round+1, episode, step, cum_steps, step/time_log[-1], 
+                                          next_state[0]*1e16, reward-1, np.round(risk[:5]*100, 0), np.mean(loss[0:2]), np.mean(loss[4:6]), 
                                           np.mean(loss[6:8]), np.mean(loss[8:10]), np.mean(loss_params[0:2]), np.mean(loss_params[2:4]), loss[8]+3, np.exp(logtemp)+5))
 
                         episode += 1

@@ -1,3 +1,6 @@
+import sys
+sys.path.append("./")
+
 import extras.utils as utils
 import matplotlib.pyplot as plt
 import numpy as np
@@ -45,7 +48,7 @@ def loss_fn_plot(filename_png: str):
     plt.legend(l, loc='lower right', ncol=1, frameon=False, fontsize='medium', markerscale=6)
     plt.tight_layout()
 
-    plt.savefig(filename_png, dpi=1000, format='png')
+    plt.savefig(filename_png, dpi=300, format='png')
 
 def plot_critic_2d(input_dict: dict, data: np.ndarray, algo_name: List[str], critic_name: List[str], filename_png: str):
     """
@@ -127,7 +130,7 @@ def plot_critic_2d(input_dict: dict, data: np.ndarray, algo_name: List[str], cri
     fig.legend(critic_name, loc='lower center', ncol=closs, frameon=False, fontsize='medium')
     fig.suptitle(name, fontsize=14)
 
-    plt.savefig(filename_png, dpi=600, format='png')
+    plt.savefig(filename_png, dpi=400, format='png')
 
 def plot_critic_loss(input_dict: dict, data: np.ndarray, algo_name: List[str], critic_name: List[str], filename_png: str):
     """
@@ -266,7 +269,7 @@ def plot_critic_loss(input_dict: dict, data: np.ndarray, algo_name: List[str], c
     fig.legend(critic_name, loc='lower center', ncol=closs, frameon=False, fontsize='medium')
     # fig.suptitle(name, fontsize='xx-large', y=0.95)
 
-    plt.savefig(filename_png, dpi=600, format='png')
+    plt.savefig(filename_png, dpi=400, format='png')
 
 def plot_critic_shadow(input_dict: dict, data: np.ndarray, algo_name: List[str], critic_name: List[str], filename_png: str):
     """
@@ -363,7 +366,7 @@ def plot_critic_shadow(input_dict: dict, data: np.ndarray, algo_name: List[str],
     fig.legend(critic_name, loc='lower center', ncol=closs, frameon=False, fontsize='medium')
     # fig.suptitle(name, fontsize='xx-large', y=0.95)
 
-    plt.savefig(filename_png, dpi=600, format='png')
+    plt.savefig(filename_png, dpi=400, format='png')
 
 def plot_temp(input_dict: dict, data: np.ndarray, env_name: List[str], critic_name: List[str], filename_png: str):
     """
@@ -424,4 +427,4 @@ def plot_temp(input_dict: dict, data: np.ndarray, env_name: List[str], critic_na
     fig.subplots_adjust(bottom=0.3, hspace=0.2)
     fig.legend(critic_name, loc='lower center', ncol=closs, frameon=False, fontsize='medium')
 
-    plt.savefig(filename_png, dpi=600, format='png')
+    plt.savefig(filename_png, dpi=400, format='png')

@@ -10,13 +10,13 @@ from scripts.exp_multiplicative import multiplicative_env
 import time
 
 # off-policy models: ['SAC', 'TD3']
-algo_name = ['SAC', 'TD3']
+algo_name = ['TD3']
 # critic loss functions: ['MSE', 'HUB', 'MAE', 'HSC', 'CAU', 'TCA', 'CIM', 'MSE2', 'MSE4', 'MSE6']
 critic_loss = ['MSE']
 # bootstrapping of target critic values and discounted rewards: [list of integers > 0] 
 multi_steps = [1]
 
-ENV_KEY = 6
+ENV_KEY = 14
 
 gym_envs = {
     # ENV_KEY: [env_id, state_dim, action_dim, intial warm-up steps to generate random seed]
@@ -45,30 +45,30 @@ gym_envs = {
     #### MULTIPLICATVE ENVIRONMENTS
 
     # assets following the equally likely +50%/-40% gamble
-    '14': ['Coin_n1_Inv1', 2, 1, 1e3], '15': ['Coin_n2_Inv1', 3, 2, 1e3], '16': ['Coin_n10_Inv1', 11, 10, 1e3],
-    '17': ['Coin_n1_Inv2', 2, 2, 1e3], '18': ['Coin_n2_Inv2', 3, 3, 1e3], '19': ['Coin_n10_Inv2', 11, 11, 1e3],
-    '20': ['Coin_n1_Inv3', 2, 3, 1e3], '21': ['Coin_n2_Inv3', 3, 4, 1e3], '22': ['Coin_n10_Inv3', 11, 12, 1e3],
+    '14': ['Coin_n1_InvA', 2, 1, 1e3], '15': ['Coin_n2_InvA', 3, 2, 1e3], '16': ['Coin_n10_InvA', 11, 10, 1e3],
+    '17': ['Coin_n1_InvB', 2, 2, 1e3], '18': ['Coin_n2_InvB', 3, 3, 1e3], '19': ['Coin_n10_InvB', 11, 11, 1e3],
+    '20': ['Coin_n1_InvC', 2, 3, 1e3], '21': ['Coin_n2_InvC', 3, 4, 1e3], '22': ['Coin_n10_InvC', 11, 12, 1e3],
     # assets following the dice roll
-    '23': ['Dice_n1_Inv1', 2, 1, 1e3], '24': ['Dice_n2_Inv1', 3, 2, 1e3], '25': ['Dice_n10_Inv1', 11, 10, 1e3],
-    '26': ['Dice_n1_Inv2', 2, 2, 1e3], '27': ['Dice_n2_Inv2', 3, 3, 1e3], '28': ['Dice_n10_Inv2', 11, 11, 1e3],
-    '29': ['Dice_n1_Inv3', 2, 3, 1e3], '30': ['Dice_n2_Inv3', 3, 4, 1e3], '31': ['Dice_n10_Inv3', 11, 12, 1e3],
+    '23': ['Dice_n1_InvA', 2, 1, 1e3], '24': ['Dice_n2_InvA', 3, 2, 1e3], '25': ['Dice_n10_InvA', 11, 10, 1e3],
+    '26': ['Dice_n1_InvB', 2, 2, 1e3], '27': ['Dice_n2_InvB', 3, 3, 1e3], '28': ['Dice_n10_InvB', 11, 11, 1e3],
+    '29': ['Dice_n1_InvC', 2, 3, 1e3], '30': ['Dice_n2_InvC', 3, 4, 1e3], '31': ['Dice_n10_InvC', 11, 12, 1e3],
     # assets following dice roll with insurance safe haven
-    '32': ['Dice_SH_n1_Inv1', 2, 1, 1e3], '33': ['Dice_SH_n2_Inv1', 3, 2, 1e3], '34': ['Dice_SH_n10_Inv1', 11, 10, 1e3],
-    '35': ['Dice_SH_n1_Inv2', 2, 2, 1e3], '36': ['Dice_SH_n2_Inv2', 3, 3, 1e3], '37': ['Dice_SH_n10_Inv2', 11, 11, 1e3],
-    '38': ['Dice_SH_n1_Inv3', 2, 3, 1e3], '39': ['Dice_SH_n2_Inv3', 3, 4, 1e3], '40': ['Dice_SH_n10_Inv3', 11, 12, 1e3],
+    '32': ['Dice_SH_n1_InvA', 2, 1, 1e3], '33': ['Dice_SH_n2_InvA', 3, 2, 1e3], '34': ['Dice_SH_n10_InvA', 11, 10, 1e3],
+    '35': ['Dice_SH_n1_InvB', 2, 2, 1e3], '36': ['Dice_SH_n2_InvB', 3, 3, 1e3], '37': ['Dice_SH_n10_InvB', 11, 11, 1e3],
+    '38': ['Dice_SH_n1_InvC', 2, 3, 1e3], '39': ['Dice_SH_n2_InvC', 3, 4, 1e3], '40': ['Dice_SH_n10_InvC', 11, 12, 1e3],
     # assets following GBM
-    '41': ['GBM_n1_Inv1', 2, 1, 1e3], '42': ['GBM_n2_Inv1', 3, 2, 1e3], '43': ['GBM_n10_Inv1', 11, 10, 1e3],
-    '44': ['GBM_n1_Inv2', 2, 2, 1e3], '45': ['GBM_n2_Inv2', 3, 3, 1e3], '46': ['GBM_n10_Inv2', 11, 11, 1e3],
-    '47': ['GBM_n1_Inv3', 2, 3, 1e3], '48': ['GBM_n2_Inv3', 3, 4, 1e3], '49': ['GBM_n10_Inv3', 11, 12, 1e3],
+    '41': ['GBM_n1_InvA', 2, 1, 1e3], '42': ['GBM_n2_InvA', 3, 2, 1e3], '43': ['GBM_n10_InvA', 11, 10, 1e3],
+    '44': ['GBM_n1_InvB', 2, 2, 1e3], '45': ['GBM_n2_InvB', 3, 3, 1e3], '46': ['GBM_n10_InvB', 11, 11, 1e3],
+    '47': ['GBM_n1_InvC', 2, 3, 1e3], '48': ['GBM_n2_InvC', 3, 4, 1e3], '49': ['GBM_n10_InvC', 11, 12, 1e3],
     # assets following GBM with insurance safe haven
-    '50': ['GBM_SH_n1_Inv1', 2, 1, 1e3], '51': ['GBM_SH_n2_Inv1', 3, 2, 1e3], '52': ['GBM_SH_n10_Inv1', 11, 10, 1e3],
-    '53': ['GBM_SH_n1_Inv2', 2, 2, 1e3], '54': ['GBM_SH_n2_Inv2', 3, 3, 1e3], '55': ['GBM_SH_n10_Inv2', 11, 11, 1e3],
-    '56': ['GBM_SH_n1_Inv3', 2, 3, 1e3], '57': ['GBM_SH_n2_Inv3', 3, 4, 1e3], '58': ['GBM_SH_n10_Inv3', 11, 12, 1e3],
+    '50': ['GBM_SH_n1_InvA', 2, 1, 1e3], '51': ['GBM_SH_n2_InvA', 3, 2, 1e3], '52': ['GBM_SH_n10_InvA', 11, 10, 1e3],
+    '53': ['GBM_SH_n1_InvB', 2, 2, 1e3], '54': ['GBM_SH_n2_InvB', 3, 3, 1e3], '55': ['GBM_SH_n10_InvB', 11, 11, 1e3],
+    '56': ['GBM_SH_n1_InvC', 2, 3, 1e3], '57': ['GBM_SH_n2_InvC', 3, 4, 1e3], '58': ['GBM_SH_n10_InvC', 11, 12, 1e3],
     }
 
 inputs_dict = {
     # execution parameters
-    'n_trials': 5,                              # number of total unique training trials
+    'n_trials': 2,                              # number of total unique training trials
     'n_cumsteps': 5e3,                          # maximum cumulative steps per trial (must be greater than warm-up)
     'eval_freq': 1e3,                           # interval of steps between evaluation episodes
     'n_eval': 1e1,                              # number of evalution episodes
