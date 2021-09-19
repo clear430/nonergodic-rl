@@ -34,7 +34,8 @@ def plot_inv1(inv1_data: np.ndarray, inv1_data_T: np.ndarray, filename_png: str)
     vals = [inv1_data_T[:, lev] for lev in range(investors)]
     vals = np.log10(vals)
 
-    axs[0, 1].boxplot(vals, levs, labels = [(x + 1) * 10 for x in range(nlevs)])
+    axs[0, 1].boxplot(vals, levs, labels = [(x + 1) * 10 for x in range(nlevs)], 
+                      flierprops={'marker': '_', 'markersize': 2, 'color':'gray'})
     axs[0, 1].grid(True, linewidth=0.2)
     axs[0, 1].set_xlabel('Leverage (%)', size='small')
     axs[0, 1].text(0.5, -0.25, "(b)", size='small', transform=axs[0, 1].transAxes)
@@ -55,6 +56,7 @@ def plot_inv1(inv1_data: np.ndarray, inv1_data_T: np.ndarray, filename_png: str)
     nor_mean, top_mean, adj_mean = inv1_data[:, 0, -1], inv1_data[:, 1, -1], inv1_data[:, 2, -1]
     nor_mad, top_mad, adj_mad = inv1_data[:, 3, -1], inv1_data[:, 4, -1], inv1_data[:, 5, -1]
     nor_std, top_std, adj_std = inv1_data[:, 6, -1], inv1_data[:, 7, -1], inv1_data[:, 8, -1]
+    nor_med, top_med, adj_med = inv1_data[:, -4, -1], inv1_data[:, -3, -1], inv1_data[:, -2, -1]
 
     max = 1e30
     min = 1e-39
@@ -68,21 +70,21 @@ def plot_inv1(inv1_data: np.ndarray, inv1_data_T: np.ndarray, filename_png: str)
     nor_mad_up, top_mad_up, adj_mad_up =  np.log10(nor_mad_up), np.log10(top_mad_up), np.log10(adj_mad_up)
     nor_mad_lo, top_mad_lo, adj_mad_lo =  np.log10(nor_mad_lo), np.log10(top_mad_lo), np.log10(adj_mad_lo)
     nor_std_up, top_std_up, adj_std_up =  np.log10(nor_std_up), np.log10(top_std_up), np.log10(adj_std_up)
+    nor_med, top_med, adj_med = np.log10(nor_med), np.log10(top_med), np.log10(adj_med)
 
     x = [(x + 1) * 10 for x in range(nlevs)]
-
-    # axs[1, 1].plot(x, top_mean, color='r', linestyle='--', linewidth=0.25)
+    
+    axs[1, 1].plot(x, top_med, color='r', linestyle='--', linewidth=0.5)
     axs[1, 1].fill_between(x, top_mean, top_mad_up, facecolor='r', alpha=0.75)
     axs[1, 1].fill_between(x, top_mean, top_std_up, facecolor='r', alpha=0.25)
 
-    # axs[1, 1].plot(x, nor_mean, color='g', linestyle='--', linewidth=0.25)
-    axs[1, 1].fill_between(x, nor_mean, nor_mad_up, facecolor='g', alpha=0.75)
-    axs[1, 1].fill_between(x, nor_mean, nor_std_up, facecolor='g', alpha=0.25)
+    axs[1, 1].plot(x, nor_med, color='b', linestyle='--', linewidth=0.5)
+    axs[1, 1].fill_between(x, nor_mean, nor_mad_up, facecolor='b', alpha=0.75)
+    axs[1, 1].fill_between(x, nor_mean, nor_std_up, facecolor='b', alpha=0.25)
 
-    # axs[1, 1].plot(x, adj_mean, color='b', linestyle='--', linewidth=1)
-    axs[1, 1].fill_between(x, adj_mean, adj_mad_up, facecolor='b', alpha=0.75)
-    # axs[1, 1].fill_between(x, adj_mean, adj_mad_lo, facecolor='b', alpha=0.75)
-    axs[1, 1].fill_between(x, adj_mean, adj_std_up, facecolor='b', alpha=0.25)
+    axs[1, 1].plot(x, adj_med, color='g', linestyle='--', linewidth=0.5)
+    axs[1, 1].fill_between(x, adj_mean, adj_mad_up, facecolor='g', alpha=0.75)
+    axs[1, 1].fill_between(x, adj_mean, adj_std_up, facecolor='g', alpha=0.25)
     
     axs[1, 1].grid(True, linewidth=0.2)
     axs[1, 1].set_xlabel('Leverage (%)', size='small')
@@ -140,7 +142,9 @@ def plot_inv2(inv2_data: np.ndarray, filename_png: str):
     for sub in range(3):
             lev = inv2_data[0, 0, 12 + sub, :max_x].reshape(-1)
             lmad = inv2_data[0, 0, 15 + sub, :max_x].reshape(-1)
+            lev_max = np.max(lev, axis=0)
             lmad_up = (lev + lmad).reshape(-1)
+            lmad_up = np.minimum(lmad_up, lev_max)
             lmad_lo = np.maximum(0, lev - lmad).reshape(-1)
             med_lev = inv2_data[0, 0, 21 + sub, :max_x].reshape(-1)
             

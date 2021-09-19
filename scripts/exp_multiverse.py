@@ -3,24 +3,24 @@ sys.path.append("./")
 
 import numpy as np
 import os
-import extras.plots_multiverse as plots_multiverse
+import extras.plots_multiverse as plots
 import time
 import torch as T
 from torch.distributions.bernoulli import Bernoulli
 from typing import Tuple
 
-VRAM = 0  # do you have >= 20GB of VRAM?
-if VRAM == True:
+VRAM = 0  # do you have >= 24GB of free VRAM?
+if VRAM == 1:
     device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
 else:
+    # still need 24GB of free RAM or reduce number of investors
     device = T.device('cpu' if T.cuda.is_available() else 'cpu')
-    # still need 20GB of free RAM or reduce number of investors
 
 dir = './results/multiverse/'    # directory for saving numpy arrays
 
 INVESTORS = 1e6             # number of random investors
 HORIZON = 3e3               # total time steps
-TOP = INVESTORS * 1e-4      # define top performers
+TOP = INVESTORS * 1e-4      # define number of top performers
 VALUE_0 = 1e2               # intial portfolio value of each investor
 UP_PROB = 0.5               # probability of up move
 UP_R = 0.5                  # upside return (>=0)
@@ -185,6 +185,7 @@ def optimal_lev(value_t: float, value_0: float, value_min: float, lev_factor: fl
         lev_factor: maximum leverage to not be stopped out by a single move
         roll: retention ratio
     """
+    # prevent leverage from exceeding the theoritical maximum
     if roll == 0:
         rolling_loss = value_min
         value_roll = T.maximum(value_min, rolling_loss)
@@ -193,7 +194,7 @@ def optimal_lev(value_t: float, value_0: float, value_min: float, lev_factor: fl
     else:
         rolling_loss = T.where(value_t <= value_0, value_min, value_0 + roll * (value_t - value_0)) 
         opt_lev = lev_factor * (1 - rolling_loss / value_t)
-        
+
     return opt_lev
 
 def big_brain_lev(outcomes: T.FloatTensor, investors: T.IntTensor, horizon: T.IntTensor, 
@@ -381,8 +382,8 @@ if __name__ == '__main__':
 
     ## SAVE EXPERIMENT DATA
 
-    if not os.path.exists(dir):
-        os.makedirs(dir)
+    # if not os.path.exists(dir):
+    #     os.makedirs(dir)
 
     # np.save(dir + 'inv1_val.npy', inv1_val_data)
     # np.save(dir + 'inv1_val_T.npy', inv1_val_data_T)
@@ -395,15 +396,15 @@ if __name__ == '__main__':
     if not os.path.exists('./docs/figs'):
             os.makedirs('./docs/figs')
 
-    # inv4_lev_data = np.load(dir + '/inv4_lev.npy')
-    # plots_multiverse.plot_inv4(inv4_lev_data, 'docs/figs/inv4.png')
+    inv4_lev_data = np.load(dir + '/inv4_lev.npy')
+    plots.plot_inv4(inv4_lev_data, 'docs/figs/inv4.png')
 
-    # inv3_val_data = np.load(dir + 'inv3_val.npy')
-    # plots_multiverse.plot_inv3(inv3_val_data, 'docs/figs/inv3.png')
+    inv3_val_data = np.load(dir + 'inv3_val.npy')
+    plots.plot_inv3(inv3_val_data, 'docs/figs/inv3.png')
 
-    # inv2_val_data = np.load(dir + 'inv2_val.npy')
-    # plots_multiverse.plot_inv2(inv2_val_data, 'docs/figs/inv2.png')
+    inv2_val_data = np.load(dir + 'inv2_val.npy')
+    plots.plot_inv2(inv2_val_data, 'docs/figs/inv2.png')
 
-    # inv1_val_data = np.load(dir + 'inv1_val.npy')
-    # inv1_val_data_T = np.load(dir + 'inv1_val_T.npy')
-    # plots_multiverse.plot_inv1(inv1_val_data, inv1_val_data_T, 'docs/figs/inv1.png')
+    inv1_val_data = np.load(dir + 'inv1_val.npy')
+    inv1_val_data_T = np.load(dir + 'inv1_val_T.npy')
+    plots.plot_inv1(inv1_val_data, inv1_val_data_T, 'docs/figs/inv1.png')
