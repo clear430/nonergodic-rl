@@ -8,7 +8,6 @@ import envs.coin_flip_envs as coin_flip_envs
 import envs.dice_roll_envs as dice_roll_envs
 # import envs.dice_roll_sh_envs as dice_roll_sh_envs
 # import envs.gbm_envs as gbm_envs
-# import envs.gbm_sh_envs as gbm_sh_envs
 import extras.plots_summary as plots
 import extras.eval_episodes as eval_episodes
 import extras.utils as utils
@@ -25,11 +24,9 @@ def multiplicative_env(gym_envs: dict, inputs: dict):
     elif inputs['ENV_KEY'] <= 31:
         env = eval('dice_roll_envs.'+gym_envs[str(inputs['ENV_KEY'])][0]+'()')
     elif inputs['ENV_KEY'] <= 40:
-        env = eval('dice_roll_insured_envs.'+gym_envs[str(inputs['ENV_KEY'])][0]+'()')
+        env = eval('dice_roll_sh_envs.'+gym_envs[str(inputs['ENV_KEY'])][0]+'()')
     elif inputs['ENV_KEY'] <= 49:
         env = eval('gbm_envs.'+gym_envs[str(inputs['ENV_KEY'])][0]+'()')
-    elif inputs['ENV_KEY'] <= 58:
-        env = eval('gbm_insured_envs.'+gym_envs[str(inputs['ENV_KEY'])][0]+'()') 
 
     inputs = {'input_dims': env.observation_space.shape, 'num_actions': env.action_space.shape[0], 
               'max_action': env.action_space.high.min(), 'min_action': env.action_space.low.max(),    # assume all elements span equal domain 
@@ -48,9 +45,14 @@ def multiplicative_env(gym_envs: dict, inputs: dict):
                 eval_log = np.zeros((inputs['n_trials'], int(inputs['n_cumsteps'] / inputs['eval_freq']), int(inputs['n_eval']), 20))
                 directory = utils.save_directory(inputs, results=True)
 
+                risk_dim = utils.multi_log_dim(inputs)
+                trial_risk_log = np.zeros((inputs['n_trials'], int(inputs['n_cumsteps']), risk_dim))
+                eval_risk_log = np.zeros((inputs['n_trials'], int(inputs['n_cumsteps'] / inputs['eval_freq']), int(inputs['n_eval']), risk_dim))
+
                 for round in range(inputs['n_trials']):
 
                     time_log, score_log, step_log, logtemp_log, loss_log, loss_params_log = [], [], [], [], [], []
+                    risk_log = []
                     cum_steps, eval_run, episode = 0, 0, 1
                     best_score = env.reward_range[0]
                     if inputs['continue'] == True:
@@ -84,8 +86,8 @@ def multiplicative_env(gym_envs: dict, inputs: dict):
                             if cum_steps % int(inputs['eval_freq']) == 0:
                                 
                                 if inputs['ENV_KEY'] <= 58:
-                                    eval_episodes.eval_multiplicative(agent, inputs, eval_log, cum_steps, round, 
-                                                                      eval_run, loss, logtemp, loss_params)
+                                    eval_episodes.eval_multiplicative(agent, inputs, eval_log, eval_risk_log, cum_steps, 
+                                                                      round, eval_run, loss, logtemp, loss_params)
                                 else:
                                     pass
 
@@ -100,6 +102,7 @@ def multiplicative_env(gym_envs: dict, inputs: dict):
                             loss_log.append(loss)
                             logtemp_log.append(logtemp)
                             loss_params_log.append(loss_params)
+                            risk_log.append(risk)
 
                             # save actor-critic neural network weights for checkpointing
                             trail_score = np.mean(score_log[-inputs['trail']:])
@@ -111,7 +114,7 @@ def multiplicative_env(gym_envs: dict, inputs: dict):
                             print('{} {}-{}-{}-{} ep/st/cst {}/{}/{} {:1.0f}/s: V/g/[risk] ${:1.2f}/{:1.6f}%/{}, C/Cm/Cs {:1.2f}/{:1.2f}/{:1.2f}, a/c/k/A/T {:1.2f}/{:1.2f}/{:1.2f}/{:1.2f}/{:1.2f}'
                                   .format(datetime.now().strftime('%d %H:%M:%S'),
                                           inputs['algo'], inputs['s_dist'], inputs['loss_fn'], round+1, episode, step, cum_steps, step/time_log[-1], 
-                                          next_state[0]*1e16, reward-1, np.round(risk[:5]*100, 0), np.mean(loss[0:2]), np.mean(loss[4:6]), 
+                                          risk[1], reward-1, np.round(risk[2:5]*100, 0), np.mean(loss[0:2]), np.mean(loss[4:6]), 
                                           np.mean(loss[6:8]), np.mean(loss[8:10]), np.mean(loss_params[0:2]), np.mean(loss_params[2:4]), loss[8]+3, np.exp(logtemp)+5))
 
                         episode += 1
@@ -120,6 +123,7 @@ def multiplicative_env(gym_envs: dict, inputs: dict):
                     trial_log[round, :count, 0], trial_log[round, :count, 1] =  time_log, score_log
                     trial_log[round, :count, 2], trial_log[round, :count, 3:14] = step_log, loss_log
                     trial_log[round, :count, 14], trial_log[round, :count, 15:] = logtemp_log, loss_params_log
+                    trial_risk_log[round, :count, :] = risk_log
 
                     if not os.path.exists('./results/multiplicative/'+inputs['env_id']):
                         os.makedirs('./results/multiplicative/'+inputs['env_id'])
@@ -134,6 +138,8 @@ def multiplicative_env(gym_envs: dict, inputs: dict):
 
                 np.save(directory+'_trial.npy', trial_log)
                 np.save(directory+'_eval.npy', eval_log)
+                np.save(directory+'_trial_risk.npy', trial_risk_log)
+                np.save(directory+'_eval_risk.npy', eval_risk_log)
 
                 if inputs['n_trials'] > 1:
                     # plots.plot_eval_curve(inputs, eval_log, directory+'_eval.png')       # plot of agent evaluation round scores across all trials

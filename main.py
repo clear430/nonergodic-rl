@@ -16,7 +16,7 @@ critic_loss = ['MSE']
 # bootstrapping of target critic values and discounted rewards: [list of integers > 0] 
 multi_steps = [1]
 
-ENV_KEY = 14
+ENV_KEY = 22
 
 gym_envs = {
     # ENV_KEY: [env_id, state_dim, action_dim, intial warm-up steps to generate random seed]
@@ -60,10 +60,6 @@ gym_envs = {
     '41': ['GBM_n1_InvA', 2, 1, 1e3], '42': ['GBM_n2_InvA', 3, 2, 1e3], '43': ['GBM_n10_InvA', 11, 10, 1e3],
     '44': ['GBM_n1_InvB', 2, 2, 1e3], '45': ['GBM_n2_InvB', 3, 3, 1e3], '46': ['GBM_n10_InvB', 11, 11, 1e3],
     '47': ['GBM_n1_InvC', 2, 3, 1e3], '48': ['GBM_n2_InvC', 3, 4, 1e3], '49': ['GBM_n10_InvC', 11, 12, 1e3],
-    # assets following GBM with insurance safe haven
-    '50': ['GBM_SH_n1_InvA', 2, 1, 1e3], '51': ['GBM_SH_n2_InvA', 3, 2, 1e3], '52': ['GBM_SH_n10_InvA', 11, 10, 1e3],
-    '53': ['GBM_SH_n1_InvB', 2, 2, 1e3], '54': ['GBM_SH_n2_InvB', 3, 3, 1e3], '55': ['GBM_SH_n10_InvB', 11, 11, 1e3],
-    '56': ['GBM_SH_n1_InvC', 2, 3, 1e3], '57': ['GBM_SH_n2_InvC', 3, 4, 1e3], '58': ['GBM_SH_n10_InvC', 11, 12, 1e3],
     }
 
 inputs_dict = {
@@ -71,7 +67,7 @@ inputs_dict = {
     'n_trials': 2,                              # number of total unique training trials
     'n_cumsteps': 5e3,                          # maximum cumulative steps per trial (must be greater than warm-up)
     'eval_freq': 1e3,                           # interval of steps between evaluation episodes
-    'n_eval': 1e1,                              # number of evalution episodes
+    'n_eval': 1e2,                              # number of evalution episodes
     'max_eval_reward': 1e4,                     # maximum reward per evaluation episode for additive environments
     'max_eval_steps': 1e0,                      # maximum steps per evaluation episode for multiplicative environments
 

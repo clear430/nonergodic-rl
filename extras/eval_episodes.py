@@ -22,7 +22,7 @@ def eval_additive(agent: object, inputs: dict, eval_log: np.ndarray, cum_steps: 
     Parameters:
         agent: RL agent algorithm
         inputs: dictionary containing all execution details
-        eval_log: array of exiting evalaution results
+        eval_log: array of existing evalaution results
         cum_steps: current amount of cumulative steps
         round: current round of trials
         eval_run: current evaluation count
@@ -87,16 +87,17 @@ def eval_additive(agent: object, inputs: dict, eval_log: np.ndarray, cum_steps: 
           .format(datetime.now().strftime('%d %H:%M:%S'), steps_sec, 
                   stats[0], stats[1], stats[2], stats[3], stats[4], stats[5]))
 
-def eval_multiplicative(agent: object, inputs: dict, eval_log: np.ndarray, cum_steps: int, round: int, 
-                        eval_run: int, loss: Tuple[float, float, float, float, float, float], logtemp: float, 
-                        loss_params: Tuple[float, float, float, float]):
+def eval_multiplicative(agent: object, inputs: dict, eval_log: np.ndarray, eval_risk_log: np.ndarray, cum_steps: int,
+                        round: int, eval_run: int, loss: Tuple[float, float, float, float, float, float], 
+                        logtemp: float, loss_params: Tuple[float, float, float, float]):
     """
     Evaluates agent policy on environment without learning for a fixed number of episodes.
 
     Parameters:
         agent: RL agent algorithm
         inputs: dictionary containing all execution details
-        eval_log: array of exiting evalaution results
+        eval_log: array of existing evalaution results
+        eval_risk_log: array of exiting evalaution risk results
         cum_steps: current amount of cumulative steps
         round: current round of trials
         eval_run: current evaluation count
@@ -147,6 +148,7 @@ def eval_multiplicative(agent: object, inputs: dict, eval_log: np.ndarray, cum_s
         eval_log[round, eval_run, eval_epis, 14] = logtemp
         eval_log[round, eval_run, eval_epis, 15:19] = loss_params
         eval_log[round, eval_run, eval_epis, 19] = cum_steps
+        eval_risk_log[round, eval_run, eval_run, :] = run_risk
     
         print('{} Episode {}: r/l/st {:1.6f}%/{}/{}'
               .format(datetime.now().strftime('%d %H:%M:%S'), eval_epis, run_reward-1, run_risk[:5]*100, run_step))

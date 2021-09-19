@@ -68,10 +68,10 @@ def plot_subtitles(inputs: dict):
     
     return sub
 
-def multi_trial_log(inputs: dict) -> Tuple[np.ndarray, np.ndarray]:
+def multi_log_dim(inputs: dict) -> int:
     """
-    Generates risk-rlatd parameter log for multiplicative experiments with
-    dimensions dependent on the environment.
+    Generates risk-related parameter log dimension for multiplicative experiments 
+    with dimensions dependent on the environment characteristics.
 
     Parameters
         inputs: dictionary containg all execution details
@@ -80,6 +80,24 @@ def multi_trial_log(inputs: dict) -> Tuple[np.ndarray, np.ndarray]:
         trial_risk_log: array of zeros for agent learning logs
         eval_risk_log:  array of zeros for agent evaluation logs
     """
+    env = inputs['env_id']
+    
+    dim = 4
+    
+    if '_InvB' in env:
+        dim += 1
+    if '_InvC' in env:
+        dim += 2
+    
+    if '_SH_' in env:
+        dim += 3
+
+    if '_n2_' in env:
+        dim += 2
+    if '_n10_' in env:
+        dim += 10
+    
+    return dim
 
 def get_exponent(array: np.ndarray) -> int:
     """

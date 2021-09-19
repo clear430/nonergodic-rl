@@ -118,7 +118,7 @@ class Coin_n1_InvA(gym.Env):
                     or np.abs(lev) < MIN_WEIGHT
                     or np.any(next_state > 1))
 
-        risk = np.array([step_return, lev], dtype=np.float64)
+        risk = np.array([reward, self.wealth, step_return, lev], dtype=np.float64)
 
         self.time += 1
 
@@ -232,7 +232,8 @@ class Coin_n2_InvA(gym.Env):
                     or np.all(np.abs(lev) < MIN_WEIGHT)
                     or np.any(next_state > 1))
 
-        risk = np.array([step_return, np.mean(lev), lev[0], lev[1]], dtype=np.float64)
+        risk = np.array([reward, self.wealth, step_return, np.mean(lev), lev[0], lev[1]], 
+                         dtype=np.float64)
 
         self.time += 1
 
@@ -356,7 +357,7 @@ class Coin_n10_InvA(gym.Env):
                     or np.all(np.abs(lev) < MIN_WEIGHT)
                     or np.any(next_state > 1))
 
-        risk = np.array([step_return, np.mean(lev), lev[0], lev[1], lev[2], lev[3], 
+        risk = np.array([reward, self.wealth, step_return, np.mean(lev), lev[0], lev[1], lev[2], lev[3], 
                          lev[4], lev[5], lev[6], lev[7], lev[8], lev[9]], dtype=np.float64)
 
         self.time += 1
@@ -482,7 +483,7 @@ class Coin_n1_InvB(gym.Env):
                     or np.abs(lev) < MIN_WEIGHT
                     or np.any(next_state > 1))
 
-        risk = np.array([step_return, lev, stop_loss], dtype=np.float64)
+        risk = np.array([reward, self.wealth, step_return, lev, stop_loss], dtype=np.float64)
 
         self.time += 1
 
@@ -602,7 +603,8 @@ class Coin_n2_InvB(gym.Env):
                     or np.all(np.abs(lev) < MIN_WEIGHT)
                     or np.any(next_state > 1))
 
-        risk = np.array([step_return, np.mean(lev), stop_loss, lev[0], lev[1]], dtype=np.float64)
+        risk = np.array([reward, self.wealth, step_return, np.mean(lev), stop_loss, lev[0], lev[1]], 
+                         dtype=np.float64)
 
         self.time += 1
 
@@ -732,8 +734,8 @@ class Coin_n10_InvB(gym.Env):
                     or np.all(np.abs(lev) < MIN_WEIGHT)
                     or np.any(next_state > 1))
 
-        risk = np.array([step_return, np.mean(lev), stop_loss, lev[0], lev[1], lev[2], 
-                         lev[3], lev[4], lev[5], lev[6], lev[7], lev[8], lev[9]], 
+        risk = np.array([reward, self.wealth, step_return, np.mean(lev), stop_loss, lev[0], lev[1], 
+                         lev[2], lev[3], lev[4], lev[5], lev[6], lev[7], lev[8], lev[9]], 
                          dtype=np.float64)
 
         self.time += 1
@@ -867,7 +869,7 @@ class Coin_n1_InvC(gym.Env):
                     or np.abs(lev) < MIN_WEIGHT
                     or np.any(next_state > 1))
 
-        risk = np.array([step_return, lev, stop_loss, retention], dtype=np.float64)
+        risk = np.array([reward, self.wealth, step_return, lev, stop_loss, retention], dtype=np.float64)
 
         self.time += 1
 
@@ -995,7 +997,7 @@ class Coin_n2_InvC(gym.Env):
                     or np.all(np.abs(lev) < MIN_WEIGHT)
                     or np.any(next_state > 1))
 
-        risk = np.array([step_return, np.mean(lev), stop_loss, retention,
+        risk = np.array([reward, self.wealth, step_return, np.mean(lev), stop_loss, retention,
                          lev[0], lev[1]], dtype=np.float64)
 
         self.time += 1
@@ -1134,8 +1136,8 @@ class Coin_n10_InvC(gym.Env):
                     or np.all(np.abs(lev) < MIN_WEIGHT)
                     or np.any(next_state > 1))
 
-        risk = np.array([step_return, np.mean(lev), stop_loss, retention, lev[0], 
-                         lev[1], lev[2], lev[3], lev[4], lev[5], lev[6], lev[7], lev[8], 
+        risk = np.array([reward, self.wealth, step_return, np.mean(lev), stop_loss, retention, 
+                         lev[0], lev[1], lev[2], lev[3], lev[4], lev[5], lev[6], lev[7], lev[8], 
                          lev[9]], dtype=np.float64)
 
         self.time += 1
