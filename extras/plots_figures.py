@@ -3,6 +3,7 @@ sys.path.append("./")
 
 import extras.utils as utils
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
 import numpy as np
 import torch as T
 from typing import List
@@ -50,12 +51,12 @@ def loss_fn_plot(filename_png: str):
 
     plt.savefig(filename_png, dpi=300, format='png')
 
-def plot_critic_2d(input_dict: dict, data: np.ndarray, algo_name: List[str], critic_name: List[str], filename_png: str):
+def plot_critic_2d(inputs: dict, data: np.ndarray, algo_name: List[str], critic_name: List[str], filename_png: str):
     """
     2D plot of Mean, MAD, and STD of scores and twin critic loss during evaluation episodes for all trials in environment.
     
     Parameters:
-        input_dict: dictionary containing all execution details
+        inputs: dictionary containing all execution details
         eval_log: log of episode data for all trials
         filename_png (directory): save path of plot
     """
@@ -66,24 +67,24 @@ def plot_critic_2d(input_dict: dict, data: np.ndarray, algo_name: List[str], cri
     exp = utils.get_exponent(cum_steps_log)
     x_steps = cum_steps_log/10**(exp)
 
-    count_x = int(input_dict['n_cumsteps'] / input_dict['eval_freq'])
-    count_y = int(input_dict['n_trials'] * int(input_dict['n_eval']))
+    count_x = int(inputs['n_cumsteps'] / inputs['eval_freq'])
+    count_y = int(inputs['n_trials'] * int(inputs['n_eval']))
 
     scores = np.zeros((algos, closs, count_x, count_y))
-    max_score = np.ones((count_x, count_y)) * int(input_dict['max_eval_reward'])
+    max_score = np.ones((count_x, count_y)) * int(inputs['max_eval_reward'])
     loss = np.zeros((algos, closs, count_x, count_y)) 
 
     for a in range(algos):
         for l in range(closs):
             for t in range(count_x):
-                for n in range(input_dict['n_trials']):
-                    for s in range(int(input_dict['n_eval'])):
-                        scores[a, l, t, s + n * int(input_dict['n_eval'])] = data[a, l, n, t, s, 1]
-                        loss[a, l, t, s + n * int(input_dict['n_eval'])] = np.mean(data[a, l, n, t, s, 3:5])
+                for n in range(inputs['n_trials']):
+                    for s in range(int(inputs['n_eval'])):
+                        scores[a, l, t, s + n * int(inputs['n_eval'])] = data[a, l, n, t, s, 1]
+                        loss[a, l, t, s + n * int(inputs['n_eval'])] = np.mean(data[a, l, n, t, s, 3:5])
 
     score_limit = np.mean(max_score, axis=1, keepdims=True)
     cols = ['C'+str(x) for x in range(closs)]
-    name = input_dict['env_id']
+    name = inputs['env_id']
     name = name[0:name.index("Bullet")]
 
     fig, axs = plt.subplots(2, 2)
@@ -130,15 +131,15 @@ def plot_critic_2d(input_dict: dict, data: np.ndarray, algo_name: List[str], cri
     fig.legend(critic_name, loc='lower center', ncol=closs, frameon=False, fontsize='medium')
     fig.suptitle(name, fontsize=14)
 
-    plt.savefig(filename_png, dpi=400, format='png')
+    plt.savefig(filename_png, dpi=300, format='png')
 
-def plot_critic_loss(input_dict: dict, data: np.ndarray, algo_name: List[str], critic_name: List[str], filename_png: str):
+def plot_critic_loss(inputs: dict, data: np.ndarray, algo_name: List[str], critic_name: List[str], filename_png: str):
     """
     Plot of score, critic losses Cauchy scale, and CIM kernel for two algorithms and all critic loss functions 
     for a single environments.
 
     Parameters:
-        input_dict: dictionary containing all execution details
+        inputs: dictionary containing all execution details
         data: mega combined array of everything
         algo_name: name of both RL algorithms
         cirtic_name: name of all critic loss functions
@@ -151,12 +152,12 @@ def plot_critic_loss(input_dict: dict, data: np.ndarray, algo_name: List[str], c
     exp = utils.get_exponent(cum_steps_log)
     x_steps = cum_steps_log/10**(exp)
 
-    count_x = int(input_dict['n_cumsteps'] / input_dict['eval_freq'])
-    count_y = int(input_dict['n_trials'] * int(input_dict['n_eval']))
-    count_z = int(input_dict['n_trials'] )
+    count_x = int(inputs['n_cumsteps'] / inputs['eval_freq'])
+    count_y = int(inputs['n_trials'] * int(inputs['n_eval']))
+    count_z = int(inputs['n_trials'] )
 
     scores = np.zeros((algos, closs, count_x, count_y))
-    max_score = np.ones((count_x, count_y)) * int(input_dict['max_eval_reward'])
+    max_score = np.ones((count_x, count_y)) * int(inputs['max_eval_reward'])
     loss = np.zeros((algos, closs, count_x, count_z * 2))
     scale = np.zeros((algos, closs, count_x, count_z * 2)) 
     kernel = np.zeros((algos, closs, count_x, count_z * 2)) 
@@ -164,18 +165,18 @@ def plot_critic_loss(input_dict: dict, data: np.ndarray, algo_name: List[str], c
     for a in range(algos):
         for l in range(closs):
             for t in range(count_x):
-                for n in range(input_dict['n_trials']):
+                for n in range(inputs['n_trials']):
 
                     loss[a, l, t, (n * 2):(n * 2) + 2 ] = data[a, l, n, t, 0, 3:5]
                     scale[a, l, t, (n * 2):(n * 2) + 2 ] = data[a, l, n, t, 0, 11:13]
                     kernel[a, l, t, (n * 2):(n * 2) + 2 ] = data[a, l, n, t, 0, 13:15]
 
-                    for s in range(int(input_dict['n_eval'])):
-                        scores[a, l, t, s + n * int(input_dict['n_eval'])] = data[a, l, n, t, s, 1]
+                    for s in range(int(inputs['n_eval'])):
+                        scores[a, l, t, s + n * int(inputs['n_eval'])] = data[a, l, n, t, s, 1]
 
     score_limit = np.mean(max_score, axis=1, keepdims=True)
     cols = ['C'+str(x) for x in range(closs)]
-    name = input_dict['env_id']
+    name = inputs['env_id']
     name = name[0:name.index("Bullet")]
 
     fig, axs = plt.subplots(nrows=4, ncols=2, figsize=(8,10))
@@ -269,14 +270,14 @@ def plot_critic_loss(input_dict: dict, data: np.ndarray, algo_name: List[str], c
     fig.legend(critic_name, loc='lower center', ncol=closs, frameon=False, fontsize='medium')
     # fig.suptitle(name, fontsize='xx-large', y=0.95)
 
-    plt.savefig(filename_png, dpi=400, format='png')
+    plt.savefig(filename_png, dpi=300, format='png')
 
-def plot_critic_shadow(input_dict: dict, data: np.ndarray, algo_name: List[str], critic_name: List[str], filename_png: str):
+def plot_critic_shadow(inputs: dict, data: np.ndarray, algo_name: List[str], critic_name: List[str], filename_png: str):
     """
     Plot of shadow losses and tail index for two algorithms and all critic loss functions for a single environments.
 
     Parameters:
-        input_dict: dictionary containing all execution details
+        inputs: dictionary containing all execution details
         data: mega combined array of everything
         algo_name: name of both RL algorithms
         cirtic_name: name of all critic loss functions
@@ -289,12 +290,12 @@ def plot_critic_shadow(input_dict: dict, data: np.ndarray, algo_name: List[str],
     exp = utils.get_exponent(cum_steps_log)
     x_steps = cum_steps_log/10**(exp)
 
-    count_x = int(input_dict['n_cumsteps'] / input_dict['eval_freq'])
-    count_y = int(input_dict['n_trials'] * int(input_dict['n_eval']))
-    count_z = int(input_dict['n_trials'] )
+    count_x = int(inputs['n_cumsteps'] / inputs['eval_freq'])
+    count_y = int(inputs['n_trials'] * int(inputs['n_eval']))
+    count_z = int(inputs['n_trials'] )
 
     scores = np.zeros((algos, closs, count_x, count_y))
-    max_score = np.ones((count_x, count_y)) * int(input_dict['max_eval_reward'])
+    max_score = np.ones((count_x, count_y)) * int(inputs['max_eval_reward'])
     loss = np.zeros((algos, closs, count_x, count_z * 2))
     shadow = np.zeros((algos, closs, count_x, count_z * 2)) 
     alpha = np.zeros((algos, closs, count_x, count_z * 2)) 
@@ -302,18 +303,18 @@ def plot_critic_shadow(input_dict: dict, data: np.ndarray, algo_name: List[str],
     for a in range(algos):
         for l in range(closs):
             for t in range(count_x):
-                for n in range(input_dict['n_trials']):
+                for n in range(inputs['n_trials']):
 
                     # loss[a, l, t, (n * 2):(n * 2) + 2 ] = data[a, l, n, t, 0, 3:5]
                     shadow[a, l, t, (n * 2):(n * 2) + 2 ] = data[a, l, n, t, 0, 5:7]
                     alpha[a, l, t, (n * 2):(n * 2) + 2 ] = data[a, l, n, t, 0, 7:9]
 
-                    # for s in range(int(input_dict['n_eval'])):
-                    #     scores[a, l, t, s + n * int(input_dict['n_eval'])] = data[a, l, n, t, s, 1]
+                    # for s in range(int(inputs['n_eval'])):
+                    #     scores[a, l, t, s + n * int(inputs['n_eval'])] = data[a, l, n, t, s, 1]
 
     score_limit = np.mean(max_score, axis=1, keepdims=True)
     cols = ['C'+str(x) for x in range(closs)]
-    name = input_dict['env_id']
+    name = inputs['env_id']
     name = name[0:name.index("Bullet")]
 
     fig, axs = plt.subplots(nrows=2, ncols=2, figsize=(8,6))
@@ -366,14 +367,14 @@ def plot_critic_shadow(input_dict: dict, data: np.ndarray, algo_name: List[str],
     fig.legend(critic_name, loc='lower center', ncol=closs, frameon=False, fontsize='medium')
     # fig.suptitle(name, fontsize='xx-large', y=0.95)
 
-    plt.savefig(filename_png, dpi=400, format='png')
+    plt.savefig(filename_png, dpi=300, format='png')
 
-def plot_temp(input_dict: dict, data: np.ndarray, env_name: List[str], critic_name: List[str], filename_png: str):
+def plot_temp(inputs: dict, data: np.ndarray, env_name: List[str], critic_name: List[str], filename_png: str):
     """
     Plot SAC sutomatically tuned temperature hyperparameters for only two environments and all critic loss functions.
 
     Parameters:
-        input_dict: dictionary containing all execution details
+        inputs: dictionary containing all execution details
         data: mega combined array of everything
         env_name: name of both environments
         cirtic_name: name of all critic loss functions
@@ -386,15 +387,15 @@ def plot_temp(input_dict: dict, data: np.ndarray, env_name: List[str], critic_na
     exp = utils.get_exponent(cum_steps_log)
     x_steps = cum_steps_log/10**(exp)
 
-    count_x = int(input_dict['n_cumsteps'] / input_dict['eval_freq'])
-    count_z = int(input_dict['n_trials'] )
+    count_x = int(inputs['n_cumsteps'] / inputs['eval_freq'])
+    count_z = int(inputs['n_trials'] )
 
     logtemp = np.zeros((envs, closs, count_x, count_z))
 
     for a in range(envs):
         for l in range(closs):
             for t in range(count_x):
-                for n in range(input_dict['n_trials']):
+                for n in range(inputs['n_trials']):
                     logtemp[a, l, t, n] = data[a, l, n, t, 0, 10]
 
     cols = ['C'+str(x) for x in range(closs)]
@@ -427,4 +428,259 @@ def plot_temp(input_dict: dict, data: np.ndarray, env_name: List[str], critic_na
     fig.subplots_adjust(bottom=0.3, hspace=0.2)
     fig.legend(critic_name, loc='lower center', ncol=closs, frameon=False, fontsize='medium')
 
-    plt.savefig(filename_png, dpi=400, format='png')
+    plt.savefig(filename_png, dpi=300, format='png')
+0
+def plot_inv(inputs: dict, data: np.ndarray, filename_png: str, T: int =1, V_0: float =1):
+    """
+    
+    """
+    ninv = data.shape[0]
+    cum_steps_log = data[0, 0, :, 0, 19]
+
+    eval_exp = utils.get_exponent(inputs['eval_freq'])
+    exp = utils.get_exponent(cum_steps_log)
+    x_steps = cum_steps_log/10**(exp)
+
+    cols = ['C'+str(x) for x in range(ninv)]
+    a_col = mpatches.Patch(color=cols[0], label='A', alpha=0.8)
+    b_col = mpatches.Patch(color=cols[1], label='B', alpha=0.8)
+    c_col = mpatches.Patch(color=cols[2], label='C', alpha=0.8)
+
+    count_x = int(inputs['n_cumsteps'] / inputs['eval_freq'])
+    count_y = int(inputs['n_trials'] * int(inputs['n_eval']))
+    count_z = int(inputs['n_trials'] )
+
+    loss = np.zeros((ninv, count_x, count_z * 2))
+    shadow = np.zeros((ninv, count_x, count_z * 2))
+    tail = np.zeros((ninv, count_x, count_z * 2))
+    lmin = np.zeros((ninv, count_x, count_z * 2))
+    hmax = np.zeros((ninv, count_x, count_z * 2))
+    heqv = np.zeros((ninv, count_x, count_z * 2)) 
+
+    reward = np.zeros((ninv, count_x, count_y))
+    lev = np.zeros((ninv, count_x, count_y))
+    stop = np.zeros((ninv, count_x, count_y))
+    reten = np.zeros((ninv, count_x, count_y))
+
+    for i in range(ninv):
+        for t in range(count_x):
+            for n in range(inputs['n_trials']):
+                
+                    loss[i, t, (n * 2):(n * 2) + 2 ] = data[i, n, t, 0, 3:5]
+                    shadow[i, t, (n * 2):(n * 2) + 2 ] = data[i, n, t, 0, 9:11]
+                    tail[i, t, (n * 2):(n * 2) + 2 ] = data[i, n, t, 0, 11:13]
+                    lmin[i, t, (n * 2):(n * 2) + 2 ] = data[i, n, t, 0, 5:7]
+                    hmax[i, t, (n * 2):(n * 2) + 2 ] = data[i, n, t, 0, 7:9]
+
+                    for s in range(int(inputs['n_eval'])):
+                        reward[i, t, s + n * int(inputs['n_eval'])] = data[i, n, t, s, 20]
+                        lev[i, t, s + n * int(inputs['n_eval'])] = data[i, n, t, s, 23]
+                        stop[i, t, s + n * int(inputs['n_eval'])] = data[i, n, t, s, 24]
+                        reten[i, t, s + n * int(inputs['n_eval'])] = data[i, n, t, s, 25]
+
+    shadow[np.isnan(shadow)] = loss[np.isnan(shadow)]
+
+    for i in range(ninv):
+        for t in range(count_x):
+            for n in range(inputs['n_trials'] * 2):
+                heqv[i, t, n] = utils.shadow_equiv(loss[i, t, n], tail[i, t, n], 
+                                                   lmin[i, t, n], hmax[i, t, n], 1)
+
+    print(heqv)
+    reward = V_0 * reward**T
+
+    fig, axs = plt.subplots(nrows=4, ncols=2, figsize=(8,10))
+
+    for i in range(ninv):
+
+        inv_x = reward[i]
+
+        x_mean = np.mean(inv_x, axis=1, keepdims=True)
+        x_med = np.median(inv_x, axis=1, keepdims=True)
+
+        x_max, x_min = np.max(inv_x, axis=1, keepdims=True), np.min(inv_x, axis=1, keepdims=True)
+        x_mad = np.mean(np.abs(inv_x - x_mean), axis=1, keepdims=True)
+        x_mad_up = np.minimum(x_max, x_mean+x_mad).reshape(-1)
+        x_mad_lo = np.maximum(x_min, x_mean-x_mad).reshape(-1)
+        x_mean = x_mean.reshape(-1)
+        x_med = x_med.reshape(-1)
+
+        # x_mean = np.log10(x_mean)
+        # x_med = np.log10(x_med)
+        # x_mad_lo = np.log10(x_mad_lo)
+        # x_mad_up = np.log10(x_mad_up)
+
+        axs[0, 0].plot(x_steps, x_mean, color=cols[i], linewidth=1)
+        axs[0, 0].plot(x_steps, x_med, color=cols[i], linewidth=1, linestyle='--')
+        axs[0, 0].fill_between(x_steps, x_mad_lo, x_mad_up, facecolor=cols[i], alpha=0.1)
+        axs[0, 0].grid(True, linewidth=0.2)
+        axs[0, 0].xaxis.set_ticklabels([])
+
+    axs[0, 0].set_ylabel('Valuations') 
+
+    for i in range(ninv):
+
+        inv_x = lev[i]
+
+        x_mean = np.mean(inv_x, axis=1, keepdims=True)
+        x_med = np.median(inv_x, axis=1, keepdims=True)
+
+        x_max, x_min = np.max(inv_x, axis=1, keepdims=True), np.min(inv_x, axis=1, keepdims=True)
+        x_mad = np.mean(np.abs(inv_x - x_mean), axis=1, keepdims=True)
+        x_mad_up = np.minimum(x_max, x_mean+x_mad).reshape(-1)
+        x_mad_lo = np.maximum(x_min, x_mean-x_mad).reshape(-1)
+        x_mean = x_mean.reshape(-1)
+        x_med = x_med.reshape(-1)
+
+        axs[1, 0].plot(x_steps, x_mean, color=cols[i], linewidth=1)
+        axs[1, 0].plot(x_steps, x_med, color=cols[i], linewidth=1, linestyle='--')
+        axs[1, 0].fill_between(x_steps, x_mad_lo, x_mad_up, facecolor=cols[i], alpha=0.1)
+        axs[1, 0].grid(True, linewidth=0.2)
+        axs[1, 0].xaxis.set_ticklabels([])
+
+    axs[1, 0].set_ylabel('Leverage ' + r'$l$')
+
+    for i in range(1, ninv):
+
+        inv_x = stop[i]
+
+        x_mean = np.mean(inv_x, axis=1, keepdims=True)
+        x_med = np.median(inv_x, axis=1, keepdims=True)
+
+        x_max, x_min = np.max(inv_x, axis=1, keepdims=True), np.min(inv_x, axis=1, keepdims=True)
+        x_mad = np.mean(np.abs(inv_x - x_mean), axis=1, keepdims=True)
+        x_mad_up = np.minimum(x_max, x_mean+x_mad).reshape(-1) * 100
+        x_mad_lo = np.maximum(x_min, x_mean-x_mad).reshape(-1) * 100
+        x_mean = x_mean.reshape(-1) * 100
+        x_med = x_med.reshape(-1) * 100
+
+        axs[2, 0].plot(x_steps, x_mean, color=cols[i], linewidth=1)
+        axs[2, 0].plot(x_steps, x_med, color=cols[i], linewidth=1, linestyle='--')
+        axs[2, 0].fill_between(x_steps, x_mad_lo, x_mad_up, facecolor=cols[i], alpha=0.1)
+        axs[2, 0].grid(True, linewidth=0.2)
+        axs[2, 0].xaxis.set_ticklabels([])
+
+    axs[2, 0].set_ylabel('Stop-Loss ' + r'$\lambda$ ' + '(%)')
+
+    for i in range(2, ninv):
+
+        inv_x = reten[i]
+
+        x_mean = np.mean(inv_x, axis=1, keepdims=True)
+        x_med = np.median(inv_x, axis=1, keepdims=True)
+
+        x_max, x_min = np.max(inv_x, axis=1, keepdims=True), np.min(inv_x, axis=1, keepdims=True)
+        x_mad = np.mean(np.abs(inv_x - x_mean), axis=1, keepdims=True)
+        x_mad_up = np.minimum(x_max, x_mean+x_mad).reshape(-1) * 100
+        x_mad_lo = np.maximum(x_min, x_mean-x_mad).reshape(-1) * 100
+        x_mean = x_mean.reshape(-1) * 100
+        x_med = x_med.reshape(-1) * 100
+
+        axs[3, 0].plot(x_steps, x_mean, color=cols[i], linewidth=1)
+        axs[3, 0].plot(x_steps, x_med, color=cols[i], linewidth=1, linestyle='--')
+        axs[3, 0].fill_between(x_steps, x_mad_lo, x_mad_up, facecolor=cols[i], alpha=0.1)
+        axs[3, 0].grid(True, linewidth=0.2)
+
+    axs[3, 0].set_ylabel('Retention ' + r'$\phi$ ' + '(%)')
+
+    for i in range(ninv):
+
+        inv_x = loss[i]
+
+        x_mean = np.mean(inv_x, axis=1, keepdims=True)
+
+        x_max, x_min = np.max(inv_x, axis=1, keepdims=True), np.min(inv_x, axis=1, keepdims=True)
+        x_mad = np.mean(np.abs(inv_x - x_mean), axis=1, keepdims=True)
+        x_mad_up = np.minimum(x_max, x_mean+x_mad).reshape(-1)
+        x_mad_lo = np.maximum(x_min, x_mean-x_mad).reshape(-1)
+        x_mean = x_mean.reshape(-1)
+
+        axs[0, 1].plot(x_steps, x_mean, color=cols[i], linewidth=1)
+        axs[0, 1].fill_between(x_steps, x_mad_lo, x_mad_up, facecolor=cols[i], alpha=0.1)
+        axs[0, 1].grid(True, linewidth=0.2)
+        axs[0, 1].xaxis.set_ticklabels([])
+
+    axs[0, 1].set_ylabel('Critic Loss')
+
+    for i in range(ninv):
+
+        inv_x = shadow[i]
+
+        x_mean = np.mean(inv_x, axis=1, keepdims=True)
+        
+        x_max, x_min = np.max(inv_x, axis=1, keepdims=True), np.min(inv_x, axis=1, keepdims=True)
+        x_mad = np.mean(np.abs(inv_x - x_mean), axis=1, keepdims=True)
+        x_mad_up = np.minimum(x_max, x_mean+x_mad).reshape(-1)
+        x_mad_lo = np.maximum(x_min, x_mean-x_mad).reshape(-1)
+        x_mean = x_mean.reshape(-1)
+
+        axs[1, 1].plot(x_steps, x_mean, color=cols[i], linewidth=1)
+        axs[1, 1].fill_between(x_steps, x_mad_lo, x_mad_up, facecolor=cols[i], alpha=0.1)
+        axs[1, 1].grid(True, linewidth=0.2)
+        axs[1, 1].xaxis.set_ticklabels([])
+
+        inv_x = hmax[i]
+
+        x_mean = np.mean(inv_x, axis=1, keepdims=True)
+  
+
+        x_max, x_min = np.max(inv_x, axis=1, keepdims=True), np.min(inv_x, axis=1, keepdims=True)
+        x_mad = np.mean(np.abs(inv_x - x_mean), axis=1, keepdims=True)
+        x_mad_up = np.minimum(x_max, x_mean+x_mad).reshape(-1)
+        x_mad_lo = np.maximum(x_min, x_mean-x_mad).reshape(-1)
+        x_mean = x_mean.reshape(-1)
+
+        axs[1, 1].plot(x_steps, x_mean, color=cols[i], linewidth=1, linestyle=':')
+        # axs[1, 1].fill_between(x_steps, x_mad_lo, x_mad_up, facecolor=cols[i], alpha=0.1)
+        axs[1, 1].grid(True, linewidth=0.2)
+        axs[1, 1].xaxis.set_ticklabels([])
+
+    axs[1, 1].set_ylabel('Shadow Mean ' + r'$\mu_s$')
+
+    for i in range(ninv):
+
+        inv_x = tail[i]
+
+        x_mean = np.mean(inv_x, axis=1, keepdims=True)
+
+        x_max, x_min = np.max(inv_x, axis=1, keepdims=True), np.min(inv_x, axis=1, keepdims=True)
+        x_mad = np.mean(np.abs(inv_x - x_mean), axis=1, keepdims=True)
+        x_mad_up = np.minimum(x_max, x_mean+x_mad).reshape(-1)
+        x_mad_lo = np.maximum(x_min, x_mean-x_mad).reshape(-1)
+        x_mean = x_mean.reshape(-1)
+
+        axs[2, 1].plot(x_steps, x_mean, color=cols[i], linewidth=1)
+        axs[2, 1].fill_between(x_steps, x_mad_lo, x_mad_up, facecolor=cols[i], alpha=0.1)
+        axs[2, 1].grid(True, linewidth=0.2)
+        axs[2, 1].xaxis.set_ticklabels([])
+
+    axs[2, 1].set_ylabel('Tail Index ' + r'$\alpha}$')
+
+    for i in range(ninv):
+
+        inv_x = heqv[i]
+
+        x_mean = np.mean(inv_x, axis=1, keepdims=True)
+
+        x_max, x_min = np.max(inv_x, axis=1, keepdims=True), np.min(inv_x, axis=1, keepdims=True)
+        x_mad = np.mean(np.abs(inv_x - x_mean), axis=1, keepdims=True)
+        x_mad_up = np.minimum(x_max, x_mean+x_mad).reshape(-1)
+        x_mad_lo = np.maximum(x_min, x_mean-x_mad).reshape(-1)
+        x_mean = x_mean.reshape(-1)
+
+        axs[3, 1].plot(x_steps, x_mean, color=cols[i], linewidth=1)
+        axs[3, 1].fill_between(x_steps, x_mad_lo, x_mad_up, facecolor=cols[i], alpha=0.1)
+        axs[3, 1].grid(True, linewidth=0.2)
+        axs[3, 1].xaxis.set_ticklabels([])
+
+    axs[3, 1].set_ylabel('Multiplier $H_{eqv}$ ')
+
+
+
+    fig.subplots_adjust(bottom=0.1,  wspace=0.3, hspace=0.4)
+
+    inv_name = ['A', 'B', 'C']
+    fig.legend(handles=[a_col, b_col, c_col], loc='lower center', ncol=3, frameon=False, fontsize='medium')
+    # fig.suptitle(name, fontsize='xx-large', y=0.95)
+
+    plt.savefig(filename_png, dpi=300, format='png')

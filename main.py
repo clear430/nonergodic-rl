@@ -16,12 +16,12 @@ critic_loss = ['MSE']
 # bootstrapping of target critic values and discounted rewards: [list of integers > 0] 
 multi_steps = [1]
 
-ENV_KEY = 22
+ENV_KEY = 20
 
 gym_envs = {
     # ENV_KEY: [env_id, state_dim, action_dim, intial warm-up steps to generate random seed]
 
-    #### ADDITIVE ENVIRONMENTS
+    ## ADDITIVE ENVIRONMENTS
 
     # OpenAI Box2D continuous control tasks
     '0': ['LunarLanderContinuous-v2', 8, 2, 1e3], 
@@ -42,7 +42,7 @@ gym_envs = {
     '12': ['HumanoidDeepMimicWalkBulletEnv-v1', 197, 36, 1e4],
     '13': ['HumanoidDeepMimicBackflipBulletEnv-v1', 197, 36, 1e4],
 
-    #### MULTIPLICATVE ENVIRONMENTS
+    ## MULTIPLICATVE ENVIRONMENTS
 
     # assets following the equally likely +50%/-40% gamble
     '14': ['Coin_n1_InvA', 2, 1, 1e3], '15': ['Coin_n2_InvA', 3, 2, 1e3], '16': ['Coin_n10_InvA', 11, 10, 1e3],
@@ -64,10 +64,10 @@ gym_envs = {
 
 inputs_dict = {
     # execution parameters
-    'n_trials': 2,                              # number of total unique training trials
-    'n_cumsteps': 5e3,                          # maximum cumulative steps per trial (must be greater than warm-up)
+    'n_trials': 5,                              # number of total unique training trials
+    'n_cumsteps': 2e4,                          # maximum cumulative steps per trial (must be greater than warm-up)
     'eval_freq': 1e3,                           # interval of steps between evaluation episodes
-    'n_eval': 1e2,                              # number of evalution episodes
+    'n_eval': 1e3,                              # number of evalution episodes
     'max_eval_reward': 1e4,                     # maximum reward per evaluation episode for additive environments
     'max_eval_steps': 1e0,                      # maximum steps per evaluation episode for multiplicative environments
 
@@ -132,7 +132,9 @@ gte1 = 'must be greater than or equal to 1'
 assert isinstance(inputs_dict['n_trials'], (float, int)) and \
     int(inputs_dict['n_trials']) >= 1, gte1
 assert isinstance(inputs_dict['n_cumsteps'], (float, int)) and \
-    int(inputs_dict['n_cumsteps']) >= 1, gte1
+    set(list(str(inputs_dict['n_cumsteps'])[2:])).issubset(set(['0', '.'])) and \
+        int(inputs_dict['n_cumsteps']) >= 1, \
+            'must consist of only 2 leading non-zero digits and be greater than or equal to 1'
 assert isinstance(inputs_dict['eval_freq'], (float, int)) and \
     int(inputs_dict['eval_freq']) >= 1 and \
         int(inputs_dict['eval_freq']) <= int(inputs_dict['n_cumsteps']), \
@@ -146,9 +148,10 @@ assert isinstance(inputs_dict['max_eval_steps'], (float, int)) and \
 
 # learning varaible tests
 assert isinstance(inputs_dict['buffer'], (float, int)) and \
-    int(inputs_dict['buffer']) >= 1 and \
-        inputs_dict['buffer'] >= inputs_dict['n_cumsteps'], \
-            'must be greater than or equal to both 1 and n_cumsteps'
+    set(list(str(inputs_dict['buffer'])[2:])).issubset(set(['0', '.'])) and \
+        int(inputs_dict['buffer']) >= 1 and \
+            inputs_dict['buffer'] >= inputs_dict['n_cumsteps'], \
+                'must consist of only 2 leading non-zero digits and be greater than or equal to both 1 and n_cumsteps'
 assert inputs_dict['discount'] >= 0 \
     and inputs_dict['discount'] < 1, 'should be within [0, 1)'
 assert isinstance(inputs_dict['trail'], (float, int)) and \

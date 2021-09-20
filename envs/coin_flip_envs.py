@@ -5,7 +5,7 @@ import numpy as np
 from typing import List, Tuple
 
 MAX_VALUE = 1e16                                # maximium potfolio value for normalisation
-INITIAL_PRICE = 1e4                             # intial price of all assets
+INITIAL_PRICE = 1e3                             # intial price of all assets
 INITIAL_VALUE = 1e4                             # intial portfolio value
 MIN_VALUE_RATIO = 1e-2                          # minimum portfolio value ratio (psi)
 MIN_VALUE = MIN_VALUE_RATIO * INITIAL_VALUE

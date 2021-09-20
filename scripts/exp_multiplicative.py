@@ -73,7 +73,7 @@ def multiplicative_env(gym_envs: dict, inputs: dict):
                             agent.store_transistion(state, action, reward, next_state, done)
 
                             # gradient update interval (perform backpropagation)
-                            if cum_steps % int(inputs['grad_step'][inputs['algo']]) == 0:
+                            if cum_steps %  int(inputs['grad_step'][inputs['algo']]) == 0:
                                 loss, logtemp, loss_params = agent.learn()
 
                             state = next_state
@@ -85,7 +85,7 @@ def multiplicative_env(gym_envs: dict, inputs: dict):
                             # conduct periodic agent evaluation episodes without learning
                             if cum_steps % int(inputs['eval_freq']) == 0:
                                 
-                                if inputs['ENV_KEY'] <= 58:
+                                if inputs['ENV_KEY'] <= 49:
                                     eval_episodes.eval_multiplicative(agent, inputs, eval_log, eval_risk_log, cum_steps, 
                                                                       round, eval_run, loss, logtemp, loss_params)
                                 else:
@@ -142,7 +142,5 @@ def multiplicative_env(gym_envs: dict, inputs: dict):
                 np.save(directory+'_eval_risk.npy', eval_risk_log)
 
                 if inputs['n_trials'] > 1:
-                    # plots.plot_eval_curve(inputs, eval_log, directory+'_eval.png')       # plot of agent evaluation round scores across all trials
-                    plots.plot_eval_loss_2d(inputs, eval_log, directory+'_2d.png')       # plot of agent evaluation round scores and training critic losses across all trials
-                    # plots.plot_eval_loss_3d(inputs, eval_log, directory+'_3d.png')       # 3D plot of agent evaluation round scores and training critic losses across all trials
-                    plots.plot_trial_curve(inputs, trial_log, directory+'_trial.png')    # plot of agent training with linear interpolation across all trials
+                    plots.plot_eval_loss_2d_multi(inputs, eval_log, directory+'_2d.png')    # plot of agent evaluation round scores and training critic losses across all trials
+                    plots.plot_trial_curve(inputs, trial_log, directory+'_trial.png')       # plot of agent training with linear interpolation across all trials

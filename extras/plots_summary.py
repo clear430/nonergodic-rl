@@ -98,7 +98,7 @@ def plot_learning_curve(inputs: dict, trial_log: np.ndarray, filename_png: str):
 
     ax1.set_title(title)
 
-    plt.savefig(filename_png, bbox_inches='tight', dpi=400, format='png')
+    plt.savefig(filename_png, bbox_inches='tight', dpi=300, format='png')
 
 def plot_trial_curve(inputs: dict, trial_log: np.ndarray, filename_png: str):
     """
@@ -227,7 +227,7 @@ def plot_trial_curve(inputs: dict, trial_log: np.ndarray, filename_png: str):
 
     ax1.set_title(title)
     
-    plt.savefig(filename_png, dpi=400, format='png')
+    plt.savefig(filename_png, dpi=300, format='png')
 
 def plot_eval_curve(inputs: dict, eval_log: np.ndarray, filename_png: str):
     """
@@ -283,7 +283,7 @@ def plot_eval_curve(inputs: dict, eval_log: np.ndarray, filename_png: str):
 
     ax1.set_title(title)
     
-    plt.savefig(filename_png, dpi=400, format='png')
+    plt.savefig(filename_png, dpi=300, format='png')
 
 def plot_eval_loss_2d(inputs: dict, eval_log: np.ndarray, filename_png: str):
     """
@@ -360,7 +360,7 @@ def plot_eval_loss_2d(inputs: dict, eval_log: np.ndarray, filename_png: str):
 
     ax1.set_title(title)
     
-    plt.savefig(filename_png, dpi=400, format='png')
+    plt.savefig(filename_png, dpi=300, format='png')
 
 def plot_eval_loss_3d(inputs: dict, eval_log: np.ndarray, filename_png: str):
     """
@@ -428,4 +428,91 @@ def plot_eval_loss_3d(inputs: dict, eval_log: np.ndarray, filename_png: str):
 
     ax1.set_title(title)
     
-    plt.savefig(filename_png, dpi=400, format='png')
+    plt.savefig(filename_png, dpi=300, format='png')
+
+def plot_eval_loss_2d_multi(inputs: dict, eval_log: np.ndarray, filename_png: str):
+    """
+    2D plot of Mean and MAD of scores and twin critic loss during evaluation episodes for all trials in
+    a multiplicative environment.
+    
+    Parameters:
+        inputs: 
+        eval_log: log of episode data for all trials
+        filename_png (directory): save path of plot
+    """
+    T = 100     # amount of compounding
+    cum_steps_log = eval_log[0, :, 0, -1]
+
+    eval_exp = utils.get_exponent(inputs['eval_freq'])
+    exp = utils.get_exponent(cum_steps_log)
+    x_steps = cum_steps_log/10**(exp)
+
+    count_x = int(inputs['n_cumsteps'] / inputs['eval_freq'])
+    count_y = int(inputs['n_trials'] * int(inputs['n_eval']))
+
+    scores = np.zeros((count_x, count_y))
+    loss = np.zeros((count_x, count_y))
+
+    for t in range(count_x):
+        for n in range(inputs['n_trials']):
+            for s in range(int(inputs['n_eval'])):
+                scores[t, s + n * int(inputs['n_eval'])] = eval_log[n, t, s, 1]
+                loss[t, s + n * int(inputs['n_eval'])] = np.mean(eval_log[n, t, s, 3:5])
+
+    scores = scores**T
+
+    score_mean = np.mean(scores, axis=1, keepdims=True)
+    score_med = np.median(scores, axis=1, keepdims=True)
+    score_max, score_min = np.max(scores, axis=1, keepdims=True), np.min(scores, axis=1, keepdims=True)
+    score_mad = np.mean(np.abs(scores - score_mean), axis=1, keepdims=True)
+    score_mad_up = np.minimum(score_max, score_mean+score_mad).reshape(-1)
+    score_mad_lo = np.maximum(score_min, score_mean-score_mad).reshape(-1)
+    score_mean = score_mean.reshape(-1)
+    score_med = score_med.reshape(-1)
+    
+    score_mean = np.log10(score_mean)
+    score_med = np.log10(score_med)
+    score_mad_lo = np.log10(score_mad_lo)
+    score_mad_up = np.log10(score_mad_up)
+
+    loss_mean = np.mean(loss, axis=1, keepdims=True)
+    loss_max, loss_min = np.max(loss, axis=1, keepdims=True), np.min(loss, axis=1, keepdims=True)
+    loss_mad = np.mean(np.abs(loss - loss_mean), axis=1, keepdims=True)
+    loss_mad_up = np.minimum(loss_max, loss_mean+loss_mad).reshape(-1)
+    loss_mad_lo = np.maximum(loss_min, loss_mean-loss_mad).reshape(-1)
+    loss_mean = loss_mean.reshape(-1)
+
+    fig = plt.figure()
+    ax1 = fig.add_subplot(1,1,1, label='score')
+    ax2 = fig.add_subplot(1,1,1, label='loss', frame_on=False)
+
+    ax1.plot(x_steps, score_mean, color='C0')
+    ax1.plot(x_steps, score_med, color='C0', linestyle='--')
+    ax1.fill_between(x_steps, score_mad_lo, score_mad_up, facecolor='C0', alpha=0.4)
+    ax1.set_xlabel('Steps (1e'+str(exp)+')')
+    ax1.yaxis.tick_left()
+    ax1.set_ylabel('Mean Valuation (log10)',  color='C0')
+    ax1.yaxis.set_label_position('left')
+    ax1.tick_params(axis='y', colors='C0')
+    ax1.grid(True, linewidth=0.5)
+
+    ax2.plot(x_steps, loss_mean, color='C3')
+    ax2.fill_between(x_steps, loss_mad_lo, loss_mad_up, facecolor='C3', alpha=0.4)
+
+    ax2.axes.get_xaxis().set_visible(False)
+    ax2.yaxis.tick_right()
+    ax2.set_ylabel('Critic Loss', color='C3')
+    ax2.yaxis.set_label_position('right')
+    ax2.tick_params(axis='y', colors='C3')
+
+    ymin, ymax = ax2.get_ylim()
+    ax2.set(ylim=(ymin, ymax))
+
+    t1 = 'Mean and MAD of '+str(inputs['n_trials'])+'x'+str(int(inputs['n_eval']))+' Evaluations per '
+    t2 = str(int(inputs['eval_freq']))[0]+'e'+str(eval_exp)+' Steps \n'
+    t3 = utils.plot_subtitles(inputs)
+    title = t1 + t2 + t3
+
+    ax1.set_title(title)
+    
+    plt.savefig(filename_png, dpi=300, format='png')

@@ -1,4 +1,5 @@
 import numpy as np
+import scipy.optimize as op
 import scipy.special as sp
 import torch as T
 from typing import Tuple
@@ -28,12 +29,12 @@ def save_directory(inputs: dict, results: bool) -> str:
            '-'+str(inputs['critic_mean_type']),
            '_B'+str(int(inputs['buffer']))[0:2]+'e'+str(buff_exp-1),
            '_M'+str(inputs['multi_steps']),
-           '_S'+str(int(inputs['n_cumsteps']))[0]+'e'+str(step_exp),
+           '_S'+str(int(inputs['n_cumsteps']))[0:2]+'e'+str(step_exp-1),
            '_N'+str(inputs['n_trials'])  
            ]
 
     if results == False:
-        dir[0] = 'models/'
+        dir[0] = './models/'
 
     directory = ''.join(dir)
 
@@ -60,7 +61,7 @@ def plot_subtitles(inputs: dict):
            '-'+str(inputs['critic_mean_type']),
            '_B'+str(int(inputs['buffer']))[0:2]+'e'+str(buff_exp-1),
            '_M'+str(inputs['multi_steps']),
-           '_S'+str(int(inputs['n_cumsteps']))[0]+'e'+str(step_exp),
+           '_S'+str(int(inputs['n_cumsteps']))[0:2]+'e'+str(step_exp-1),
            '_N'+str(inputs['n_trials'])  
            ]
     
@@ -77,8 +78,7 @@ def multi_log_dim(inputs: dict) -> int:
         inputs: dictionary containg all execution details
         
     Returns:
-        trial_risk_log: array of zeros for agent learning logs
-        eval_risk_log:  array of zeros for agent evaluation logs
+        dim: dimensions for log array
     """
     env = inputs['env_id']
     
@@ -118,10 +118,11 @@ def get_exponent(array: np.ndarray) -> int:
 
     return exp
 
-def truncation(estimated: T.FloatTensor, target: T.FloatTensor) -> Tuple[T.FloatTensor, T.FloatTensor]:
+def truncation(estimated: T.FloatTensor, target: T.FloatTensor) \
+        -> Tuple[T.FloatTensor, T.FloatTensor]:
     """
-    Elements to be truncated based on Gaussian distribution assumption based on a correction of
-    Section 3.3 in https://arxiv.org/pdf/1906.00495.pdf.
+    Elements to be truncated based on Gaussian distribution assumption based on a 
+    correction of Section 3.3 in https://arxiv.org/pdf/1906.00495.pdf.
 
     Parameters:
         estimated: current Q-values
@@ -165,7 +166,7 @@ def nagy_algo(estimated: T.cuda.FloatTensor, target: T.cuda.FloatTensor, scale: 
     """
     Use the Nagy alogrithm to estimate the Cauchy scale paramter based on residual errors based on
     Eq. 18 in http://www.jucs.org/jucs_12_9/parameter_estimation_of_the/jucs_12_09_1332_1344_nagy.pdf
-    and Section 3.2 in https://tongliang-liu.github.io/papers/TPAMITruncatedNMF.pdf.
+    and Section 3.2 in https://arxiv.org/pdf/1906.00495.pdf.
     
     Parameters:
         estimated: current Q-values
@@ -298,10 +299,11 @@ def hill_est(values: T.cuda.FloatTensor) -> T.cuda.FloatTensor:
     values = T.abs(values.view(-1))
 
     order_stats = values.sort(descending=True)[0]
-    min_val = T.log(order_stats[0])
-    vals = T.log(order_stats[1:])
+    min_val = order_stats[0]
+    geo_mean = T.prod(order_stats[1:])
+    geo_mean = geo_mean**(1 / geo_mean.shape[0])
 
-    hill_1 = (vals - min_val).mean()
+    hill_1 = T.log(geo_mean / min_val)
     gamma = hill_1 
         
     # method of moments
@@ -456,8 +458,8 @@ def shadow_means(alpha: np.ndarray, min: np.ndarray, max: np.ndarray,
         alpha: sample tail index
         min: sample minimum critic loss
         max: sample maximum critic loss
-        min_mul: min multiplier to form shadow mean low threshold
-        max_mul: max multiplier to form shadow mean high estimate
+        low_mul: lower bound multiplier of sample minimum to form minimum threshold of interest
+        max_mul: upper bound multiplier of maximum of distributions
 
     Returns:
         shadow: shadow mean
@@ -467,3 +469,32 @@ def shadow_means(alpha: np.ndarray, min: np.ndarray, max: np.ndarray,
     shadow = low + (high - low) * np.exp(alpha / high) * (alpha / high)**alpha * up_gamma
 
     return shadow
+
+def shadow_equiv(mean: np.ndarray, alpha: np.ndarray, min: np.ndarray, 
+                 max: np.ndarray, min_mul: float =1) \
+        -> np.ndarray:
+    """
+    Estimate max multiplier required for equivalence between empirical (arthmetic) mean
+    and shadow mean estimate.
+
+    Parameters:
+        mean: empirical mean
+        alpha: sample tail index
+        min: sample minimum critic loss
+        max: sample maximum critic loss
+        low_mul: lower bound multiplier of sample minimum to form minimum threshold of interest
+
+    Returns:
+        max_mul:upper bound multiplier of maximum of distributions for equivalent
+    """
+    # select intial guess of equivilance multiplier
+    x0 = 1e-4
+
+    if alpha < 1:
+        f = lambda max_mul: shadow_means(alpha, min, max, min_mul, max_mul) - mean
+        max_mul_solve = op.root(f, x0, method='hybr')
+        max_mul_solve = max_mul_solve.x
+    else:
+        max_mul_solve = x0
+
+    return max_mul_solve

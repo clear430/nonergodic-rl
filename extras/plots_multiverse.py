@@ -98,7 +98,7 @@ def plot_inv1(inv1_data: np.ndarray, inv1_data_T: np.ndarray, filename_png: str)
     axs[1, 0].tick_params(axis='both', which='major', labelsize='small')
     axs[1, 1].tick_params(axis='both', which='major', labelsize='small')
 
-    plt.savefig(filename_png, dpi=400, format='png')
+    plt.savefig(filename_png, dpi=300, format='png')
     
 def plot_inv2(inv2_data: np.ndarray, filename_png: str):
     """
@@ -163,7 +163,7 @@ def plot_inv2(inv2_data: np.ndarray, filename_png: str):
 
     fig.subplots_adjust(bottom=0.25)
 
-    plt.savefig(filename_png, dpi=400, format='png')
+    plt.savefig(filename_png, dpi=300, format='png')
 
 def plot_inv3(inv3_data: np.ndarray, filename_png: str):
     """
@@ -231,7 +231,7 @@ def plot_inv3(inv3_data: np.ndarray, filename_png: str):
 
     fig.subplots_adjust(hspace=0.4)
 
-    plt.savefig(filename_png, dpi=400, format='png')
+    plt.savefig(filename_png, dpi=300, format='png')
 
 def plot_inv4(inv4_data: np.ndarray, filename_png: str):
     """
@@ -288,4 +288,4 @@ def plot_inv4(inv4_data: np.ndarray, filename_png: str):
 
     fig.subplots_adjust(bottom=0.25)
     
-    plt.savefig(filename_png, dpi=400, format='png')
+    plt.savefig(filename_png, dpi=300, format='png')
