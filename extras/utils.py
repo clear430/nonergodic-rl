@@ -488,7 +488,7 @@ def shadow_equiv(mean: np.ndarray, alpha: np.ndarray, min: np.ndarray,
         max_mul:upper bound multiplier of maximum of distributions for equivalent
     """
     # select intial guess of equivilance multiplier
-    x0 = 1e-4
+    x0 = 1
 
     if alpha < 1:
         f = lambda max_mul: shadow_means(alpha, min, max, min_mul, max_mul) - mean
@@ -498,3 +498,109 @@ def shadow_equiv(mean: np.ndarray, alpha: np.ndarray, min: np.ndarray,
         max_mul_solve = x0
 
     return max_mul_solve
+
+def mul_inv_aggregate(env_keys: list, gym_envs: dict, mul_inputs: dict, safe_haven: bool =False) \
+        -> np.ndarray:
+    """
+    Combine environment evaluation data for investors across the same number of assets.
+
+    Parameters:
+        env_keys: list of environments
+        gym_envvs: dictionary of all environment details
+        mul_inputs: dictionary of execution parameters
+        safe_have: whether investor is using insurance safe haven
+
+    Retuens:
+        eval: aggregated evaluation data across all investors
+    """
+    sh = 3 if safe_haven == True else 0
+
+    mul_nsteps = str(int(mul_inputs['n_cumsteps']))[0:2]
+    mul_nstep_exp = str(int(len(str(int(mul_inputs['n_cumsteps']))) - 1) - 1)
+
+    for key in env_keys:
+        name = [gym_envs[str(key)][0] for key in env_keys]
+        path = ['./results/multiplicative/' + n + '/' for n in name]
+
+        eval = np.zeros((len(name), int(mul_inputs['n_trials']), 
+                            int(mul_inputs['n_cumsteps'] / mul_inputs['eval_freq']), 
+                            int(mul_inputs['n_eval']), 20 + 16 + sh))
+        num = 0
+        for env in name:
+            data_path = path[num]+env+'--M_TD3-N_MSE-E_B10e5_M1_S'+mul_nsteps+'e'+mul_nstep_exp+ \
+                        '_N'+str(int(mul_inputs['n_trials']))
+
+            file1 = np.load(data_path+'_eval.npy')
+            file2 = np.load(data_path+'_eval_risk.npy')
+            file = np.concatenate((file1, file2), axis=3)
+
+            eval[num, :, :, :, :20 + file2.shape[3]] = file
+
+            num += 1
+
+    return eval
+
+def mul_inv_n_summary(mul_inputs: dict, aggregate_n: np.ndarray) \
+        -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray,
+                 np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Seperate aggregate array into variables.
+    
+    Parameters:
+        mul_inputs: dictionary of execution parameters
+        aggregate_n: aggregated evaluation data across all investors
+
+    Retuens:
+        reward: 1 + time-average growth rate
+        lev: leverages
+        stop: stop-losses
+        reten: retention ratios
+        loss: critic loss
+        tail: tail exponent
+        shadow: shadow critic loss
+        cmax: maximum critic loss
+        heqv: max multiplier for equvilance between shadow and empirical means
+    """
+    ninv = aggregate_n.shape[0]
+
+    count_x = int(mul_inputs['n_cumsteps'] / mul_inputs['eval_freq'])
+    count_y = int(mul_inputs['n_trials'] * int(mul_inputs['n_eval']))
+    count_z = int(mul_inputs['n_trials'] )
+
+    loss = np.zeros((ninv, count_x, count_z * 2))
+    shadow = np.zeros((ninv, count_x, count_z * 2))
+    tail = np.zeros((ninv, count_x, count_z * 2))
+    lmin = np.zeros((ninv, count_x, count_z * 2))
+    cmax = np.zeros((ninv, count_x, count_z * 2))
+    heqv = np.zeros((ninv, count_x, count_z * 2)) 
+
+    reward = np.zeros((ninv, count_x, count_y))
+    lev = np.zeros((ninv, count_x, count_y))
+    stop = np.zeros((ninv, count_x, count_y))
+    reten = np.zeros((ninv, count_x, count_y))
+
+    for i in range(ninv):
+        for t in range(count_x):
+            for n in range(mul_inputs['n_trials']):
+                
+                    loss[i, t, (n * 2):(n * 2) + 2 ] = aggregate_n[i, n, t, 0, 3:5]
+                    shadow[i, t, (n * 2):(n * 2) + 2 ] = aggregate_n[i, n, t, 0, 9:11]
+                    tail[i, t, (n * 2):(n * 2) + 2 ] = aggregate_n[i, n, t, 0, 11:13]
+                    lmin[i, t, (n * 2):(n * 2) + 2 ] = aggregate_n[i, n, t, 0, 5:7]
+                    cmax[i, t, (n * 2):(n * 2) + 2 ] = aggregate_n[i, n, t, 0, 7:9]
+
+                    for s in range(int(mul_inputs['n_eval'])):
+                        reward[i, t, s + n * int(mul_inputs['n_eval'])] = aggregate_n[i, n, t, s, 20]
+                        lev[i, t, s + n * int(mul_inputs['n_eval'])] = aggregate_n[i, n, t, s, 23]
+                        stop[i, t, s + n * int(mul_inputs['n_eval'])] = aggregate_n[i, n, t, s, 24]
+                        reten[i, t, s + n * int(mul_inputs['n_eval'])] = aggregate_n[i, n, t, s, 25]
+
+    shadow[np.isnan(shadow)] = loss[np.isnan(shadow)]
+
+    for i in range(ninv):
+        for t in range(count_x):
+            for n in range(mul_inputs['n_trials'] * 2):
+                heqv[i, t, n] = shadow_equiv(loss[i, t, n], tail[i, t, n], 
+                                             lmin[i, t, n], loss[i, t, n], 1)
+
+    return reward, lev, stop, reten, loss, tail, shadow, cmax, heqv

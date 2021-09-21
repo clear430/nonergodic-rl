@@ -9,14 +9,14 @@ from scripts.exp_additive import additive_env
 from scripts.exp_multiplicative import multiplicative_env
 import time
 
-# off-policy models: ['SAC', 'TD3']
+# off-policy models: list ['SAC', 'TD3']
 algo_name = ['TD3']
-# critic loss functions: ['MSE', 'HUB', 'MAE', 'HSC', 'CAU', 'TCA', 'CIM', 'MSE2', 'MSE4', 'MSE6']
+# critic loss functions: list ['MSE', 'HUB', 'MAE', 'HSC', 'CAU', 'TCA', 'CIM', 'MSE2', 'MSE4', 'MSE6']
 critic_loss = ['MSE']
-# bootstrapping of target critic values and discounted rewards: [list of integers > 0] 
+# bootstrapping of target critic values and discounted rewards: list [integers > 0] 
 multi_steps = [1]
-
-ENV_KEY = 20
+# environments to train agent: list [integer ENV_KEY from gym_envs]
+envs = [31]
 
 gym_envs = {
     # ENV_KEY: [env_id, state_dim, action_dim, intial warm-up steps to generate random seed]
@@ -120,7 +120,8 @@ inputs_dict = {
     'algo_name': [algo.upper() for algo in algo_name],
     'critic_loss': [loss.upper() for loss in critic_loss],
     'bootstraps': multi_steps,
-    'ENV_KEY': ENV_KEY
+    'envs': envs,
+    'ENV_KEY': 0
     }
 
 # CONDUCT TESTS
@@ -248,18 +249,21 @@ assert isinstance(inputs_dict['bootstraps'], list) and \
     all(isinstance(mstep, int) for mstep in inputs_dict['bootstraps']) and \
         all(mstep >= 1 for mstep in inputs_dict['bootstraps']), \
             'multi-steps must be a list of positve integers'
-assert isinstance(inputs_dict['ENV_KEY'], int) and \
-    inputs_dict['ENV_KEY'] >= 0 and inputs_dict['ENV_KEY'] < len(gym_envs.keys()), \
-         'ENV_KEY must be an integrer and match those in dictionary gym_envs'
-assert isinstance(gym_envs[str(inputs_dict['ENV_KEY'])], list) and \
-    isinstance(gym_envs[str(inputs_dict['ENV_KEY'])][0], str) and \
-        all(isinstance(x, (float, int)) for x in gym_envs[str(inputs_dict['ENV_KEY'])][1:]), \
-        'environment details must be a list of the form [string, real, real, real]'
-assert int(gym_envs[str(inputs_dict['ENV_KEY'])][1]) >= 1, 'must have at least one environment state'
-assert int(gym_envs[str(inputs_dict['ENV_KEY'])][2]) >= 1, 'must have at least one environment action'
-assert int(gym_envs[str(inputs_dict['ENV_KEY'])][3]) >= 0 and \
-    int(gym_envs[str(inputs_dict['ENV_KEY'])][3]) <= int(inputs_dict['n_cumsteps']), \
-        'warm-up must be less than or equal to total training steps'
+
+keys = [int(env) for env in gym_envs]
+assert isinstance(inputs_dict['envs'], list) and \
+    set(inputs_dict['envs']).issubset(set(keys)), \
+        'environments must be selected from gym_envs dict keys'
+for key in inputs_dict['envs']:
+    assert isinstance(gym_envs[str(key)], list) and \
+        isinstance(gym_envs[str(key)][0], str) and \
+            all(isinstance(x, (float, int)) for x in gym_envs[str(key)][1:]), \
+            'environment {} details must be a list of the form [string, real, real, real]'.format(key)
+    assert int(gym_envs[str(key)][1]) >= 1, 'environment {} must have at least one state'.format(key)
+    assert int(gym_envs[str(key)][2]) >= 1, 'environment {} must have at least one action'.format(key)
+    assert int(gym_envs[str(key)][3]) >= 0 and \
+        int(gym_envs[str(key)][3]) <= int(inputs_dict['n_cumsteps']), \
+            'environment {} warm-up must be less than or equal to total training steps'.format(key)
 
 # SAC algorithm method checks
 assert hasattr(Agent_sac, 'select_next_action'), 'missing SAC agent action selection'
@@ -296,11 +300,14 @@ if __name__ == '__main__':
 
     start_time = time.perf_counter()
 
-    if ENV_KEY <= 13:
-        additive_env(gym_envs=gym_envs, inputs=inputs_dict)
-    else:
-        multiplicative_env(gym_envs=gym_envs, inputs=inputs_dict)
-    
+    for env_key in envs:
+        inputs_dict['ENV_KEY'] = env_key 
+            
+        if env_key <= 13:
+            additive_env(gym_envs=gym_envs, inputs=inputs_dict)
+        else:
+            multiplicative_env(gym_envs=gym_envs, inputs=inputs_dict)
+        
     end_time = time.perf_counter()
     total_time = end_time-start_time
 

@@ -430,14 +430,30 @@ def plot_temp(inputs: dict, data: np.ndarray, env_name: List[str], critic_name: 
 
     plt.savefig(filename_png, dpi=300, format='png')
 0
-def plot_inv(inputs: dict, data: np.ndarray, filename_png: str, T: int =1, V_0: float =1):
+def plot_inv(inputs: dict, reward, lev, stop, reten, loss, tail, shadow, cmax, heqv, 
+             filename_png: str, T: int =1, V_0: float =1):
     """
-    
-    """
-    ninv = data.shape[0]
-    cum_steps_log = data[0, 0, :, 0, 19]
+    Plot summary of investors for a constant number of assets.
 
-    eval_exp = utils.get_exponent(inputs['eval_freq'])
+    Parameters:
+        inputs: dictionary containing all execution details
+        reward: 1 + time-average growth rate
+        lev: leverages
+        stop: stop-losses
+        reten: retention ratios
+        loss: critic loss
+        tail: tail exponent
+        shadow: shadow critic loss
+        cmax: maximum critic loss
+        heqv: max multiplier for equvilance between shadow and empirical means
+        filename_png (directory): save path of plot
+        T: amount of compunding for reward
+        V_0: intial value to compound
+    """
+    ninv = reward.shape[0]
+    cum_steps_log = np.array([x for x in range(int(inputs['eval_freq']), int(inputs['n_cumsteps']) + 
+                                               int(inputs['eval_freq']), int(inputs['eval_freq']))])
+
     exp = utils.get_exponent(cum_steps_log)
     x_steps = cum_steps_log/10**(exp)
 
@@ -446,47 +462,6 @@ def plot_inv(inputs: dict, data: np.ndarray, filename_png: str, T: int =1, V_0: 
     b_col = mpatches.Patch(color=cols[1], label='B', alpha=0.8)
     c_col = mpatches.Patch(color=cols[2], label='C', alpha=0.8)
 
-    count_x = int(inputs['n_cumsteps'] / inputs['eval_freq'])
-    count_y = int(inputs['n_trials'] * int(inputs['n_eval']))
-    count_z = int(inputs['n_trials'] )
-
-    loss = np.zeros((ninv, count_x, count_z * 2))
-    shadow = np.zeros((ninv, count_x, count_z * 2))
-    tail = np.zeros((ninv, count_x, count_z * 2))
-    lmin = np.zeros((ninv, count_x, count_z * 2))
-    hmax = np.zeros((ninv, count_x, count_z * 2))
-    heqv = np.zeros((ninv, count_x, count_z * 2)) 
-
-    reward = np.zeros((ninv, count_x, count_y))
-    lev = np.zeros((ninv, count_x, count_y))
-    stop = np.zeros((ninv, count_x, count_y))
-    reten = np.zeros((ninv, count_x, count_y))
-
-    for i in range(ninv):
-        for t in range(count_x):
-            for n in range(inputs['n_trials']):
-                
-                    loss[i, t, (n * 2):(n * 2) + 2 ] = data[i, n, t, 0, 3:5]
-                    shadow[i, t, (n * 2):(n * 2) + 2 ] = data[i, n, t, 0, 9:11]
-                    tail[i, t, (n * 2):(n * 2) + 2 ] = data[i, n, t, 0, 11:13]
-                    lmin[i, t, (n * 2):(n * 2) + 2 ] = data[i, n, t, 0, 5:7]
-                    hmax[i, t, (n * 2):(n * 2) + 2 ] = data[i, n, t, 0, 7:9]
-
-                    for s in range(int(inputs['n_eval'])):
-                        reward[i, t, s + n * int(inputs['n_eval'])] = data[i, n, t, s, 20]
-                        lev[i, t, s + n * int(inputs['n_eval'])] = data[i, n, t, s, 23]
-                        stop[i, t, s + n * int(inputs['n_eval'])] = data[i, n, t, s, 24]
-                        reten[i, t, s + n * int(inputs['n_eval'])] = data[i, n, t, s, 25]
-
-    shadow[np.isnan(shadow)] = loss[np.isnan(shadow)]
-
-    for i in range(ninv):
-        for t in range(count_x):
-            for n in range(inputs['n_trials'] * 2):
-                heqv[i, t, n] = utils.shadow_equiv(loss[i, t, n], tail[i, t, n], 
-                                                   lmin[i, t, n], hmax[i, t, n], 1)
-
-    print(heqv)
     reward = V_0 * reward**T
 
     fig, axs = plt.subplots(nrows=4, ncols=2, figsize=(8,10))
@@ -500,10 +475,11 @@ def plot_inv(inputs: dict, data: np.ndarray, filename_png: str, T: int =1, V_0: 
 
         x_max, x_min = np.max(inv_x, axis=1, keepdims=True), np.min(inv_x, axis=1, keepdims=True)
         x_mad = np.mean(np.abs(inv_x - x_mean), axis=1, keepdims=True)
-        x_mad_up = np.minimum(x_max, x_mean+x_mad).reshape(-1)
-        x_mad_lo = np.maximum(x_min, x_mean-x_mad).reshape(-1)
-        x_mean = x_mean.reshape(-1)
-        x_med = x_med.reshape(-1)
+        x_mad_up = np.minimum(x_max, x_mean+x_mad).reshape(-1) - 1
+        x_mad_lo = np.maximum(x_min, x_mean-x_mad).reshape(-1) - 1
+
+        x_mean = x_mean.reshape(-1) - 1
+        x_med = x_med.reshape(-1) - 1
 
         # x_mean = np.log10(x_mean)
         # x_med = np.log10(x_med)
@@ -512,11 +488,11 @@ def plot_inv(inputs: dict, data: np.ndarray, filename_png: str, T: int =1, V_0: 
 
         axs[0, 0].plot(x_steps, x_mean, color=cols[i], linewidth=1)
         axs[0, 0].plot(x_steps, x_med, color=cols[i], linewidth=1, linestyle='--')
-        axs[0, 0].fill_between(x_steps, x_mad_lo, x_mad_up, facecolor=cols[i], alpha=0.1)
+        # axs[0, 0].fill_between(x_steps, x_mad_lo, x_mad_up, facecolor=cols[i], alpha=0.1)
         axs[0, 0].grid(True, linewidth=0.2)
         axs[0, 0].xaxis.set_ticklabels([])
 
-    axs[0, 0].set_ylabel('Valuations') 
+    axs[0, 0].set_ylabel('Growth ' + r'$\bar{g}$') 
 
     for i in range(ninv):
 
@@ -529,6 +505,7 @@ def plot_inv(inputs: dict, data: np.ndarray, filename_png: str, T: int =1, V_0: 
         x_mad = np.mean(np.abs(inv_x - x_mean), axis=1, keepdims=True)
         x_mad_up = np.minimum(x_max, x_mean+x_mad).reshape(-1)
         x_mad_lo = np.maximum(x_min, x_mean-x_mad).reshape(-1)
+        
         x_mean = x_mean.reshape(-1)
         x_med = x_med.reshape(-1)
 
@@ -538,7 +515,7 @@ def plot_inv(inputs: dict, data: np.ndarray, filename_png: str, T: int =1, V_0: 
         axs[1, 0].grid(True, linewidth=0.2)
         axs[1, 0].xaxis.set_ticklabels([])
 
-    axs[1, 0].set_ylabel('Leverage ' + r'$l$')
+    axs[1, 0].set_ylabel('Leverage')
 
     for i in range(1, ninv):
 
@@ -551,6 +528,7 @@ def plot_inv(inputs: dict, data: np.ndarray, filename_png: str, T: int =1, V_0: 
         x_mad = np.mean(np.abs(inv_x - x_mean), axis=1, keepdims=True)
         x_mad_up = np.minimum(x_max, x_mean+x_mad).reshape(-1) * 100
         x_mad_lo = np.maximum(x_min, x_mean-x_mad).reshape(-1) * 100
+        
         x_mean = x_mean.reshape(-1) * 100
         x_med = x_med.reshape(-1) * 100
 
@@ -573,6 +551,7 @@ def plot_inv(inputs: dict, data: np.ndarray, filename_png: str, T: int =1, V_0: 
         x_mad = np.mean(np.abs(inv_x - x_mean), axis=1, keepdims=True)
         x_mad_up = np.minimum(x_max, x_mean+x_mad).reshape(-1) * 100
         x_mad_lo = np.maximum(x_min, x_mean-x_mad).reshape(-1) * 100
+
         x_mean = x_mean.reshape(-1) * 100
         x_med = x_med.reshape(-1) * 100
 
@@ -582,20 +561,25 @@ def plot_inv(inputs: dict, data: np.ndarray, filename_png: str, T: int =1, V_0: 
         axs[3, 0].grid(True, linewidth=0.2)
 
     axs[3, 0].set_ylabel('Retention ' + r'$\phi$ ' + '(%)')
+    axs[3, 0].set_xlabel('Steps (1e'+str(exp)+')')
 
     for i in range(ninv):
 
         inv_x = loss[i]
 
         x_mean = np.mean(inv_x, axis=1, keepdims=True)
+        x_med = np.median(inv_x, axis=1, keepdims=True)
 
         x_max, x_min = np.max(inv_x, axis=1, keepdims=True), np.min(inv_x, axis=1, keepdims=True)
         x_mad = np.mean(np.abs(inv_x - x_mean), axis=1, keepdims=True)
         x_mad_up = np.minimum(x_max, x_mean+x_mad).reshape(-1)
         x_mad_lo = np.maximum(x_min, x_mean-x_mad).reshape(-1)
+        
         x_mean = x_mean.reshape(-1)
+        x_med = x_med.reshape(-1)
 
         axs[0, 1].plot(x_steps, x_mean, color=cols[i], linewidth=1)
+        axs[0, 1].plot(x_steps, x_med, color=cols[i], linewidth=1, linestyle='--')
         axs[0, 1].fill_between(x_steps, x_mad_lo, x_mad_up, facecolor=cols[i], alpha=0.1)
         axs[0, 1].grid(True, linewidth=0.2)
         axs[0, 1].xaxis.set_ticklabels([])
@@ -604,83 +588,255 @@ def plot_inv(inputs: dict, data: np.ndarray, filename_png: str, T: int =1, V_0: 
 
     for i in range(ninv):
 
-        inv_x = shadow[i]
+        inv_x = tail[i]
 
         x_mean = np.mean(inv_x, axis=1, keepdims=True)
-        
+        x_med = np.median(inv_x, axis=1, keepdims=True)
+
         x_max, x_min = np.max(inv_x, axis=1, keepdims=True), np.min(inv_x, axis=1, keepdims=True)
         x_mad = np.mean(np.abs(inv_x - x_mean), axis=1, keepdims=True)
         x_mad_up = np.minimum(x_max, x_mean+x_mad).reshape(-1)
         x_mad_lo = np.maximum(x_min, x_mean-x_mad).reshape(-1)
+        
         x_mean = x_mean.reshape(-1)
+        x_med = x_med.reshape(-1)
 
         axs[1, 1].plot(x_steps, x_mean, color=cols[i], linewidth=1)
+        axs[1, 1].plot(x_steps, x_med, color=cols[i], linewidth=1, linestyle='--')
         axs[1, 1].fill_between(x_steps, x_mad_lo, x_mad_up, facecolor=cols[i], alpha=0.1)
         axs[1, 1].grid(True, linewidth=0.2)
         axs[1, 1].xaxis.set_ticklabels([])
 
-        inv_x = hmax[i]
-
-        x_mean = np.mean(inv_x, axis=1, keepdims=True)
-  
-
-        x_max, x_min = np.max(inv_x, axis=1, keepdims=True), np.min(inv_x, axis=1, keepdims=True)
-        x_mad = np.mean(np.abs(inv_x - x_mean), axis=1, keepdims=True)
-        x_mad_up = np.minimum(x_max, x_mean+x_mad).reshape(-1)
-        x_mad_lo = np.maximum(x_min, x_mean-x_mad).reshape(-1)
-        x_mean = x_mean.reshape(-1)
-
-        axs[1, 1].plot(x_steps, x_mean, color=cols[i], linewidth=1, linestyle=':')
-        # axs[1, 1].fill_between(x_steps, x_mad_lo, x_mad_up, facecolor=cols[i], alpha=0.1)
-        axs[1, 1].grid(True, linewidth=0.2)
-        axs[1, 1].xaxis.set_ticklabels([])
-
-    axs[1, 1].set_ylabel('Shadow Mean ' + r'$\mu_s$')
+    axs[1, 1].set_ylabel('Tail Index ' + r'$\alpha}$')
 
     for i in range(ninv):
 
-        inv_x = tail[i]
+        inv_x = shadow[i]
 
         x_mean = np.mean(inv_x, axis=1, keepdims=True)
+        x_med = np.median(inv_x, axis=1, keepdims=True)
 
         x_max, x_min = np.max(inv_x, axis=1, keepdims=True), np.min(inv_x, axis=1, keepdims=True)
         x_mad = np.mean(np.abs(inv_x - x_mean), axis=1, keepdims=True)
         x_mad_up = np.minimum(x_max, x_mean+x_mad).reshape(-1)
         x_mad_lo = np.maximum(x_min, x_mean-x_mad).reshape(-1)
+        
         x_mean = x_mean.reshape(-1)
+        x_med = x_med.reshape(-1)
 
         axs[2, 1].plot(x_steps, x_mean, color=cols[i], linewidth=1)
+        axs[2, 1].plot(x_steps, x_med, color=cols[i], linewidth=1, linestyle='--')
         axs[2, 1].fill_between(x_steps, x_mad_lo, x_mad_up, facecolor=cols[i], alpha=0.1)
         axs[2, 1].grid(True, linewidth=0.2)
         axs[2, 1].xaxis.set_ticklabels([])
 
-    axs[2, 1].set_ylabel('Tail Index ' + r'$\alpha}$')
+        inv_x = cmax[i]
+
+        x_mean = np.mean(inv_x, axis=1, keepdims=True)
+        x_med = np.median(inv_x, axis=1, keepdims=True)
+
+        x_max, x_min = np.max(inv_x, axis=1, keepdims=True), np.min(inv_x, axis=1, keepdims=True)
+        x_mad = np.mean(np.abs(inv_x - x_mean), axis=1, keepdims=True)
+        x_mad_up = np.minimum(x_max, x_mean+x_mad).reshape(-1)
+        x_mad_lo = np.maximum(x_min, x_mean-x_mad).reshape(-1)
+        
+        x_mean = x_mean.reshape(-1)
+        x_med = x_med.reshape(-1)
+
+        # axs[2, 1].plot(x_steps, x_mean, color=cols[i], linewidth=1, linestyle=':')
+        # axs[2, 1].plot(x_steps, x_med, color=cols[i], linewidth=1, linestyle=':')
+        # axs[2, 1].fill_between(x_steps, x_mad_lo, x_mad_up, facecolor=cols[i], alpha=0.1)
+        axs[2, 1].grid(True, linewidth=0.2)
+        axs[2, 1].xaxis.set_ticklabels([])
+
+    axs[2, 1].set_ylabel('Shadow Loss ' + r'$\mu_s$')
 
     for i in range(ninv):
 
         inv_x = heqv[i]
 
         x_mean = np.mean(inv_x, axis=1, keepdims=True)
+        x_med = np.median(inv_x, axis=1, keepdims=True)
 
         x_max, x_min = np.max(inv_x, axis=1, keepdims=True), np.min(inv_x, axis=1, keepdims=True)
         x_mad = np.mean(np.abs(inv_x - x_mean), axis=1, keepdims=True)
         x_mad_up = np.minimum(x_max, x_mean+x_mad).reshape(-1)
         x_mad_lo = np.maximum(x_min, x_mean-x_mad).reshape(-1)
+        
         x_mean = x_mean.reshape(-1)
+        x_med = x_med.reshape(-1)
 
-        axs[3, 1].plot(x_steps, x_mean, color=cols[i], linewidth=1)
-        axs[3, 1].fill_between(x_steps, x_mad_lo, x_mad_up, facecolor=cols[i], alpha=0.1)
+        # axs[3, 1].plot(x_steps, x_mean, color=cols[i], linewidth=1)
+        axs[3, 1].plot(x_steps, x_med, color=cols[i], linewidth=1, linestyle='--')
+        # axs[3, 1].fill_between(x_steps, x_mad_lo, x_mad_up, facecolor=cols[i], alpha=0.1)
         axs[3, 1].grid(True, linewidth=0.2)
         axs[3, 1].xaxis.set_ticklabels([])
 
-    axs[3, 1].set_ylabel('Multiplier $H_{eqv}$ ')
-
-
+    axs[3, 1].set_ylabel('Multiplier $\kappa_{eqv}$ ')
 
     fig.subplots_adjust(bottom=0.1,  wspace=0.3, hspace=0.4)
-
-    inv_name = ['A', 'B', 'C']
     fig.legend(handles=[a_col, b_col, c_col], loc='lower center', ncol=3, frameon=False, fontsize='medium')
-    # fig.suptitle(name, fontsize='xx-large', y=0.95)
+
+    plt.savefig(filename_png, dpi=300, format='png')
+    
+def plot_inv_all_n(inputs: dict, reward_1, lev_1, stop_1, reten_1,
+                   reward_2, lev_2, stop_2, reten_2,
+                   reward_10, lev_10, stop_10, reten_10,
+                   filename_png: str, T: int =1, V_0: float =1):
+    """
+    Plot summary of investors across three counts of assets N = 1, 2, 10.
+
+    Parameters:
+        inputs: dictionary containing all execution details
+        reward_1: 1 + time-average growth rate for n=1 assets
+        lev_1: leverages for n=1 assets
+        stop_1: stop-losses for n=1 assets
+        reten_1: retention ratios for n=1 assets
+            ...
+        filename_png (directory): save path of plot
+        T: amount of compunding for reward
+        V_0: intial value to compound
+    """
+    ninv = reward_1.shape[0]
+    cum_steps_log = np.array([x for x in range(int(inputs['eval_freq']), int(inputs['n_cumsteps']) + 
+                                               int(inputs['eval_freq']), int(inputs['eval_freq']))])
+
+    exp = utils.get_exponent(cum_steps_log)
+    x_steps = cum_steps_log/10**(exp)
+
+    cols = ['C'+str(x) for x in range(ninv)]
+    a_col = mpatches.Patch(color=cols[0], label='A', alpha=0.8)
+    b_col = mpatches.Patch(color=cols[1], label='B', alpha=0.8)
+    c_col = mpatches.Patch(color=cols[2], label='C', alpha=0.8)
+
+    reward_1, reward_2, reward_10 = V_0 * reward_1**T, V_0 * reward_2**T, V_0 * reward_10**T
+
+    fig, axs = plt.subplots(nrows=4, ncols=3, figsize=(10,12))
+
+    for n in range(3):
+        for i in range(ninv):
+
+            if n == 0:
+                inv_x = reward_1[i]
+            elif n == 1:
+                inv_x = reward_2[i]
+            else:
+                inv_x = reward_10[i]
+
+            x_mean = np.mean(inv_x, axis=1, keepdims=True)
+            x_med = np.median(inv_x, axis=1, keepdims=True)
+
+            x_max, x_min = np.max(inv_x, axis=1, keepdims=True), np.min(inv_x, axis=1, keepdims=True)
+            x_mad = np.mean(np.abs(inv_x - x_mean), axis=1, keepdims=True)
+            x_mad_up = np.minimum(x_max, x_mean+x_mad).reshape(-1) - 1
+            x_mad_lo = np.maximum(x_min, x_mean-x_mad).reshape(-1) - 1
+
+            x_mean = x_mean.reshape(-1) - 1
+            x_med = x_med.reshape(-1) - 1
+
+            axs[0, n].plot(x_steps, x_mean, color=cols[i], linewidth=1)
+            axs[0, n].plot(x_steps, x_med, color=cols[i], linewidth=1, linestyle='--')
+            # axs[0, n].fill_between(x_steps, x_mad_lo, x_mad_up, facecolor=cols[i], alpha=0.1)
+            axs[0, n].grid(True, linewidth=0.2)
+            axs[0, n].xaxis.set_ticklabels([])
+
+    axs[0, 0].set_ylabel('Growth ' + r'$\bar{g}$') 
+
+    for n in range(3):
+        for i in range(ninv):
+
+            if n == 0:
+                inv_x = lev_1[i]
+            elif n == 1:
+                inv_x = lev_2[i]
+            else:
+                inv_x = lev_10[i]
+
+            x_mean = np.mean(inv_x, axis=1, keepdims=True)
+            x_med = np.median(inv_x, axis=1, keepdims=True)
+
+            x_max, x_min = np.max(inv_x, axis=1, keepdims=True), np.min(inv_x, axis=1, keepdims=True)
+            x_mad = np.mean(np.abs(inv_x - x_mean), axis=1, keepdims=True)
+            x_mad_up = np.minimum(x_max, x_mean+x_mad).reshape(-1)
+            x_mad_lo = np.maximum(x_min, x_mean-x_mad).reshape(-1)
+
+            x_mean = x_mean.reshape(-1)
+            x_med = x_med.reshape(-1)
+
+            axs[1, n].plot(x_steps, x_mean, color=cols[i], linewidth=1)
+            axs[1, n].plot(x_steps, x_med, color=cols[i], linewidth=1, linestyle='--')
+            axs[1, n].fill_between(x_steps, x_mad_lo, x_mad_up, facecolor=cols[i], alpha=0.1)
+            axs[1, n].grid(True, linewidth=0.2)
+            axs[1, n].xaxis.set_ticklabels([])
+
+    axs[1, 0].set_ylabel('Leverage')
+
+    for n in range(3):
+        for i in range(1, ninv, 1):
+
+            if n == 0:
+                inv_x = stop_1[i]
+            elif n == 1:
+                inv_x = stop_2[i]
+            else:
+                inv_x = stop_10[i]
+
+            x_mean = np.mean(inv_x, axis=1, keepdims=True)
+            x_med = np.median(inv_x, axis=1, keepdims=True)
+
+            x_max, x_min = np.max(inv_x, axis=1, keepdims=True), np.min(inv_x, axis=1, keepdims=True)
+            x_mad = np.mean(np.abs(inv_x - x_mean), axis=1, keepdims=True)
+            x_mad_up = np.minimum(x_max, x_mean+x_mad).reshape(-1) * 100
+            x_mad_lo = np.maximum(x_min, x_mean-x_mad).reshape(-1) * 100
+
+            x_mean = x_mean.reshape(-1) * 100
+            x_med = x_med.reshape(-1) * 100
+
+            axs[2, n].plot(x_steps, x_mean, color=cols[i], linewidth=1)
+            axs[2, n].plot(x_steps, x_med, color=cols[i], linewidth=1, linestyle='--')
+            axs[2, n].fill_between(x_steps, x_mad_lo, x_mad_up, facecolor=cols[i], alpha=0.1)
+            axs[2, n].grid(True, linewidth=0.2)
+            axs[2, n].xaxis.set_ticklabels([])
+
+    axs[2, 0].set_ylabel('Stop-Loss ' + r'$\lambda$ ' + '(%)')
+
+    for n in range(3):
+        for i in range(2, ninv, 1):
+
+            if n == 0:
+                inv_x = reten_1[i]
+            elif n == 1:
+                inv_x = reten_2[i]
+                axs[3, n].xaxis.set_ticklabels([])
+            else:
+                inv_x = reten_10[i]
+                axs[3, n].xaxis.set_ticklabels([])
+
+            x_mean = np.mean(inv_x, axis=1, keepdims=True)
+            x_med = np.median(inv_x, axis=1, keepdims=True)
+
+            x_max, x_min = np.max(inv_x, axis=1, keepdims=True), np.min(inv_x, axis=1, keepdims=True)
+            x_mad = np.mean(np.abs(inv_x - x_mean), axis=1, keepdims=True)
+            x_mad_up = np.minimum(x_max, x_mean+x_mad).reshape(-1) * 100
+            x_mad_lo = np.maximum(x_min, x_mean-x_mad).reshape(-1) * 100
+
+            x_mean = x_mean.reshape(-1) * 100
+            x_med = x_med.reshape(-1) * 100
+
+            axs[3, n].plot(x_steps, x_mean, color=cols[i], linewidth=1)
+            axs[3, n].plot(x_steps, x_med, color=cols[i], linewidth=1, linestyle='--')
+            axs[3, n].fill_between(x_steps, x_mad_lo, x_mad_up, facecolor=cols[i], alpha=0.1)
+            axs[3, n].grid(True, linewidth=0.2)
+
+    # axs[3, 0].xaxis.set_ticklabels([])
+    axs[3, 0].set_ylabel('Retention ' + r'$\phi$ ' + '(%)')
+    axs[3, 0].set_xlabel('Steps (1e'+str(exp)+')')
+
+    axs[0, 0].text(0.35, 1.2, "N = 1", size='large', transform=axs[0, 0].transAxes)
+    axs[0, 1].text(0.35, 1.2, "N = 2", size='large', transform=axs[0, 1].transAxes)
+    axs[0, 2].text(0.35, 1.2, "N = 10", size='large', transform=axs[0, 2].transAxes)
+
+    fig.subplots_adjust(bottom=0.1,  wspace=0.25, hspace=0.3)
+    fig.legend(handles=[a_col, b_col, c_col], loc='lower center', ncol=3, frameon=False, fontsize='medium')
 
     plt.savefig(filename_png, dpi=300, format='png')
