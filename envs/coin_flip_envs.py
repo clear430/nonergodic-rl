@@ -21,7 +21,7 @@ UP_PROB = 0.5                                   # probability of up move
 UP_R = 0.5                                      # upside return (>=0)
 DOWN_R = -0.4                                   # downside return (0<=)
 
-# maximum (absolute) portfolio leverage (eta)
+# maximum (absolute) leverage per assset (eta)
 if np.abs(UP_R) > np.abs(DOWN_R):
     LEV_FACTOR = 1 / np.abs(DOWN_R)
 else:
@@ -67,7 +67,7 @@ class Coin_n1_InvA(gym.Env):
         Fix randomisation seed.
 
         Parameters:
-            seed: unique seed for Numpy.
+            seed: unique seed for NumPy.
         """
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
@@ -116,7 +116,7 @@ class Coin_n1_InvA(gym.Env):
                     or reward < MIN_REWARD
                     or step_return < MIN_RETURN
                     or np.abs(lev) < MIN_WEIGHT
-                    or np.any(next_state > 1))
+                    or np.any(next_state > MAX_VALUE_RATIO))
 
         risk = np.array([reward, self.wealth, step_return, lev], dtype=np.float64)
 
@@ -181,7 +181,7 @@ class Coin_n2_InvA(gym.Env):
         Fix randomisation seed.
 
         Parameters:
-            seed: unique seed for Numpy.
+            seed: unique seed for NumPy.
         """
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
@@ -230,7 +230,7 @@ class Coin_n2_InvA(gym.Env):
                     or reward < MIN_REWARD
                     or step_return < MIN_RETURN
                     or np.all(np.abs(lev) < MIN_WEIGHT)
-                    or np.any(next_state > 1))
+                    or np.any(next_state > MAX_VALUE_RATIO))
 
         risk = np.array([reward, self.wealth, step_return, np.mean(lev), lev[0], lev[1]], 
                          dtype=np.float64)
@@ -296,7 +296,7 @@ class Coin_n10_InvA(gym.Env):
         Fix randomisation seed.
 
         Parameters:
-            seed: unique seed for Numpy.
+            seed: unique seed for NumPy.
         """
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
@@ -355,7 +355,7 @@ class Coin_n10_InvA(gym.Env):
                     or reward < MIN_REWARD
                     or step_return < MIN_RETURN
                     or np.all(np.abs(lev) < MIN_WEIGHT)
-                    or np.any(next_state > 1))
+                    or np.any(next_state > MAX_VALUE_RATIO))
 
         risk = np.array([reward, self.wealth, step_return, np.mean(lev), lev[0], lev[1], lev[2], lev[3], 
                          lev[4], lev[5], lev[6], lev[7], lev[8], lev[9]], dtype=np.float64)
@@ -426,7 +426,7 @@ class Coin_n1_InvB(gym.Env):
         Fix randomisation seed.
 
         Parameters:
-            seed: unique seed for Numpy.
+            seed: unique seed for NumPy.
         """
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
@@ -481,7 +481,7 @@ class Coin_n1_InvB(gym.Env):
                     or reward < MIN_REWARD
                     or step_return < MIN_RETURN
                     or np.abs(lev) < MIN_WEIGHT
-                    or np.any(next_state > 1))
+                    or np.any(next_state > MAX_VALUE_RATIO))
 
         risk = np.array([reward, self.wealth, step_return, lev, stop_loss], dtype=np.float64)
 
@@ -546,7 +546,7 @@ class Coin_n2_InvB(gym.Env):
         Fix randomisation seed.
 
         Parameters:
-            seed: unique seed for Numpy.
+            seed: unique seed for NumPy.
         """
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
@@ -601,7 +601,7 @@ class Coin_n2_InvB(gym.Env):
                     or reward < MIN_REWARD
                     or step_return < MIN_RETURN
                     or np.all(np.abs(lev) < MIN_WEIGHT)
-                    or np.any(next_state > 1))
+                    or np.any(next_state > MAX_VALUE_RATIO))
 
         risk = np.array([reward, self.wealth, step_return, np.mean(lev), stop_loss, lev[0], lev[1]], 
                          dtype=np.float64)
@@ -667,7 +667,7 @@ class Coin_n10_InvB(gym.Env):
         Fix randomisation seed.
 
         Parameters:
-            seed: unique seed for Numpy.
+            seed: unique seed for NumPy.
         """
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
@@ -732,7 +732,7 @@ class Coin_n10_InvB(gym.Env):
                     or reward < MIN_REWARD
                     or step_return < MIN_RETURN
                     or np.all(np.abs(lev) < MIN_WEIGHT)
-                    or np.any(next_state > 1))
+                    or np.any(next_state > MAX_VALUE_RATIO))
 
         risk = np.array([reward, self.wealth, step_return, np.mean(lev), stop_loss, lev[0], lev[1], 
                          lev[2], lev[3], lev[4], lev[5], lev[6], lev[7], lev[8], lev[9]], 
@@ -804,7 +804,7 @@ class Coin_n1_InvC(gym.Env):
         Fix randomisation seed.
 
         Parameters:
-            seed: unique seed for Numpy.
+            seed: unique seed for NumPy.
         """
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
@@ -867,7 +867,7 @@ class Coin_n1_InvC(gym.Env):
                     or reward < MIN_REWARD
                     or step_return < MIN_RETURN
                     or np.abs(lev) < MIN_WEIGHT
-                    or np.any(next_state > 1))
+                    or np.any(next_state > MAX_VALUE_RATIO))
 
         risk = np.array([reward, self.wealth, step_return, lev, stop_loss, retention], dtype=np.float64)
 
@@ -932,7 +932,7 @@ class Coin_n2_InvC(gym.Env):
         Fix randomisation seed.
 
         Parameters:
-            seed: unique seed for Numpy.
+            seed: unique seed for NumPy.
         """
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
@@ -995,7 +995,7 @@ class Coin_n2_InvC(gym.Env):
                     or reward < MIN_REWARD
                     or step_return < MIN_RETURN
                     or np.all(np.abs(lev) < MIN_WEIGHT)
-                    or np.any(next_state > 1))
+                    or np.any(next_state > MAX_VALUE_RATIO))
 
         risk = np.array([reward, self.wealth, step_return, np.mean(lev), stop_loss, retention,
                          lev[0], lev[1]], dtype=np.float64)
@@ -1061,7 +1061,7 @@ class Coin_n10_InvC(gym.Env):
         Fix randomisation seed.
 
         Parameters:
-            seed: unique seed for Numpy.
+            seed: unique seed for NumPy.
         """
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
@@ -1134,7 +1134,7 @@ class Coin_n10_InvC(gym.Env):
                     or reward < MIN_REWARD
                     or step_return < MIN_RETURN
                     or np.all(np.abs(lev) < MIN_WEIGHT)
-                    or np.any(next_state > 1))
+                    or np.any(next_state > MAX_VALUE_RATIO))
 
         risk = np.array([reward, self.wealth, step_return, np.mean(lev), stop_loss, retention, 
                          lev[0], lev[1], lev[2], lev[3], lev[4], lev[5], lev[6], lev[7], lev[8], 

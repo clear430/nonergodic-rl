@@ -23,7 +23,7 @@ def additive_env(gym_envs: dict, inputs: dict):
               'max_action': env.action_space.high.min(), 'min_action': env.action_space.low.max(), 
               'env_id': gym_envs[str(inputs['ENV_KEY'])][0], 'random': gym_envs[str(inputs['ENV_KEY'])][3],
               'dynamics': 'A',    # gambling dynamics 'A' (additive)
-              'algo': 'TD3', 'loss_fn': 'MSE', 'multi_steps': 1, **inputs
+              'n_eval': inputs['n_eval_add'], 'algo': 'TD3', 'loss_fn': 'MSE', 'multi_steps': 1, **inputs
               }
               
     env = env.env    # allow access to setting enviroment state and remove episode step limit

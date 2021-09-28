@@ -116,7 +116,11 @@ class ActorNetwork(nn.Module):
         moments = self.forward(state)
         mu, log_scale = moments[:, :self.num_actions], moments[:, self.num_actions:]
         scale = log_scale.exp()
-        
+
+        # important to enhance learning stability with certain critic loss functions
+        mu = T.nan_to_num(mu, nan=0, posinf=None, neginf=None)
+        scale = T.nan_to_num(scale, nan=1, posinf=None, neginf=None)
+
         if self.stoch == 'N':
             probabilities = Normal(loc=mu, scale=scale)
         else:
@@ -155,6 +159,10 @@ class ActorNetwork(nn.Module):
         batch_size = moments.size()[0]
         mu, log_var = moments[:, :self.num_actions], moments[:, self.num_actions:]
         var = log_var.exp()
+
+        # important to enhance learning stability with certain critic loss functions
+        mu = T.nan_to_num(mu, nan=0, posinf=None, neginf=None)
+        var = T.nan_to_num(var, nan=1, posinf=None, neginf=None)
 
         if batch_size > 1:
             pass

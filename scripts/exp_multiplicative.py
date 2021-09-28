@@ -6,8 +6,10 @@ from algos.algo_td3 import Agent_td3
 from datetime import datetime
 import envs.coin_flip_envs as coin_flip_envs
 import envs.dice_roll_envs as dice_roll_envs
-# import envs.dice_roll_sh_envs as dice_roll_sh_envs
+import envs.dice_roll_sh_envs as dice_roll_sh_envs
 # import envs.gbm_envs as gbm_envs
+# import envs.market_envs as market_envs
+# import extras.market_sim as market_sim
 import extras.plots_summary as plots
 import extras.eval_episodes as eval_episodes
 import extras.utils as utils
@@ -24,15 +26,17 @@ def multiplicative_env(gym_envs: dict, inputs: dict):
     elif inputs['ENV_KEY'] <= 31:
         env = eval('dice_roll_envs.'+gym_envs[str(inputs['ENV_KEY'])][0]+'()')
     elif inputs['ENV_KEY'] <= 40:
-        env = eval('dice_roll_sh_envs.'+gym_envs[str(inputs['ENV_KEY'])][0]+'()')
-    elif inputs['ENV_KEY'] <= 49:
         env = eval('gbm_envs.'+gym_envs[str(inputs['ENV_KEY'])][0]+'()')
+    elif inputs['ENV_KEY'] <= 48:
+        env = eval('dice_roll_sh_envs.'+gym_envs[str(inputs['ENV_KEY'])][0]+'()')
+    else:
+        env = eval('market_envs.'+gym_envs[str(inputs['ENV_KEY'])][0]+'()')
 
     inputs = {'input_dims': env.observation_space.shape, 'num_actions': env.action_space.shape[0], 
               'max_action': env.action_space.high.min(), 'min_action': env.action_space.low.max(),    # assume all elements span equal domain 
               'env_id': gym_envs[str(inputs['ENV_KEY'])][0], 'random': gym_envs[str(inputs['ENV_KEY'])][3], 
               'dynamics': 'M',    # gambling dynamics 'M' (multiplicative)
-              'algo': 'TD3', 'loss_fn': 'MSE', 'multi_steps': 1, **inputs
+              'n_eval': inputs['n_eval_mul'], 'algo': 'TD3', 'loss_fn': 'MSE', 'multi_steps': 1, **inputs
               }
 
     for algo in inputs['algo_name']:
@@ -85,11 +89,12 @@ def multiplicative_env(gym_envs: dict, inputs: dict):
                             # conduct periodic agent evaluation episodes without learning
                             if cum_steps % int(inputs['eval_freq']) == 0:
                                 
-                                if inputs['ENV_KEY'] <= 49:
+                                if inputs['ENV_KEY'] <= 48:
                                     eval_episodes.eval_multiplicative(agent, inputs, eval_log, eval_risk_log, cum_steps, 
                                                                       round, eval_run, loss, logtemp, loss_params)
-                                else:
-                                    pass
+                                # else:
+                                    # market_sim.eval_multiplicative(agent, inputs, eval_log, eval_risk_log, cum_steps, 
+                                    #                                round, eval_run, loss, logtemp, loss_params)
 
                                 eval_run += 1
 
@@ -114,7 +119,7 @@ def multiplicative_env(gym_envs: dict, inputs: dict):
                             print('{} {}-{}-{}-{} ep/st/cst {}/{}/{} {:1.0f}/s: V/g/[risk] ${:1.2f}/{:1.6f}%/{}, C/Cm/Cs {:1.2f}/{:1.2f}/{:1.2f}, a/c/k/A/T {:1.2f}/{:1.2f}/{:1.2f}/{:1.2f}/{:1.2f}'
                                   .format(datetime.now().strftime('%d %H:%M:%S'),
                                           inputs['algo'], inputs['s_dist'], inputs['loss_fn'], round+1, episode, step, cum_steps, step/time_log[-1], 
-                                          risk[1], reward-1, np.round(risk[2:5]*100, 0), np.mean(loss[0:2]), np.mean(loss[4:6]), 
+                                          risk[1], reward-1, np.round(risk[2:7]*100, 0), np.mean(loss[0:2]), np.mean(loss[4:6]), 
                                           np.mean(loss[6:8]), np.mean(loss[8:10]), np.mean(loss_params[0:2]), np.mean(loss_params[2:4]), loss[8]+3, np.exp(logtemp)+5))
 
                         episode += 1

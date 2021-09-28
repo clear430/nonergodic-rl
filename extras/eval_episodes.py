@@ -4,7 +4,7 @@ sys.path.append("./")
 from datetime import datetime
 import envs.coin_flip_envs as coin_flip_envs
 import envs.dice_roll_envs as dice_roll_envs
-# import envs.dice_roll_sh_envs as dice_roll_sh_envs
+import envs.dice_roll_sh_envs as dice_roll_sh_envs
 # import envs.gbm_envs as gbm_envs
 import gym
 import numpy as np
@@ -70,21 +70,23 @@ def eval_additive(agent: object, inputs: dict, eval_log: np.ndarray, cum_steps: 
 
     run = eval_log[round, eval_run, :, 1]
     mean_run = np.mean(run)
+    med_run = np.median(run)
     mad_run = np.mean(np.abs(run - mean_run))
     std_run = np.std(run, ddof=0)
 
     step = eval_log[round, eval_run, :, 2]
     mean_step = np.mean(step)
+    med_step = np.median(step)
     mad_step = np.mean(np.abs(step - mean_step))
     std_step = np.std(step, ddof=0)
 
-    stats = [mean_run, mean_step, mad_run, mad_step, std_run, std_step]
+    stats = [mean_run, mean_step, med_run, med_step, mad_run, mad_step, std_run, std_step]
 
     steps_sec = np.sum(eval_log[round, eval_run, :, 2]) / np.sum(eval_log[round, eval_run, :, 0])
 
-    print("{} Evaluations Summary {:1.0f}/s r/st: mean {:1.0f}/{:1.0f}, mad {:1.0f}/{:1.0f}, std {:1.0f}/{:1.0f}"
+    print("{} Evaluations Summary {:1.0f}/s r/st: mean {:1.0f}/{:1.0f}, med {:1.0f}/{:1.0f}, mad {:1.0f}/{:1.0f}, std {:1.0f}/{:1.0f}"
           .format(datetime.now().strftime('%d %H:%M:%S'), steps_sec, 
-                  stats[0], stats[1], stats[2], stats[3], stats[4], stats[5]))
+                  stats[0], stats[1], stats[2], stats[3], stats[4], stats[5], stats[6], stats[7]))
 
 def eval_multiplicative(agent: object, inputs: dict, eval_log: np.ndarray, eval_risk_log: np.ndarray, cum_steps: int,
                         round: int, eval_run: int, loss: Tuple[float, float, float, float, float, float], 
@@ -116,9 +118,9 @@ def eval_multiplicative(agent: object, inputs: dict, eval_log: np.ndarray, eval_
     elif inputs['ENV_KEY'] <= 31:
         eval_env = eval('dice_roll_envs.'+inputs['env_id']+'()')
     elif inputs['ENV_KEY'] <= 40:
-        eval_env = eval('dice_roll_sh_envs.'+inputs['env_id']+'()')
-    elif inputs['ENV_KEY'] <= 49:
         eval_env = eval('gbm_envs.'+inputs['env_id']+'()')
+    else:
+        eval_env = eval('dice_roll_sh_envs.'+inputs['env_id']+'()')
 
     for eval_epis in range(int(inputs['n_eval'])):
         start_time = time.perf_counter()
@@ -147,20 +149,22 @@ def eval_multiplicative(agent: object, inputs: dict, eval_log: np.ndarray, eval_
         eval_log[round, eval_run, eval_epis, 19] = cum_steps
         eval_risk_log[round, eval_run, eval_epis, :] = run_risk
 
-    run = eval_log[round, eval_run, :, 1] - 1
+    run = eval_log[round, eval_run, :, 1]
     mean_run = np.mean(run)
+    med_run = np.median(run)
     mad_run = np.mean(np.abs(run - mean_run))
     std_run = np.std(run, ddof=0)
 
     step = eval_log[round, eval_run, :, 2]
     mean_step = np.mean(step)
+    med_step = np.median(step)
     mad_step = np.mean(np.abs(step - mean_step))
     std_step = np.std(step, ddof=0)
 
-    stats = [mean_run, mean_step, mad_run, mad_step, std_run, std_step]
+    stats = [mean_run, mean_step, med_run, med_step, mad_run, mad_step, std_run, std_step]
 
     steps_sec = np.sum(eval_log[round, eval_run, :, 2]) / np.sum(eval_log[round, eval_run, :, 0])
 
-    print("{} Evaluations Summary {:1.0f}/s r/st: mean {:1.6f}%/{:1.0f}, mad {:1.6}%/{:1.0f}, std {:1.6f}%/{:1.0f}"
+    print("{} Evaluations Summary {:1.0f}/s r/st: mean {:1.0f}/{:1.0f}, med {:1.0f}/{:1.0f}, mad {:1.0f}/{:1.0f}, std {:1.0f}/{:1.0f}"
           .format(datetime.now().strftime('%d %H:%M:%S'), steps_sec, 
-                  stats[0], stats[1], stats[2], stats[3], stats[4], stats[5]))
+                  stats[0], stats[1], stats[2], stats[3], stats[4], stats[5], stats[6], stats[7]))

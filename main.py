@@ -16,13 +16,12 @@ critic_loss = ['MSE']
 # bootstrapping of target critic values and discounted rewards: list [integers > 0] 
 multi_steps = [1]
 # environments to train agent: list [integer ENV_KEY from gym_envs]
-envs = [31]
+envs = [41] # 32, 35, 38, 33, 34, 36, 37, 39, 40]
 
 gym_envs = {
     # ENV_KEY: [env_id, state_dim, action_dim, intial warm-up steps to generate random seed]
 
-    ## ADDITIVE ENVIRONMENTS
-
+    ## ADDITIVE ENVIRONMENTSs
     # OpenAI Box2D continuous control tasks
     '0': ['LunarLanderContinuous-v2', 8, 2, 1e3], 
     '1': ['BipedalWalker-v3', 24, 4, 1e3],
@@ -52,22 +51,28 @@ gym_envs = {
     '23': ['Dice_n1_InvA', 2, 1, 1e3], '24': ['Dice_n2_InvA', 3, 2, 1e3], '25': ['Dice_n10_InvA', 11, 10, 1e3],
     '26': ['Dice_n1_InvB', 2, 2, 1e3], '27': ['Dice_n2_InvB', 3, 3, 1e3], '28': ['Dice_n10_InvB', 11, 11, 1e3],
     '29': ['Dice_n1_InvC', 2, 3, 1e3], '30': ['Dice_n2_InvC', 3, 4, 1e3], '31': ['Dice_n10_InvC', 11, 12, 1e3],
-    # assets following dice roll with insurance safe haven
-    '32': ['Dice_SH_n1_InvA', 2, 1, 1e3], '33': ['Dice_SH_n2_InvA', 3, 2, 1e3], '34': ['Dice_SH_n10_InvA', 11, 10, 1e3],
-    '35': ['Dice_SH_n1_InvB', 2, 2, 1e3], '36': ['Dice_SH_n2_InvB', 3, 3, 1e3], '37': ['Dice_SH_n10_InvB', 11, 11, 1e3],
-    '38': ['Dice_SH_n1_InvC', 2, 3, 1e3], '39': ['Dice_SH_n2_InvC', 3, 4, 1e3], '40': ['Dice_SH_n10_InvC', 11, 12, 1e3],
     # assets following GBM
-    '41': ['GBM_n1_InvA', 2, 1, 1e3], '42': ['GBM_n2_InvA', 3, 2, 1e3], '43': ['GBM_n10_InvA', 11, 10, 1e3],
-    '44': ['GBM_n1_InvB', 2, 2, 1e3], '45': ['GBM_n2_InvB', 3, 3, 1e3], '46': ['GBM_n10_InvB', 11, 11, 1e3],
-    '47': ['GBM_n1_InvC', 2, 3, 1e3], '48': ['GBM_n2_InvC', 3, 4, 1e3], '49': ['GBM_n10_InvC', 11, 12, 1e3],
+    # '32': ['GBM_n1_InvA', 2, 1, 1e3], '33': ['GBM_n2_InvA', 3, 2, 1e3], '34': ['GBM_n10_InvA', 11, 10, 1e3],
+    # '35': ['GBM_n1_InvB', 2, 2, 1e3], '36': ['GBM_n2_InvB', 3, 3, 1e3], '37': ['GBM_n10_InvB', 11, 11, 1e3],
+    # '38': ['GBM_n1_InvC', 2, 3, 1e3], '39': ['GBM_n2_InvC', 3, 4, 1e3], '40': ['GBM_n10_InvC', 11, 12, 1e3],
+    # assets following dice roll without and with insurance safe haven
+    '41': ['Dice_SH_n1_U', 2, 1, 1e3], '42': ['Dice_SH_n1_I', 2, 1, 1e3], 
+    '43': ['Dice_SH_n1_InvA_U', 2, 1, 1e3], '44': ['Dice_SH_n1_InvA_I', 3, 2, 1e3],
+    '45': ['Dice_SH_n1_InvB_U', 2, 2, 1e3], '46': ['Dice_SH_n1_InvB_I', 3, 3, 1e3],  
+    '47': ['Dice_SH_n1_InvC_U', 2, 3, 1e3], '48': ['Dice_SH_n1_InvC_I', 3, 4, 1e3], 
+    # assets following market environment (not public)
+    # '49': ['Market_InvA', 11, 1, 1e3], 
+    # '50': ['Market_InvB', 11, 2, 1e3], 
+    # '51': ['Market_InvC', 11, 3, 1e3],
     }
 
 inputs_dict = {
     # execution parameters
-    'n_trials': 5,                              # number of total unique training trials
-    'n_cumsteps': 2e4,                          # maximum cumulative steps per trial (must be greater than warm-up)
+    'n_trials': 10,                             # number of total unique training trials
+    'n_cumsteps': 4e4,                          # maximum cumulative steps per trial (must be greater than warm-up)
     'eval_freq': 1e3,                           # interval of steps between evaluation episodes
-    'n_eval': 1e3,                              # number of evalution episodes
+    'n_eval_add': 1e1,                          # number of evalution episodes for additive environments
+    'n_eval_mul': 1e3,                          # number of evalution episodes for multiplicaitve environments
     'max_eval_reward': 1e4,                     # maximum reward per evaluation episode for additive environments
     'max_eval_steps': 1e0,                      # maximum steps per evaluation episode for multiplicative environments
 
@@ -140,8 +145,10 @@ assert isinstance(inputs_dict['eval_freq'], (float, int)) and \
     int(inputs_dict['eval_freq']) >= 1 and \
         int(inputs_dict['eval_freq']) <= int(inputs_dict['n_cumsteps']), \
             'must be greater than or equal to 1 and less than or equal to n_cumsteps'
-assert isinstance(inputs_dict['n_eval'], (float, int)) and \
-    int(inputs_dict['n_eval']) >= 1, gte1
+assert isinstance(inputs_dict['n_eval_add'], (float, int)) and \
+    int(inputs_dict['n_eval_add']) >= 1, gte1
+assert isinstance(inputs_dict['n_eval_mul'], (float, int)) and \
+    int(inputs_dict['n_eval_mul']) >= 1, gte1
 assert isinstance(inputs_dict['max_eval_reward'], (float, int)) and \
     inputs_dict['max_eval_reward'] > 0, gt0
 assert isinstance(inputs_dict['max_eval_steps'], (float, int)) and \

@@ -1,6 +1,6 @@
 from algos.networks_sac import ActorNetwork, CriticNetwork
 from extras.replay import ReplayBuffer
-import extras.utils as utils
+import extras.critic_loss as closs
 import numpy as np
 import torch as T
 from typing import Tuple
@@ -259,19 +259,19 @@ class Agent_sac():
         q1, q2 = q1.view(self.batch_size, 1), q2.view(self.batch_size, 1)
         
         # updates CIM kernel size empirically
-        kernel_1 = utils.cim_size(q1, batch_target)
-        kernel_2 = utils.cim_size(q2, batch_target)
+        kernel_1 = closs.cim_size(q1, batch_target)
+        kernel_2 = closs.cim_size(q2, batch_target)
 
         # backpropogation of critic loss while retaining graph due to coupling of soft value and policy
         self.critic_1.optimiser.zero_grad()
         self.critic_2.optimiser.zero_grad()
 
         q1_mean, q1_min, q1_max, \
-             q1_shadow, q1_alpha = utils.loss_function(q1, batch_target, self.shadow_low_mul, self.shadow_high_mul,
+             q1_shadow, q1_alpha = closs.loss_function(q1, batch_target, self.shadow_low_mul, self.shadow_high_mul,
                                                        self.zipf_x, self.zipf_x2, self.loss_type, 
-                                                       self.cauchy_scale_1, kernel_1)
+                                                             self.cauchy_scale_1, kernel_1)
         q2_mean, q2_min, q2_max, \
-            q2_shadow, q2_alpha = utils.loss_function(q2, batch_target, self.shadow_low_mul, self.shadow_high_mul,
+            q2_shadow, q2_alpha = closs.loss_function(q2, batch_target, self.shadow_low_mul, self.shadow_high_mul,
                                                       self.zipf_x, self.zipf_x2, self.loss_type, 
                                                       self.cauchy_scale_2, kernel_2)
 
@@ -288,8 +288,8 @@ class Agent_sac():
         self.critic_2.optimiser.step()
 
         # updates Cauchy scale parameter using the Nagy algorithm
-        self.cauchy_scale_1 = utils.nagy_algo(q1, batch_target, self.cauchy_scale_1)
-        self.cauchy_scale_2 = utils.nagy_algo(q2, batch_target, self.cauchy_scale_2)
+        self.cauchy_scale_1 = closs.nagy_algo(q1, batch_target, self.cauchy_scale_1)
+        self.cauchy_scale_2 = closs.nagy_algo(q2, batch_target, self.cauchy_scale_2)
 
         self.learn_step_cntr += 1
 
