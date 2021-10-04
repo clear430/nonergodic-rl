@@ -1,12 +1,50 @@
 # Revisiting Fundamentals of Model-Free Reinforcement Learning
 
 Research encompasses several overlapping areas: 
-1. Peculiarities regarding use of critic loss functions, tail exponents, and shadow means
-2. Multi-step returns and replay buffer coupling in continuous action spaces
-3. Reinforcement learning in multiplicative (non-ergodic) domains, maximising the time-average growth rate
-4. Designing energy efficient multi-stage actors for operation in extremely remote environments
+1. Peculiarities regarding use of critic loss functions, tail exponents, and shadow means,
+2. Multi-step returns and replay buffer coupling in continuous action spaces,
+3. Reinforcement learning in multiplicative (non-ergodic) domains, maximising the time-average growth rate, and
+4. Designing energy efficient multi-stage actors for operation in extremely remote environments.
 
-Implementation using [Python](https://www.python.org) 3.9.7 and [PyTorch](https://pytorch.org) 1.9.1 with [CUDA](https://developer.nvidia.com/cuda-zone) 11.1. Code tested on Windows 10 21H1, [Ubuntu](https://ubuntu.com) 20.04 LTS, and [Pop!\_OS](https://pop.system76.com) 21.04 using an AMD Ryzen 7 5800X, Nvidia RTX 3070, 64GB RAM, and a Samsung SSD 980 Pro. Research based on extending a [Capstone](https://www.sydney.edu.au/courses/units-of-study/2021/data/data5709.html) project submitted in June 2021 at the [University of Sydney](https://www.sydney.edu.au).
+Implementation using [Python](https://www.python.org) 3.9.7 and [PyTorch](https://pytorch.org) 1.9.1 with [CUDA](https://developer.nvidia.com/cuda-zone) 11.1. 
+- Built using an AMD Ryzen 7 5800X, Nvidia RTX 3070, 64GB RAM, and a Samsung SSD 980 Pro.
+- Tested on [Pop!\_OS](https://pop.system76.com) 21.04, [Ubuntu](https://ubuntu.com) 20.04 LTS, [Arch](https://archlinux.org) 2021.10.01, and Windows 10/11 21H2.
+- Experiments performed on the [Artemis](https://sydneyuni.atlassian.net/wiki/spaces/RC/pages/1033929078/Artemis+HPC+documentation) high performance computing cluster using [CentOS](https://www.centos.org) 6.9.
+
+Research based on extending a [capstone](https://github.com/rgrewa1/capstone) project submitted in June 2021 at the [University of Sydney](https://www.sydney.edu.au), Australia.
+
+## Usage 
+All agent training execution is performed using `main.py` with instruction provided within the file. Upon the completion of each experiment, relevant directories within `models/` and `results/` titled by the environment name will be created containing all output data and summary plots. 
+
+Final aggregated figures for all related experiments that share common training parameters are generated using `extras/gen_figures.py` and outputted in `docs/figs/`.
+
+Binary coin flip experiments pertaining to empirical optimal leverages are conducted using `scripts/exp_multiverse.py` with data placed in `results/multiverse/` and  summary figures placed in `docs/figs/`. 
+
+The general process involves the following commands:
+```commandline
+git clone https://github.com/rgrewa1/reinforcement-learning.git
+
+cd reinforcement-learning
+
+python -m venv rl_env
+
+source rl_env/bin/activate
+
+pip3 install -r requirements.txt
+
+python main.py
+
+python extras/gen_figures.py
+
+python scripts/exp_multiverse.py
+```
+
+## Data Analysis
+Comprehensive discussions and implications of all results are described in `docs/RGrewal_RL.pdf`.
+
+The data regarding agent training performance (NumPy arrays), the learned models (PyTorch parameters), and coin flip experiments (NumPy arrays) have a total combined size of 16.2 GB. 
+
+The storage breakdown for additive agents, multiplicative agents, and coin flip experiments are 2.3 GB, 13.7 GB, and 80 MB respectively. All data is available upon request.  
 
 ## References
 * Reinforcement learning ([Szepesvári 2009](https://sites.ualberta.ca/~szepesva/papers/RLAlgsInMDPs.pdf), [Sutton and Bartow 2018](http://incompleteideas.net/book/RLbook2020.pdf))
@@ -21,6 +59,6 @@ Implementation using [Python](https://www.python.org) 3.9.7 and [PyTorch](https:
 * Power consumption of neural networks ([Han et al. 2015](https://proceedings.neurips.cc/paper/2015/file/ae0eb3eed39d2bcef4622b2499a05fe6-Paper.pdf), [García-Martín et al. 2019](https://www.sciencedirect.com/science/article/pii/S0743731518308773))
 
 ## Acknowledgements
-The [Sydney Informatics Hub](https://www.sydney.edu.au/research/facilities/sydney-informatics-hub.html) and the University of Sydney’s high performance computing cluster, [Artemis](https://sydneyuni.atlassian.net/wiki/spaces/RC/pages/1033929078/Artemis+HPC+documentation), for providing the computing resources that have contributed to the results reported herein.
+The [Sydney Informatics Hub](https://www.sydney.edu.au/research/facilities/sydney-informatics-hub.html) and the University of Sydney’s high performance computing cluster, Artemis, for providing the computing resources that have contributed to the results reported herein.
 
 The base TD3 and SAC algorithms were implemented using guidance from the following repositories: [DLR-RM/stable-baelines3](https://github.com/DLR-RM/stable-baselines3), [haarnoja/sac](https://github.com/haarnoja/sac), [openai/spinningup](https://github.com/openai/spinningup), [p-christ/Deep-Reinforcement-Learning-Algorithms-with-PyTorch](https://github.com/p-christ/Deep-Reinforcement-Learning-Algorithms-with-PyTorch), [philtabor/Actor-Critic-Methods-Paper-To-Code](https://github.com/philtabor/Actor-Critic-Methods-Paper-To-Code), [rail-berkley/softlearning](https://github.com/rail-berkeley/softlearning), [rlworkgroup/garage](https://github.com/rlworkgroup/garage), [sfujim/TD3](https://github.com/sfujim/TD3/).
