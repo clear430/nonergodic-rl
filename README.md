@@ -14,17 +14,17 @@ Implementation using [Python](https://www.python.org) 3.9.7 and [PyTorch](https:
 Research based on extending a [capstone](https://github.com/rgrewa1/capstone) project submitted in June 2021 at the [University of Sydney](https://www.sydney.edu.au), Australia.
 
 ## Usage 
-All agent training execution is performed using `main.py` with instruction provided within the file. Upon the completion of each experiment, relevant directories within `models/` and `results/` titled by the environment name will be created containing all output data and summary plots. 
+All agent training is executed using `main.py` with instructions provided within the file. Upon the completion of each experiment, relevant directories within `models/` and `results/` titled by the environment name will be created containing all output data and summary plots. 
 
 Final aggregated figures for all related experiments that share common training parameters are generated using `extras/gen_figures.py` and outputted in `docs/figs/`.
 
 Binary coin flip experiments pertaining to empirical optimal leverages are conducted using `scripts/exp_multiverse.py` with data placed in `results/multiverse/` and  summary figures placed in `docs/figs/`. 
 
-The general process involves the following commands:
+The general process for generating all data involves the following commands:
 ```commandline
-git clone https://github.com/rgrewa1/reinforcement-learning.git
+git clone https://github.com/rgrewa1/nonergodic-rl.git
 
-cd reinforcement-learning
+cd nonergodic-rl
 
 python -m venv rl_env
 
@@ -34,17 +34,16 @@ pip3 install -r requirements.txt
 
 python main.py
 
-python extras/gen_figures.py
-
 python scripts/exp_multiverse.py
 ```
+Note: Using the latest release zip file is recommended, however it only contains executable code. Contents in the `docs/` directory are excluded.
 
 ## Data Analysis
 Comprehensive discussions and implications of all results are described in `docs/RGrewal_RL.pdf`.
 
-The data regarding agent training performance (NumPy arrays), the learned models (PyTorch parameters), and coin flip experiments (NumPy arrays) have a total combined size of 16.2 GB. 
+The data regarding agent training performance (NumPy arrays), the learned models (PyTorch parameters), and coin flip experiments (NumPy arrays) have a total combined size of 16.5 GB. 
 
-The storage breakdown for additive agents, multiplicative agents, and coin flip experiments are 2.3 GB, 13.7 GB, and 80 MB respectively. All data is available upon request.  
+The storage breakdown for additive agents, multiplicative agents, and coin flip experiments are 2.5 GB, 13.7 GB, and 80 MB respectively. All data is available upon request.  
 
 ## References
 * Reinforcement learning ([Szepesvári 2009](https://sites.ualberta.ca/~szepesva/papers/RLAlgsInMDPs.pdf), [Sutton and Bartow 2018](http://incompleteideas.net/book/RLbook2020.pdf))
