@@ -13,14 +13,37 @@ Implementation using [Python](https://www.python.org) 3.9.7 and [PyTorch](https:
 
 Research based on extending a [capstone](https://github.com/rgrewa1/capstone) project submitted in June 2021 at the [University of Sydney](https://www.sydney.edu.au), Australia.
 
+## Key Findings
+**Additive Dynamics**
+* Critic loss aggregation using MSE is an acceptable starting point but use of HUB, MAE, and HSC should be considered as there exists a string potential for ‘free’ performance gains dependent on environment.
+* Critic loss mini-batches appear to exhibit extreme kurtosis (fat tails) and so aggregating them using an empirical arithmetic mean (Monte-Carlo approach) severely underestimates the true population mean.
+* Multi-step returns for continuous action spaces using TD3 and SAC is not advised due to lack of global policy maximisation across the action space unlike the discrete case.
+
+**Multiplicative Dynamics**
+* The maximisation of probability-based expectations methodology offer by contemporary decision theory is wholly inappropriate for maximising wealth in multiplicative processes due to conflation of probabilities with payoffs.
+*  State-of-the-art model-free reinforcement learning algorithms (TD3 and SAC) designed to maximise expected additive rewards are modified to operate in any multiplicative environment.  
+* The model-free agent now fully autonomously, self-learns the actions required to maximise wealth through the avoidance of steep losses, represented by raising the time-average growth rate.
+* The theory is experimentally validated by converging to known optimal growth-maximising actions (leverages) for gambles involving coin flips, die rolls, and geometric Brownian motion. 
+* Cost-effective risk mitigation using extremely convex insurance safe havens is investigated where the model-free agent develops a strategy that indisputably increases wealth by reducing the amount of risk taken.
+* Direct applications encompass any situation where percentage changes (as opposed to numerical changes) in underlying values are reported, such as financial trading, economic modelling, and guidance systems. 
+
+## Data Analysis
+Comprehensive discussion and implications of all results are described in `docs/RGrewal_RL.pdf`.
+
+The data regarding agent training performance (NumPy arrays), the learned models (PyTorch parameters), and coin flip experiments (NumPy arrays) have a total combined size of 16.5 GB. 
+
+The breakdown for additive agents, multiplicative agents, and coin flip experiments are 2.5 GB, 13.7 GB, and 80 MB respectively. All data is available upon request.  
+
 ## Usage 
-All agent training is executed using `main.py` with instructions provided within the file. Upon the completion of each experiment, relevant directories within `models/` and `results/` titled by the environment name will be created containing all output data and summary plots. 
+Using the [release](https://github.com/rgrewa1/nonergodic-rl/releases) is recommended (contains only executable code). Contents of the `docs/` directory are excluded.
 
-Final aggregated figures for all related experiments that share common training parameters are generated using `extras/gen_figures.py` and outputted in `docs/figs/`.
+All reinforcement learning agent training is executed using `main.py` with instructions provided within the file. Upon the completion of each experiment, relevant directories within `models/` and `results/` titled by the environment name will be created containing all output data and summary plots. 
 
-Binary coin flip experiments pertaining to empirical optimal leverages are conducted using `scripts/exp_multiverse.py` with data placed in `results/multiverse/` and  summary figures placed in `docs/figs/`. 
+Final aggregated figures for all related experiments that share common training parameters are generated using `extras/gen_figures.py` and outputted in `docs/figs/`. The exact aggregation details must be inputted in the file.
 
-The general process for generating all data involves the following commands:
+Binary coin flip experiments pertaining to empirical optimal leverages are conducted using `scripts/exp_multiverse.py` with output data placed in `results/multiverse/` and  summary figures placed in `docs/figs/`. 
+
+The general process for executing the code involves the following commands:
 ```commandline
 git clone https://github.com/rgrewa1/nonergodic-rl.git
 
@@ -36,14 +59,6 @@ python main.py
 
 python scripts/exp_multiverse.py
 ```
-Note: Using the latest release zip file is recommended, however it only contains executable code. Contents in the `docs/` directory are excluded.
-
-## Data Analysis
-Comprehensive discussions and implications of all results are described in `docs/RGrewal_RL.pdf`.
-
-The data regarding agent training performance (NumPy arrays), the learned models (PyTorch parameters), and coin flip experiments (NumPy arrays) have a total combined size of 16.5 GB. 
-
-The storage breakdown for additive agents, multiplicative agents, and coin flip experiments are 2.5 GB, 13.7 GB, and 80 MB respectively. All data is available upon request.  
 
 ## References
 * Reinforcement learning ([Szepesvári 2009](https://sites.ualberta.ca/~szepesva/papers/RLAlgsInMDPs.pdf), [Sutton and Bartow 2018](http://incompleteideas.net/book/RLbook2020.pdf))
@@ -60,4 +75,4 @@ The storage breakdown for additive agents, multiplicative agents, and coin flip 
 ## Acknowledgements
 The [Sydney Informatics Hub](https://www.sydney.edu.au/research/facilities/sydney-informatics-hub.html) and the University of Sydney’s high performance computing cluster, Artemis, for providing the computing resources that have contributed to the results reported herein.
 
-The base TD3 and SAC algorithms were implemented using guidance from the following repositories: [DLR-RM/stable-baelines3](https://github.com/DLR-RM/stable-baselines3), [haarnoja/sac](https://github.com/haarnoja/sac), [openai/spinningup](https://github.com/openai/spinningup), [p-christ/Deep-Reinforcement-Learning-Algorithms-with-PyTorch](https://github.com/p-christ/Deep-Reinforcement-Learning-Algorithms-with-PyTorch), [philtabor/Actor-Critic-Methods-Paper-To-Code](https://github.com/philtabor/Actor-Critic-Methods-Paper-To-Code), [rail-berkley/softlearning](https://github.com/rail-berkeley/softlearning), [rlworkgroup/garage](https://github.com/rlworkgroup/garage), [sfujim/TD3](https://github.com/sfujim/TD3/).
+The base TD3 and SAC algorithms were implemented using guidance from the following repositories: [DLR-RM/stable-baelines3](https://github.com/DLR-RM/stable-baselines3), [haarnoja/sac](https://github.com/haarnoja/sac), [openai/spinningup](https://github.com/openai/spinningup), [p-christ/Deep-Reinforcement-Learning-Algorithms-with-PyTorch](https://github.com/p-christ/Deep-Reinforcement-Learning-Algorithms-with-PyTorch), [philtabor/Actor-Critic-Methods-Paper-To-Code](https://github.com/philtabor/Actor-Critic-Methods-Paper-To-Code), [rail-berkley/softlearning](https://github.com/rail-berkeley/softlearning), [rlworkgroup/garage](https://github.com/rlworkgroup/garage), and [sfujim/TD3](https://github.com/sfujim/TD3/).
