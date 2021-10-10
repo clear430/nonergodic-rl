@@ -14,17 +14,17 @@ Implementation using [Python](https://www.python.org) 3.9.7 and [PyTorch](https:
 Research based on extending a [capstone](https://github.com/rgrewa1/capstone) project submitted in June 2021 at the [University of Sydney](https://www.sydney.edu.au), Australia.
 
 ## Key Findings
-**Additive Dynamics**
-* Critic loss aggregation using MSE is an acceptable starting point but use of HUB, MAE, and HSC should be considered as there exists a string potential for ‘free’ performance gains dependent on environment.
-* Critic loss mini-batches appear to exhibit extreme kurtosis (fat tails) and so aggregating them using an empirical arithmetic mean (Monte-Carlo approach) severely underestimates the true population mean.
+### Additive Experiments
+* Critic loss evaluation using MSE is an acceptable starting point but use of HUB, MAE, and HSC should be considered as there exists serious potential for ‘free’ performance gains depending on environment.
+* Critic loss mini-batches appear to exhibit extreme kurtosis (fat tails) and so aggregation using with empirical arithmetic means (Monte-Carlo approach) severely underestimates the true population mean.
 * Multi-step returns for continuous action spaces using TD3 and SAC is not advised due to lack of global policy maximisation across the action space unlike the discrete case.
 
-**Multiplicative Dynamics**
-* The maximisation of probability-based expectations methodology offer by contemporary decision theory is wholly inappropriate for maximising wealth in multiplicative processes due to conflation of probabilities with payoffs.
-*  State-of-the-art model-free reinforcement learning algorithms (TD3 and SAC) designed to maximise expected additive rewards are modified to operate in any multiplicative environment.  
-* The model-free agent now fully autonomously, self-learns the actions required to maximise wealth through the avoidance of steep losses, represented by raising the time-average growth rate.
+### Multiplicative Experiments
+* The maximisation of probability-based expectations methodology offered universally by contemporary decision theory is wholly inappropriate for multiplicative processes due to the conflation of probabilities with payoffs.
+*  State-of-the-art model-free reinforcement learning algorithms (TD3 and SAC) designed to maximise expected additive rewards are modified to operate in any conceivable multiplicative environment.  
+* The model-free agent now fully autonomously, self-learns the actions required to maximise value through the avoidance of steep losses, represented by raising the time-average growth rate.
 * The theory is experimentally validated by converging to known optimal growth-maximising actions (leverages) for gambles involving coin flips, die rolls, and geometric Brownian motion. 
-* Cost-effective risk mitigation using extremely convex insurance safe havens is investigated where the model-free agent develops a strategy that indisputably increases wealth by reducing the amount of risk taken.
+* Cost-effective risk mitigation using extremely convex insurance safe havens is investigated where the model-free agent develops a strategy that indisputably increases value by reducing the amount of risk taken.
 * Direct applications encompass any situation where percentage changes (as opposed to numerical changes) in underlying values are reported, such as financial trading, economic modelling, and guidance systems. 
 
 ## Data Analysis
@@ -41,7 +41,7 @@ All reinforcement learning agent training is executed using `main.py` with instr
 
 Final aggregated figures for all related experiments that share common training parameters are generated using `extras/gen_figures.py` and outputted in `docs/figs/`. The exact aggregation details must be inputted in the file.
 
-Binary coin flip experiments pertaining to empirical optimal leverages are conducted using `scripts/exp_multiverse.py` with output data placed in `results/multiverse/` and  summary figures placed in `docs/figs/`. 
+Binary coin flip experiments pertaining to empirical optimal leverages are conducted using `scripts/exp_multiverse.py` with data placed in `results/multiverse/` and summary figures placed in `docs/figs/`.
 
 The general process for executing the code involves the following commands:
 ```commandline
@@ -55,9 +55,9 @@ source rl_env/bin/activate
 
 pip3 install -r requirements.txt
 
-python main.py
-
 python scripts/exp_multiverse.py
+
+python main.py
 ```
 
 ## References
