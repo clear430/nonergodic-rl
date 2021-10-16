@@ -1,27 +1,44 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+"""
+title:                  dice_flip_envs.py
+python version:         3.9
+
+author:                 Raja Grewal
+email:                  raja_grewal1@pm.me
+website:                https://github.com/rgrewa1
+
+Description:
+    OpenAI Gym compatible environments for training an agent on various three-state
+    dice roll gambles based on 
+    https://www.wiley.com/en-us/Safe+Haven%3A+Investing+for+Financial+Storms-p-9781119401797.
+"""
+
 import gym
 from gym import spaces
 from gym.utils import seeding
 import numpy as np
 from typing import List, Tuple
 
-MAX_VALUE = 1e14                                # maximium potfolio value for normalisation
-INITIAL_PRICE = 1e3                             # intial price of all assets
-INITIAL_VALUE = 1e4                             # intial portfolio value
-MIN_VALUE_RATIO = 1e-2                          # minimum portfolio value ratio (psi)
-MIN_VALUE = MIN_VALUE_RATIO * INITIAL_VALUE
-MAX_VALUE_RATIO = 1                             # maximum possible value realtive to MAX_VALUE
+MAX_VALUE = 1e18                                        # maximium potfolio value for normalisation
+INITIAL_PRICE = 1e3                                     # intial price of all assets
+INITIAL_VALUE = 1e4                                     # intial portfolio value
+MIN_VALUE_RATIO = 1e-2                                  # minimum portfolio value ratio (psi)
+MIN_VALUE = max(MIN_VALUE_RATIO * INITIAL_VALUE, 1)
+MAX_VALUE_RATIO = 1                                     # maximum possible value realtive to MAX_VALUE
 
-MAX_ABS_ACTION = 0.99                           # maximum normalised (absolute) action value (epsilon_1)
-MIN_REWARD = 1e-6                               # minimum step reward (epsilon_2)
-MIN_RETURN = -0.99                              # minimum step return (epsilon_3)
-MIN_WEIGHT = 1e-6                               # minimum all asset weights (epsilon_4)
+MAX_ABS_ACTION = 0.99                                   # maximum normalised (absolute) action value (epsilon_1)
+MIN_REWARD = 1e-6                                       # minimum step reward (epsilon_2)
+MIN_RETURN = -0.99                                      # minimum step return (epsilon_3)
+MIN_WEIGHT = 1e-6                                       # minimum all asset weights (epsilon_4)
 
 # hyperparameters for the dice roll gamble for investors 1-3
 UP_PROB = 1 / 6                                 # probability of up move
 DOWN_PROB = 1 / 6                               # probability of down move
 MID_PROB = 1 - (UP_PROB + DOWN_PROB)
 UP_R = 0.5                                      # upside return (UP_R>MID_R>=0)
-DOWN_R = -0.5                                   # downside return (0<=MID_R<DOWN_R)
+DOWN_R = -0.5                                   # downside return (DOWN_R<=MID_R)
 MID_R = 0.05                                    # mid return
 
 # maximum (absolute) leverage per assset (eta)

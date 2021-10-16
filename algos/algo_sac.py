@@ -1,9 +1,26 @@
-from algos.networks_sac import ActorNetwork, CriticNetwork
-from extras.replay import ReplayBuffer
-import extras.critic_loss as closs
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+"""
+title:                  algo_sac.py
+python version:         3.9
+torch verison:          1.9
+
+author:                 Raja Grewal
+email:                  raja_grewal1@pm.me
+website:                https://github.com/rgrewa1
+
+Description:
+    Responsible for executing the Soft Actor-Critic (SAC) algorithm.
+"""
+
 import numpy as np
 import torch as T
 from typing import Tuple
+
+from algos.networks_sac import ActorNetwork, CriticNetwork
+from extras.replay import ReplayBuffer
+import extras.critic_loss as closs
 
 class Agent_sac():
     """
@@ -262,7 +279,7 @@ class Agent_sac():
         kernel_1 = closs.cim_size(q1, batch_target)
         kernel_2 = closs.cim_size(q2, batch_target)
 
-        # backpropogation of critic loss while retaining graph due to coupling of soft value and policy
+        # backpropogation of critic loss
         self.critic_1.optimiser.zero_grad()
         self.critic_2.optimiser.zero_grad()
 
@@ -282,6 +299,8 @@ class Agent_sac():
             q1_loss, q2_loss = q1_shadow, q2_shadow
     
         critic_loss = 0.5 * (q1_loss + q2_loss)    # 0.5 multiplier due to SAC convention
+
+        # retain entire graph due to coupling of soft value and policy
         critic_loss.backward(retain_graph=True)
 
         self.critic_1.optimiser.step()
@@ -309,6 +328,10 @@ class Agent_sac():
 
         # update actor, temperature and target critic networks every interval
         if self.learn_step_cntr % self.actor_update_interval != 0:
+
+            # remove unneeded graph components using python garbage collection
+            q1_loss, q2_loss, critic_loss = None, None, None
+
             return loss, cpu_logtmep, loss_params
 
         # sample current stochastic action policy for critic network based on mini-batch
@@ -338,8 +361,13 @@ class Agent_sac():
 
         cpu_actor_loss = actor_loss.detach().cpu().numpy()
         loss[-1] = cpu_actor_loss
-
+        
         if self.learn_step_cntr % self.temp_update_interval != 0:
+
+            # remove unneeded graph components using python garbage collection
+            q1_loss, q2_loss, critic_loss = None, None, None
+            batch_logprob_actions, q1, q2, soft_q, actor_loss = None, None, None, None, None
+
             return loss, cpu_logtmep, loss_params
 
         # learn temperature by approximating dual gradient descent
@@ -350,6 +378,10 @@ class Agent_sac():
         self.temp_optimiser.step()
 
         cpu_logtmep = self.log_alpha.detach().cpu().numpy()
+
+        # remove unneeded graph components using python garbage collection
+        q1_loss, q2_loss, critic_loss = None, None, None
+        batch_logprob_actions, q1, q2, soft_q, actor_loss = None, None, None, None, None
 
         return loss, cpu_logtmep, loss_params
 

@@ -1,0 +1,15 @@
+#!/bin/bash
+#PBS -P ERL					
+#PBS -l select=1:ncpus=32:mem=148GB:ngpus=0
+#PBS -l walltime=168:00:00
+#PBS -q defaultQ
+#PBS -j oe
+
+cd /home/jgre3244/rl_exp/
+
+# torch 1.9.0 complied with MAGMA 2.5.3 (also loads CUDA 10.2.89)
+module load python/3.8.2
+module load magma/2.5.3
+
+python scripts/lev_coin.py
+python scripts/lev_dice.py

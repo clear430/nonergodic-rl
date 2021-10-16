@@ -1,9 +1,27 @@
-import extras.utils as utils 
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+"""
+title:                  networks_td3.py
+python version:         3.9
+torch verison:          1.9
+
+author:                 Raja Grewal
+email:                  raja_grewal1@pm.me
+website:                https://github.com/rgrewa1
+
+Description:
+    Responsible for generating actor-critic deep (linear) neural networks for the 
+    Twin Delayed DDPG (TD3) algorithm.
+"""
+
 import os
 import torch as T
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+
+import extras.utils as utils 
 
 class ActorNetwork(nn.Module):
     """

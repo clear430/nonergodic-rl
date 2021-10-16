@@ -1,11 +1,28 @@
-from algos.networks_td3 import ActorNetwork, CriticNetwork
-from extras.replay import ReplayBuffer
-import extras.critic_loss as closs
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+"""
+title:                  algo_td3.py
+python version:         3.9
+torch verison:          1.9
+
+author:                 Raja Grewal
+email:                  raja_grewal1@pm.me
+website:                https://github.com/rgrewa1
+
+Description:
+    Responsible for executing the Twin Delayed DDPG (TD3) algorithm.
+"""
+
 import numpy as np
 import torch as T
 from torch.distributions.normal import Normal
 from torch.distributions.laplace import Laplace
 from typing import Tuple
+
+from algos.networks_td3 import ActorNetwork, CriticNetwork
+from extras.replay import ReplayBuffer
+import extras.critic_loss as closs
 
 class Agent_td3():
     """

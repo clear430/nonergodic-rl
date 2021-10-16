@@ -1,3 +1,29 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+"""
+title:                  main.py
+usage:                  python main.py
+python version:         3.9
+torch verison:          1.9
+
+author:                 Raja Grewal
+email:                  raja_grewal1@pm.me
+website:                https://github.com/rgrewa1
+
+Description:
+    Responsible for executing all agent training and conducting tests on provided inputs.
+
+Instructions:
+    1. Select algorithms, critic loss functions, multi-steps, and environments using available options
+       and enter them into the provided four lists.
+    2. Modify inputs dictionary containing training parameters and model hyperparameters if required.
+    3. Run python file and upon completion all learned parameters will be placed into ./models/env_id 
+       and data and plots regarding training into ./results/env_id directories.
+"""
+
+import time
+
 from algos.algo_sac import Agent_sac
 from algos.networks_sac import ActorNetwork as ActorNetwork_sac
 from algos.networks_sac import CriticNetwork as CriticNetwork_sac
@@ -5,23 +31,26 @@ from algos.algo_td3 import Agent_td3
 from algos.networks_td3 import ActorNetwork as ActorNetwork_td3
 from algos.networks_td3 import CriticNetwork as CriticNetwork_td3
 from extras.replay import ReplayBuffer
-from scripts.exp_additive import additive_env
-from scripts.exp_multiplicative import multiplicative_env
-import time
+from scripts.rl_additive import additive_env
+from scripts.rl_multiplicative import multiplicative_env
 
-# off-policy models: list ['SAC', 'TD3']
+# model-free off-policy agents: list ['SAC', 'TD3']
 algo_name = ['TD3']
-# critic loss functions: list ['MSE', 'HUB', 'MAE', 'HSC', 'CAU', 'TCA', 'CIM', 'MSE2', 'MSE4', 'MSE6']
+
+# critic loss functions: list ['MSE', 'HUB', 'MAE', 'HSC', 'CAU', 'TCAU', 'CIM', 'MSE2', 'MSE4', 'MSE6']
 critic_loss = ['MSE']
-# bootstrapping of target critic values and discounted rewards: list [integers > 0] 
+
+# bootstrapping of target critic values and discounted rewards: list [integer > 0] 
 multi_steps = [1]
+
 # environments to train agent: list [integer ENV_KEY from gym_envs]
-envs = [41] # 32, 35, 38, 33, 34, 36, 37, 39, 40]
+envs = [14]
 
 gym_envs = {
     # ENV_KEY: [env_id, state_dim, action_dim, intial warm-up steps to generate random seed]
 
-    ## ADDITIVE ENVIRONMENTSs
+    # ADDITIVE ENVIRONMENTS
+
     # OpenAI Box2D continuous control tasks
     '0': ['LunarLanderContinuous-v2', 8, 2, 1e3], 
     '1': ['BipedalWalker-v3', 24, 4, 1e3],
@@ -41,7 +70,7 @@ gym_envs = {
     '12': ['HumanoidDeepMimicWalkBulletEnv-v1', 197, 36, 1e4],
     '13': ['HumanoidDeepMimicBackflipBulletEnv-v1', 197, 36, 1e4],
 
-    ## MULTIPLICATVE ENVIRONMENTS
+    # MULTIPLICATVE ENVIRONMENTS
 
     # assets following the equally likely +50%/-40% gamble
     '14': ['Coin_n1_InvA', 2, 1, 1e3], '15': ['Coin_n2_InvA', 3, 2, 1e3], '16': ['Coin_n10_InvA', 11, 10, 1e3],
@@ -52,29 +81,39 @@ gym_envs = {
     '26': ['Dice_n1_InvB', 2, 2, 1e3], '27': ['Dice_n2_InvB', 3, 3, 1e3], '28': ['Dice_n10_InvB', 11, 11, 1e3],
     '29': ['Dice_n1_InvC', 2, 3, 1e3], '30': ['Dice_n2_InvC', 3, 4, 1e3], '31': ['Dice_n10_InvC', 11, 12, 1e3],
     # assets following GBM
-    # '32': ['GBM_n1_InvA', 2, 1, 1e3], '33': ['GBM_n2_InvA', 3, 2, 1e3], '34': ['GBM_n10_InvA', 11, 10, 1e3],
-    # '35': ['GBM_n1_InvB', 2, 2, 1e3], '36': ['GBM_n2_InvB', 3, 3, 1e3], '37': ['GBM_n10_InvB', 11, 11, 1e3],
-    # '38': ['GBM_n1_InvC', 2, 3, 1e3], '39': ['GBM_n2_InvC', 3, 4, 1e3], '40': ['GBM_n10_InvC', 11, 12, 1e3],
-    # assets following dice roll without and with insurance safe haven
-    '41': ['Dice_SH_n1_U', 2, 1, 1e3], '42': ['Dice_SH_n1_I', 2, 1, 1e3], 
-    '43': ['Dice_SH_n1_InvA_U', 2, 1, 1e3], '44': ['Dice_SH_n1_InvA_I', 3, 2, 1e3],
-    '45': ['Dice_SH_n1_InvB_U', 2, 2, 1e3], '46': ['Dice_SH_n1_InvB_I', 3, 3, 1e3],  
-    '47': ['Dice_SH_n1_InvC_U', 2, 3, 1e3], '48': ['Dice_SH_n1_InvC_I', 3, 4, 1e3], 
+    '32': ['GBM_n1_InvA', 2, 1, 1e3], '33': ['GBM_n2_InvA', 3, 2, 1e3], '34': ['GBM_n10_InvA', 11, 10, 1e3],
+    '35': ['GBM_n1_InvB', 2, 2, 1e3], '36': ['GBM_n2_InvB', 3, 3, 1e3], '37': ['GBM_n10_InvB', 11, 11, 1e3],
+    '38': ['GBM_n1_InvC', 2, 3, 1e3], '39': ['GBM_n2_InvC', 3, 4, 1e3], '40': ['GBM_n10_InvC', 11, 12, 1e3],
+    # assets following GBM with discrete compounding
+    '41': ['GBM_D_n1_InvA', 2, 1, 1e3], '42': ['GBM_D_n2_InvA', 3, 2, 1e3], '43': ['GBM_D_n10_InvA', 11, 10, 1e3],
+    '44': ['GBM_D_n1_InvB', 2, 2, 1e3], '45': ['GBM_D_n2_InvB', 3, 3, 1e3], '46': ['GBM_D_n10_InvB', 11, 11, 1e3],
+    '47': ['GBM_D_n1_InvC', 2, 3, 1e3], '48': ['GBM_D_n2_InvC', 3, 4, 1e3], '49': ['GBM_D_n10_InvC', 11, 12, 1e3],
+    # assets following dice roll without (U) and with insurance (I) safe haven
+    '50': ['Dice_SH_n1_U', 2, 1, 1e3], '51': ['Dice_SH_n1_I', 2, 1, 1e3], 
+    '52': ['Dice_SH_n1_InvA_U', 2, 1, 1e3], '53': ['Dice_SH_n1_InvA_I', 3, 2, 1e3],
+    '54': ['Dice_SH_n1_InvB_U', 2, 2, 1e3], '55': ['Dice_SH_n1_InvB_I', 3, 3, 1e3],  
+    '56': ['Dice_SH_n1_InvC_U', 2, 3, 1e3], '57': ['Dice_SH_n1_InvC_I', 3, 4, 1e3], 
     # assets following market environment (not public)
-    # '49': ['Market_InvA', 11, 1, 1e3], 
-    # '50': ['Market_InvB', 11, 2, 1e3], 
-    # '51': ['Market_InvC', 11, 3, 1e3],
+    # '58': ['S&P500_InvA', 11, 1, 1e3], 
+    # '59': ['S&P500_InvB', 11, 2, 1e3], 
+    # '60': ['S&P500_InvC', 11, 3, 1e3],
+    # '61': ['Market', 40, 12, 1e4],
     }
 
 inputs_dict = {
-    # execution parameters
-    'n_trials': 10,                             # number of total unique training trials
-    'n_cumsteps': 4e4,                          # maximum cumulative steps per trial (must be greater than warm-up)
-    'eval_freq': 1e3,                           # interval of steps between evaluation episodes
-    'n_eval_add': 1e1,                          # number of evalution episodes for additive environments
-    'n_eval_mul': 1e3,                          # number of evalution episodes for multiplicaitve environments
-    'max_eval_reward': 1e4,                     # maximum reward per evaluation episode for additive environments
-    'max_eval_steps': 1e0,                      # maximum steps per evaluation episode for multiplicative environments
+    # additive environment execution parameters
+    'n_trials_add': 10,                         # number of total unique training trials
+    'n_cumsteps_add': 3e5,                      # maximum cumulative steps per trial (must be greater than environment warm-up)
+    'eval_freq_add': 1e3,                       # interval of steps between evaluation episodes
+    'n_eval_add': 1e1,                          # number of evalution episodes
+    'max_eval_reward': 1e4,                     # maximum score per evaluation episode
+
+    # multiplicative environment execution parameters
+    'n_trials_mul': 10,                         # ibid.
+    'n_cumsteps_mul': 8e4,                      # ibid.
+    'eval_freq_mul': 1e3,                       # ibid.
+    'n_eval_mul': 1e3,                          # ibid.
+    'max_eval_steps': 1e0,                      # maximum steps per evaluation episode
 
     # learning variables
     'buffer': 1e6,                              # maximum transistions in experience replay buffer
@@ -87,8 +126,8 @@ inputs_dict = {
 
     # critic loss aggregation
     'critic_mean_type': 'E',                    # critic network learning either empirical 'E' or shadow 'S' (only E) 
-    'shadow_low_mul': 1e0,                      # lower bound multiplier of critic difference power law  
-    'shadow_high_mul': 1e1,                     # upper bound multiplier of critic difference power law
+    'shadow_low_mul': 1e0,                      # lower bound multiplier of minimum for critic power law  
+    'shadow_high_mul': 1e1,                     # upper bound multiplier of maximum for critic power law
 
     # SAC hyperparameters
     'sac_actor_learn_rate': 3e-4,               # actor learning rate (Adam optimiser)
@@ -135,22 +174,32 @@ gt0 = 'must be greater than 0'
 gte1 = 'must be greater than or equal to 1'
 
 # execution tests
-assert isinstance(inputs_dict['n_trials'], (float, int)) and \
-    int(inputs_dict['n_trials']) >= 1, gte1
-assert isinstance(inputs_dict['n_cumsteps'], (float, int)) and \
-    set(list(str(inputs_dict['n_cumsteps'])[2:])).issubset(set(['0', '.'])) and \
-        int(inputs_dict['n_cumsteps']) >= 1, \
+assert isinstance(inputs_dict['n_trials_add'], (float, int)) and \
+    int(inputs_dict['n_trials_add']) >= 1, gte1
+assert isinstance(inputs_dict['n_cumsteps_add'], (float, int)) and \
+    set(list(str(inputs_dict['n_cumsteps_add'])[2:])).issubset(set(['0', '.'])) and \
+        int(inputs_dict['n_cumsteps_add']) >= 1, \
             'must consist of only 2 leading non-zero digits and be greater than or equal to 1'
-assert isinstance(inputs_dict['eval_freq'], (float, int)) and \
-    int(inputs_dict['eval_freq']) >= 1 and \
-        int(inputs_dict['eval_freq']) <= int(inputs_dict['n_cumsteps']), \
+assert isinstance(inputs_dict['eval_freq_add'], (float, int)) and \
+    int(inputs_dict['eval_freq_add']) >= 1 and \
+        int(inputs_dict['eval_freq_add']) <= int(inputs_dict['n_cumsteps_add']), \
             'must be greater than or equal to 1 and less than or equal to n_cumsteps'
 assert isinstance(inputs_dict['n_eval_add'], (float, int)) and \
     int(inputs_dict['n_eval_add']) >= 1, gte1
-assert isinstance(inputs_dict['n_eval_mul'], (float, int)) and \
-    int(inputs_dict['n_eval_mul']) >= 1, gte1
 assert isinstance(inputs_dict['max_eval_reward'], (float, int)) and \
     inputs_dict['max_eval_reward'] > 0, gt0
+assert isinstance(inputs_dict['n_trials_add'], (float, int)) and \
+    int(inputs_dict['n_trials_add']) >= 1, gte1
+assert isinstance(inputs_dict['n_cumsteps_mul'], (float, int)) and \
+    set(list(str(inputs_dict['n_cumsteps_mul'])[2:])).issubset(set(['0', '.'])) and \
+        int(inputs_dict['n_cumsteps_mul']) >= 1, \
+            'must consist of only 2 leading non-zero digits and be greater than or equal to 1'
+assert isinstance(inputs_dict['eval_freq_mul'], (float, int)) and \
+    int(inputs_dict['eval_freq_mul']) >= 1 and \
+        int(inputs_dict['eval_freq_mul']) <= int(inputs_dict['n_cumsteps_mul']), \
+            'must be greater than or equal to 1 and less than or equal to n_cumsteps'
+assert isinstance(inputs_dict['n_eval_mul'], (float, int)) and \
+    int(inputs_dict['n_eval_mul']) >= 1, gte1
 assert isinstance(inputs_dict['max_eval_steps'], (float, int)) and \
     int(inputs_dict['max_eval_steps']) >= 1, gte1
 
@@ -158,8 +207,9 @@ assert isinstance(inputs_dict['max_eval_steps'], (float, int)) and \
 assert isinstance(inputs_dict['buffer'], (float, int)) and \
     set(list(str(inputs_dict['buffer'])[2:])).issubset(set(['0', '.'])) and \
         int(inputs_dict['buffer']) >= 1 and \
-            inputs_dict['buffer'] >= inputs_dict['n_cumsteps'], \
-                'must consist of only 2 leading non-zero digits and be greater than or equal to both 1 and n_cumsteps'
+            inputs_dict['buffer'] >= inputs_dict['n_cumsteps_add'] and \
+                inputs_dict['buffer'] >= inputs_dict['n_cumsteps_mul'], \
+                    'must consist of only upto 2 leading non-zero digits and be greater than or equal to both 1 and n_cumsteps'
 assert inputs_dict['discount'] >= 0 \
     and inputs_dict['discount'] < 1, 'should be within [0, 1)'
 assert isinstance(inputs_dict['trail'], (float, int)) and \
@@ -200,7 +250,7 @@ assert isinstance(inputs_dict['sac_target_critic_update'], (float, int)) and \
 assert isinstance(inputs_dict['initial_logtemp'], (float, int)), 'must be any real number'
 assert isinstance(inputs_dict['reparam_noise'], float) and \
     inputs_dict['reparam_noise'] > 1e-7 and \
-        inputs_dict['reparam_noise'] < 1e-5, 'must be any real and near the vicinity of 1e-6'
+        inputs_dict['reparam_noise'] < 1e-5, 'must be any real number in the vicinity of 1e-6'
 
 # TD3 hyperparameter tests
 assert isinstance(inputs_dict['td3_actor_learn_rate'], (float, int)) and \
@@ -248,10 +298,10 @@ assert isinstance(inputs_dict['grad_step'], dict) and \
 # environment tests
 assert isinstance(inputs_dict['algo_name'], list) and \
     set(inputs_dict['algo_name']).issubset(set(['SAC', 'TD3'])), \
-        'algorithms must be a list of "SAC" and/or "TD3"'
+        'algorithms must be a list containing "SAC" and/or "TD3"'
 assert isinstance(inputs_dict['critic_loss'], list) and \
-    set(inputs_dict['critic_loss']).issubset(set(['MSE', 'HUB', 'MAE', 'HSC', 'CAU', 'TCA', 'CIM', 'MSE2', 'MSE4', 'MSE6'])), \
-        'critic losses must be a list of "MSE", "HUB", "MAE", "HSC", "CAU", , "TCA", "CIM", "MSE2", "MSE4", and/or "MSE6"'
+    set(inputs_dict['critic_loss']).issubset(set(['MSE', 'HUB', 'MAE', 'HSC', 'CAU', 'TCAU', 'CIM', 'MSE2', 'MSE4', 'MSE6'])), \
+        'critic losses must be a list containing "MSE", "HUB", "MAE", "HSC", "CAU", "TCAU", "CIM", "MSE2", "MSE4", and/or "MSE6"'
 assert isinstance(inputs_dict['bootstraps'], list) and \
     all(isinstance(mstep, int) for mstep in inputs_dict['bootstraps']) and \
         all(mstep >= 1 for mstep in inputs_dict['bootstraps']), \
@@ -265,12 +315,17 @@ for key in inputs_dict['envs']:
     assert isinstance(gym_envs[str(key)], list) and \
         isinstance(gym_envs[str(key)][0], str) and \
             all(isinstance(x, (float, int)) for x in gym_envs[str(key)][1:]), \
-            'environment {} details must be a list of the form [string, real, real, real]'.format(key)
+                'environment {} details must be a list of the form [string, real, real, real]'.format(key)
     assert int(gym_envs[str(key)][1]) >= 1, 'environment {} must have at least one state'.format(key)
     assert int(gym_envs[str(key)][2]) >= 1, 'environment {} must have at least one action'.format(key)
-    assert int(gym_envs[str(key)][3]) >= 0 and \
-        int(gym_envs[str(key)][3]) <= int(inputs_dict['n_cumsteps']), \
-            'environment {} warm-up must be less than or equal to total training steps'.format(key)
+    if key <= 13:
+        assert int(gym_envs[str(key)][3]) >= 0 and \
+            int(gym_envs[str(key)][3]) <= int(inputs_dict['n_cumsteps_add']), \
+                'environment {} warm-up must be less than or equal to total training steps'.format(key)
+    else:
+        assert int(gym_envs[str(key)][3]) >= 0 and \
+            int(gym_envs[str(key)][3]) <= int(inputs_dict['n_cumsteps_mul']), \
+                'environment {} warm-up must be less than or equal to total training steps'.format(key)
 
 # SAC algorithm method checks
 assert hasattr(Agent_sac, 'select_next_action'), 'missing SAC agent action selection'

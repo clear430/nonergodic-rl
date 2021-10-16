@@ -1,12 +1,31 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+"""
+title:                  plot_figures.py
+python version:         3.9
+torch verison:          1.9
+
+author:                 Raja Grewal
+email:                  raja_grewal1@pm.me
+website:                https://github.com/rgrewa1
+
+Description:
+    Plotting of all final summary figures for all reinforcement learning experiments. 
+"""
+
 import sys
 sys.path.append("./")
 
-import extras.utils as utils
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import numpy as np
+from scipy.stats import norm
 import torch as T
 from typing import List
+
+import extras.critic_loss as closs
+import extras.utils as utils
 
 def loss_fn_plot(filename_png: str):
     """
@@ -22,13 +41,13 @@ def loss_fn_plot(filename_png: str):
     b = pdf.sample((q,))
     c = b - a
 
-    mse = utils.mse(a, b, 0)
-    mse2 = utils.mse(a, b, 2)
-    mse4 = utils.mse(a, b, 4)
-    huber = utils.huber(a, b)
-    mae = utils.mae(a, b)
-    hsc = utils.hypersurface(a, b)
-    cauchy = utils.cauchy(a, b, 1)
+    mse = closs.mse(a, b, 0)
+    mse2 = closs.mse(a, b, 2)
+    mse4 = closs.mse(a, b, 4)
+    huber = closs.huber(a, b)
+    mae = closs.mae(a, b)
+    hsc = closs.hypersurface(a, b)
+    cauchy = closs.cauchy(a, b, 1)
 
     size = 3
     cols = ['C'+str(x) for x in range(7)]
@@ -45,391 +64,462 @@ def loss_fn_plot(filename_png: str):
     plt.xlim((-6, 6))
     plt.ylim((0, 5))
     plt.tick_params(axis='both', which='major', labelsize='small')
-    plt.title('Loss', size='medium')
+    plt.title('Loss', size='large')
     plt.legend(l, loc='lower right', ncol=1, frameon=False, fontsize='medium', markerscale=6)
     plt.tight_layout()
 
-    plt.savefig(filename_png, dpi=300, format='png')
+    plt.savefig(filename_png, dpi=200, format='png')
 
-def plot_critic_2d(inputs: dict, data: np.ndarray, algo_name: List[str], critic_name: List[str], filename_png: str):
+def plot_gbm_max_lev(filename_png: str):
     """
-    2D plot of Mean, MAD, and STD of scores and twin critic loss during evaluation episodes for all trials in environment.
-    
+    Plot of GBM maximum leverage across down sigma moves.
+
     Parameters:
-        inputs: dictionary containing all execution details
-        eval_log: log of episode data for all trials
         filename_png (directory): save path of plot
     """
-    algos = data.shape[0]
-    closs = data.shape[1]
-    cum_steps_log = data[0, 0, 0, :, 0, -1]
+    # S&P500 parameters
+    mu = 0.0516042410820218
+    sigma = 0.190381677824107
+    v0 = 2
+    vmin = 1
+
+    sig = np.linspace(1, 10, 1000)
+    prob = norm.pdf(sig, 0, 1)
+    prob = np.log10(prob)
+
+    rho = np.linspace(1, 10, 1000)
+
+    l_eff = 2 / (sigma * (2 * rho + sigma) - 2 * mu) * np.log(v0 / vmin)
+
+    fig = plt.figure()
+    ax1 = fig.add_subplot(1,1,1, label='lev')
+    ax2 = fig.add_subplot(1,1,1, label='prob', frame_on=False)
+
+    ax1.plot(rho, l_eff, color='C0')
+    ax1.set_xlabel(r'$\rho_d$')
+    ax1.yaxis.tick_left()
+    ax1.set_ylabel('Maximum Leverage', color='C0')
+    ax1.yaxis.set_label_position('left')
+    ax1.tick_params(axis='y', colors='C0')
+    ax1.grid(True, linewidth=0.5)
+
+    ax2.plot(sig, prob, color='C3')
+    ax2.axes.get_xaxis().set_visible(False)
+    ax2.yaxis.tick_right()
+    ax2.set_ylabel('Probability (log10)', color='C3')
+    ax2.yaxis.set_label_position('right')
+    ax2.tick_params(axis='y', colors='C3')
+    
+    plt.savefig(filename_png, dpi=200, format='png')
+
+def plot_add(inputs: dict, env_names: List[str], legend: List[str], multi: bool, 
+             reward: np.ndarray, loss: np.ndarray, scale: np.ndarray, kernel: np.ndarray, 
+             tail: np.ndarray, shadow: np.ndarray, keqv: np.ndarray, filename_png: str):
+    """
+    Plots additve environments figures for loss functions and multi-step returns.
+
+    Parameters:
+        inputs: dictionary containing all execution details
+        env_names: list of environment names
+        legend: list of labeling across trials
+        multi: True or False as to whther plotting multi-stewp returns
+        rewards: rewards across trials
+        loss: critic losses across trials
+        scale: Cauchy scales across trials
+        kernel: CIM kernel sizes across trials
+        tail: critic tail exponents across trials
+        shadow: critic shahow means across trials
+        keqv: multiplier for equvilance between shadow and empirical means across trials
+        filename_png: path for file saving
+    """
+    n_env, n_algo, n_data = reward.shape[0], reward.shape[1], reward.shape[2]
+
+    if multi == True:
+        legend = ['m = '+str(legend[x]) for x in range(n_data)]
+
+    cum_steps_log = np.array([x for x in range(int(inputs['eval_freq']), int(inputs['n_cumsteps']) + 
+                                               int(inputs['eval_freq']), int(inputs['eval_freq']))])
 
     exp = utils.get_exponent(cum_steps_log)
     x_steps = cum_steps_log/10**(exp)
 
-    count_x = int(inputs['n_cumsteps'] / inputs['eval_freq'])
-    count_y = int(inputs['n_trials'] * int(inputs['n_eval']))
+    cols = ['C'+str(x) for x in range(n_data)]
 
-    scores = np.zeros((algos, closs, count_x, count_y))
-    max_score = np.ones((count_x, count_y)) * int(inputs['max_eval_reward'])
-    loss = np.zeros((algos, closs, count_x, count_y)) 
+    patches = [mpatches.Patch(color=cols[x], label=legend[x], alpha=0.8)
+               for x in range(n_data)]
 
-    for a in range(algos):
-        for l in range(closs):
-            for t in range(count_x):
-                for n in range(inputs['n_trials']):
-                    for s in range(int(inputs['n_eval'])):
-                        scores[a, l, t, s + n * int(inputs['n_eval'])] = data[a, l, n, t, s, 1]
-                        loss[a, l, t, s + n * int(inputs['n_eval'])] = np.mean(data[a, l, n, t, s, 3:5])
+    fig, axs = plt.subplots(nrows=2, ncols=4, figsize=(12,6))
 
-    score_limit = np.mean(max_score, axis=1, keepdims=True)
-    cols = ['C'+str(x) for x in range(closs)]
-    name = inputs['env_id']
-    name = name[0:name.index("Bullet")]
+    for a in range(n_algo):
+        for e in range(n_env):
+            for d in range(n_data):
 
-    fig, axs = plt.subplots(2, 2)
-    
-    for sc in range(2):
-        for cl in range(closs):
-        
-            score_cl = scores[sc, cl]
+                var_x = reward[e, a, d]
 
-            score_mean = np.mean(score_cl, axis=1, keepdims=True)
-            score_max, score_min = np.max(score_cl, axis=1, keepdims=True), np.min(score_cl, axis=1, keepdims=True)
-            score_mad = np.mean(np.abs(score_cl - score_mean), axis=1, keepdims=True)
-            score_mad_up = np.minimum(score_max, score_mean+score_mad, score_limit).reshape(-1)
-            score_mad_lo = np.maximum(score_min, score_mean-score_mad).reshape(-1)
-            score_mean = score_mean.reshape(-1)
+                x_mean = np.mean(var_x, axis=1, keepdims=True)
 
-            axs[0, sc].plot(x_steps, score_mean, color=cols[cl], linewidth=1)
-            axs[0, sc].fill_between(x_steps, score_mad_lo, score_mad_up, facecolor=cols[cl], alpha=0.1)
-            axs[0, sc].grid(True, linewidth=0.2)
-            axs[0, sc].set_title(algo_name[sc])
+                x_max, x_min = np.max(var_x, axis=1, keepdims=True), np.min(var_x, axis=1, keepdims=True)
+                x_mad = np.mean(np.abs(var_x - x_mean), axis=1, keepdims=True)
+                x_mad_up = np.minimum(x_max, x_mean+x_mad).reshape(-1)
+                x_mad_lo = np.maximum(x_min, x_mean-x_mad).reshape(-1)
+                
+                x_mean = x_mean.reshape(-1)
 
-    axs[0, 0].set_ylabel('Score') 
-    
-    for sc in range(2):
-        for cl in range(closs):
-        
-            loss_cl = loss[sc, cl]
+                axs[a, e].plot(x_steps, x_mean, color=cols[d], linewidth=0.5)
+                axs[a, e].fill_between(x_steps, x_mad_lo, x_mad_up, facecolor=cols[d], alpha=0.15)
+                axs[a, e].grid(True, linewidth=0.2)
 
-            loss_mean = np.mean(loss_cl, axis=1, keepdims=True)
-            loss_max, loss_min = np.max(loss_cl, axis=1, keepdims=True), np.min(loss_cl, axis=1, keepdims=True)
-            loss_mad = np.mean(np.abs(loss_cl - loss_mean), axis=1, keepdims=True)
-            loss_mad_up = np.minimum(loss_max, loss_mean+loss_mad).reshape(-1)
-            loss_mad_lo = np.maximum(loss_min, loss_mean-loss_mad).reshape(-1)
-            loss_mean = loss_mean.reshape(-1)
+                if a != 1 or e != 0:
+                    axs[a, e].xaxis.set_ticklabels([])
 
-            axs[1, sc].plot(x_steps, loss_mean, color=cols[cl], linewidth=1)
-            axs[1, sc].fill_between(x_steps, loss_mad_lo, loss_mad_up, facecolor=cols[cl], alpha=0.1)
-            axs[1, sc].grid(True, linewidth=0.2)
-
-    axs[1, 0].set_ylabel('Twin Critic Loss')
+    axs[0, 0].set_ylabel('SAC Score')
+    axs[1, 0].set_ylabel('TD3 Score')
     axs[1, 0].set_xlabel('Steps (1e'+str(exp)+')')
+    
+    axs[0, 0].text(0.325, 1.1, env_names[0], size='large', transform=axs[0, 0].transAxes)
+    axs[0, 1].text(0.325, 1.1, env_names[1], size='large', transform=axs[0, 1].transAxes)
+    axs[0, 2].text(0.325, 1.1, env_names[2], size='large', transform=axs[0, 2].transAxes)
+    axs[0, 3].text(0.325, 1.1, env_names[3], size='large', transform=axs[0, 3].transAxes)
 
+    fig.tight_layout(h_pad=2)
     fig.subplots_adjust(bottom=0.175)
-    fig.legend(critic_name, loc='lower center', ncol=closs, frameon=False, fontsize='medium')
-    fig.suptitle(name, fontsize=14)
+    fig.legend(handles=patches, loc='lower center',ncol=n_data, frameon=False, fontsize='large')
 
-    plt.savefig(filename_png, dpi=300, format='png')
+    plt.savefig(filename_png+'_score.png', dpi=200, format='png')
 
-def plot_critic_loss(inputs: dict, data: np.ndarray, algo_name: List[str], critic_name: List[str], filename_png: str):
-    """
-    Plot of score, critic losses Cauchy scale, and CIM kernel for two algorithms and all critic loss functions 
-    for a single environments.
+    fig, axs = plt.subplots(nrows=2, ncols=4, figsize=(12,6))
 
-    Parameters:
-        inputs: dictionary containing all execution details
-        data: mega combined array of everything
-        algo_name: name of both RL algorithms
-        cirtic_name: name of all critic loss functions
-        filename_png (directory): save path of plot
-    """
-    algos = data.shape[0]
-    closs = data.shape[1]
-    cum_steps_log = data[0, 0, 0, :, 0, -1]
+    for a in range(n_algo):
+        for e in range(n_env):
+            for d in range(n_data):
 
-    exp = utils.get_exponent(cum_steps_log)
-    x_steps = cum_steps_log/10**(exp)
+                var_x = loss[e, a, d]
 
-    count_x = int(inputs['n_cumsteps'] / inputs['eval_freq'])
-    count_y = int(inputs['n_trials'] * int(inputs['n_eval']))
-    count_z = int(inputs['n_trials'] )
+                x_mean = np.mean(var_x, axis=1, keepdims=True)
 
-    scores = np.zeros((algos, closs, count_x, count_y))
-    max_score = np.ones((count_x, count_y)) * int(inputs['max_eval_reward'])
-    loss = np.zeros((algos, closs, count_x, count_z * 2))
-    scale = np.zeros((algos, closs, count_x, count_z * 2)) 
-    kernel = np.zeros((algos, closs, count_x, count_z * 2)) 
+                x_max, x_min = np.max(var_x, axis=1, keepdims=True), np.min(var_x, axis=1, keepdims=True)
+                x_mad = np.mean(np.abs(var_x - x_mean), axis=1, keepdims=True)
+                x_mad_up = np.minimum(x_max, x_mean+x_mad).reshape(-1)
+                x_mad_lo = np.maximum(x_min, x_mean-x_mad).reshape(-1)
+                
+                x_mean = x_mean.reshape(-1)
+       
+                x_mean, x_mad_up, x_mad_lo = np.log10(x_mean), np.log10(x_mad_up), np.log10(x_mad_lo)
 
-    for a in range(algos):
-        for l in range(closs):
-            for t in range(count_x):
-                for n in range(inputs['n_trials']):
+                axs[a, e].plot(x_steps, x_mean, color=cols[d], linewidth=0.5)
+                axs[a, e].fill_between(x_steps, x_mad_lo, x_mad_up, facecolor=cols[d], alpha=0.15)
+                axs[a, e].grid(True, linewidth=0.2)
 
-                    loss[a, l, t, (n * 2):(n * 2) + 2 ] = data[a, l, n, t, 0, 3:5]
-                    scale[a, l, t, (n * 2):(n * 2) + 2 ] = data[a, l, n, t, 0, 11:13]
-                    kernel[a, l, t, (n * 2):(n * 2) + 2 ] = data[a, l, n, t, 0, 13:15]
+                if a != 1 or e != 0:
+                    axs[a, e].xaxis.set_ticklabels([])
 
-                    for s in range(int(inputs['n_eval'])):
-                        scores[a, l, t, s + n * int(inputs['n_eval'])] = data[a, l, n, t, s, 1]
-
-    score_limit = np.mean(max_score, axis=1, keepdims=True)
-    cols = ['C'+str(x) for x in range(closs)]
-    name = inputs['env_id']
-    name = name[0:name.index("Bullet")]
-
-    fig, axs = plt.subplots(nrows=4, ncols=2, figsize=(8,10))
-    
-    for sc in range(2):
-        for cl in range(closs):
-        
-            score_cl = scores[sc, cl]
-
-            score_mean = np.mean(score_cl, axis=1, keepdims=True)
-            score_max, score_min = np.max(score_cl, axis=1, keepdims=True), np.min(score_cl, axis=1, keepdims=True)
-            score_mad = np.mean(np.abs(score_cl - score_mean), axis=1, keepdims=True)
-            score_mad_up = np.minimum(score_max, score_mean+score_mad, score_limit).reshape(-1)
-            score_mad_lo = np.maximum(score_min, score_mean-score_mad).reshape(-1)
-            score_mean = score_mean.reshape(-1)
-
-            axs[0, sc].plot(x_steps, score_mean, color=cols[cl], linewidth=1)
-            axs[0, sc].fill_between(x_steps, score_mad_lo, score_mad_up, facecolor=cols[cl], alpha=0.1)
-            axs[0, sc].grid(True, linewidth=0.2)
-            axs[0, sc].set_title(algo_name[sc])
-            axs[0, sc].xaxis.set_ticklabels([])
-
-    # axs[0, 0].set_ylim(0)
-    axs[0, 0].set_ylabel('Score') 
-    axs[0, 0].text(1.05, -0.2, "(a)", size='medium', transform=axs[0, 0].transAxes)
-    
-    for sc in range(2):
-        for cl in range(closs):
-        
-            loss_cl = loss[sc, cl]
-
-            loss_mean = np.mean(loss_cl, axis=1, keepdims=True)
-            loss_max, loss_min = np.max(loss_cl, axis=1, keepdims=True), np.min(loss_cl, axis=1, keepdims=True)
-            loss_mad = np.mean(np.abs(loss_cl - loss_mean), axis=1, keepdims=True)
-            loss_mad_up = np.minimum(loss_max, loss_mean+loss_mad).reshape(-1)
-            loss_mad_lo = np.maximum(loss_min, loss_mean-loss_mad).reshape(-1)
-            loss_mean = loss_mean.reshape(-1)
-
-            axs[1, sc].plot(x_steps, loss_mean, color=cols[cl], linewidth=1)
-            axs[1, sc].fill_between(x_steps, loss_mad_lo, loss_mad_up, facecolor=cols[cl], alpha=0.1)
-            axs[1, sc].grid(True, linewidth=0.2)
-            axs[1, sc].xaxis.set_ticklabels([])
-
-    # axs[1, 0].set_ylim(0)
-    axs[1, 0].set_ylabel('Critic Loss')
-    axs[1, 0].text(1.05, -0.2, "(b)", size='medium', transform=axs[1, 0].transAxes)
-
-    for sc in range(2):
-        for cl in range(closs):
-        
-            scale_cl = scale[sc, cl] / 1e5
-
-            scale_mean = np.mean(scale_cl, axis=1, keepdims=True)
-            scale_max, scale_min = np.max(scale_cl, axis=1, keepdims=True), np.min(scale_cl, axis=1, keepdims=True)
-            scale_mad = np.mean(np.abs(scale_cl - scale_mean), axis=1, keepdims=True)
-            scale_mad_up = np.minimum(scale_max, scale_mean+scale_mad).reshape(-1)
-            scale_mad_lo = np.maximum(scale_min, scale_mean-scale_mad).reshape(-1)
-            scale_mean = scale_mean.reshape(-1)
-
-            axs[2, sc].plot(x_steps, scale_mean, color=cols[cl], linewidth=1)
-            axs[2, sc].fill_between(x_steps, scale_mad_lo, scale_mad_up, facecolor=cols[cl], alpha=0.1)
-            axs[2, sc].grid(True, linewidth=0.2)
-            axs[2, sc].xaxis.set_ticklabels([])
-
-    # axs[2, 0].set_ylim(0)
-    axs[2, 0].set_ylabel('Cauchy Scale ω')
-    axs[2, 0].text(1.05, -0.2, "(c)", size='medium', transform=axs[2, 0].transAxes)
-
-    for sc in range(2):
-        for cl in range(closs):
-        
-            kernel_cl = kernel[sc, cl]
-
-            kernel_mean = np.mean(kernel_cl, axis=1, keepdims=True)
-            kernel_max, kernel_min = np.max(kernel_cl, axis=1, keepdims=True), np.min(kernel_cl, axis=1, keepdims=True)
-            kernel_mad = np.mean(np.abs(kernel_cl - kernel_mean), axis=1, keepdims=True)
-            kernel_mad_up = np.minimum(kernel_max, kernel_mean+kernel_mad).reshape(-1)
-            kernel_mad_lo = np.maximum(kernel_min, kernel_mean-kernel_mad).reshape(-1)
-            kernel_mean = kernel_mean.reshape(-1)
-
-            axs[3, sc].plot(x_steps, kernel_mean, color=cols[cl], linewidth=1)
-            axs[3, sc].fill_between(x_steps, kernel_mad_lo, kernel_mad_up, facecolor=cols[cl], alpha=0.1)
-            axs[3, sc].grid(True, linewidth=0.2)
-
-    # axs[3, 0].set_ylim(0)
-    axs[3, 0].set_ylabel('CIM Kernel Size σ')
-    axs[3, 0].text(1.05, -0.2, "(d)", size='medium', transform=axs[3, 0].transAxes)
-    axs[3, 0].set_xlabel('Steps (1e'+str(exp)+')')
-
-    fig.subplots_adjust(bottom=0.1, hspace=0.3)
-    fig.legend(critic_name, loc='lower center', ncol=closs, frameon=False, fontsize='medium')
-    # fig.suptitle(name, fontsize='xx-large', y=0.95)
-
-    plt.savefig(filename_png, dpi=300, format='png')
-
-def plot_critic_shadow(inputs: dict, data: np.ndarray, algo_name: List[str], critic_name: List[str], filename_png: str):
-    """
-    Plot of shadow losses and tail index for two algorithms and all critic loss functions for a single environments.
-
-    Parameters:
-        inputs: dictionary containing all execution details
-        data: mega combined array of everything
-        algo_name: name of both RL algorithms
-        cirtic_name: name of all critic loss functions
-        filename_png (directory): save path of plot
-    """
-    algos = data.shape[0]
-    closs = data.shape[1]
-    cum_steps_log = data[0, 0, 0, :, 0, -1]
-
-    exp = utils.get_exponent(cum_steps_log)
-    x_steps = cum_steps_log/10**(exp)
-
-    count_x = int(inputs['n_cumsteps'] / inputs['eval_freq'])
-    count_y = int(inputs['n_trials'] * int(inputs['n_eval']))
-    count_z = int(inputs['n_trials'] )
-
-    scores = np.zeros((algos, closs, count_x, count_y))
-    max_score = np.ones((count_x, count_y)) * int(inputs['max_eval_reward'])
-    loss = np.zeros((algos, closs, count_x, count_z * 2))
-    shadow = np.zeros((algos, closs, count_x, count_z * 2)) 
-    alpha = np.zeros((algos, closs, count_x, count_z * 2)) 
-
-    for a in range(algos):
-        for l in range(closs):
-            for t in range(count_x):
-                for n in range(inputs['n_trials']):
-
-                    # loss[a, l, t, (n * 2):(n * 2) + 2 ] = data[a, l, n, t, 0, 3:5]
-                    shadow[a, l, t, (n * 2):(n * 2) + 2 ] = data[a, l, n, t, 0, 5:7]
-                    alpha[a, l, t, (n * 2):(n * 2) + 2 ] = data[a, l, n, t, 0, 7:9]
-
-                    # for s in range(int(inputs['n_eval'])):
-                    #     scores[a, l, t, s + n * int(inputs['n_eval'])] = data[a, l, n, t, s, 1]
-
-    score_limit = np.mean(max_score, axis=1, keepdims=True)
-    cols = ['C'+str(x) for x in range(closs)]
-    name = inputs['env_id']
-    name = name[0:name.index("Bullet")]
-
-    fig, axs = plt.subplots(nrows=2, ncols=2, figsize=(8,6))
-    
-    for sc in range(2):
-        for cl in range(closs):
-        
-            shadow_cl = shadow[sc, cl] / 1e5
-
-            shadow_mean = np.mean(shadow_cl, axis=1, keepdims=True)
-            shadow_max, shadow_min = np.max(shadow_cl, axis=1, keepdims=True), np.min(shadow_cl, axis=1, keepdims=True)
-            shadow_mad = np.mean(np.abs(shadow_cl - shadow_mean), axis=1, keepdims=True)
-            shadow_mad_up = np.minimum(shadow_max, shadow_mean+shadow_mad).reshape(-1)
-            shadow_mad_lo = np.maximum(shadow_min, shadow_mean-shadow_mad).reshape(-1)
-            shadow_mean = shadow_mean.reshape(-1)
-
-            axs[0, sc].plot(x_steps, shadow_mean, color=cols[cl], linewidth=1)
-            axs[0, sc].fill_between(x_steps, shadow_mad_lo, shadow_mad_up, facecolor=cols[cl], alpha=0.1)
-            axs[0, sc].grid(True, linewidth=0.2)
-            axs[0, sc].set_title(algo_name[sc])
-            axs[0, sc].xaxis.set_ticklabels([])
-
-    # axs[1, 0].set_ylim(0)
-    axs[0, 0].set_ylabel('Shadow Loss (1e5)')
-    axs[0, 0].text(1.05, -0.2, "(a)", size='medium', transform=axs[0, 0].transAxes)
-
-    for sc in range(2):
-        for cl in range(closs):
-        
-            alpha_cl = alpha[sc, cl]
-            alpha_cl = np.nan_to_num(alpha_cl, 1e9)
-
-            alpha_mean = np.mean(alpha_cl, axis=1, keepdims=True)
-            alpha_max, alpha_min = np.max(alpha_cl, axis=1, keepdims=True), np.min(alpha_cl, axis=1, keepdims=True)
-            alpha_mad = np.mean(np.abs(alpha_cl - alpha_mean), axis=1, keepdims=True)
-            alpha_mad_up = np.minimum(alpha_max, alpha_mean+alpha_mad).reshape(-1)
-            alpha_mad_lo = np.maximum(alpha_min, alpha_mean-alpha_mad).reshape(-1)
-            alpha_mean = alpha_mean.reshape(-1)
-
-            axs[1, sc].plot(x_steps, alpha_mean, color=cols[cl], linewidth=1)
-            axs[1, sc].fill_between(x_steps, alpha_mad_lo, alpha_mad_up, facecolor=cols[cl], alpha=0.1)
-            axs[1, sc].grid(True, linewidth=0.2)
-
-    # axs[1, 0].set_ylim(0)
-    axs[1, 0].set_ylabel('Tail Index α')
-    axs[1, 0].text(1.05, -0.2, "(b)", size='medium', transform=axs[1, 0].transAxes)
+    axs[0, 0].set_ylabel('SAC Critic (log10)')
+    axs[1, 0].set_ylabel('TD3 Critic (log10)')
     axs[1, 0].set_xlabel('Steps (1e'+str(exp)+')')
+    
+    axs[0, 0].text(0.325, 1.1, env_names[0], size='large', transform=axs[0, 0].transAxes)
+    axs[0, 1].text(0.325, 1.1, env_names[1], size='large', transform=axs[0, 1].transAxes)
+    axs[0, 2].text(0.325, 1.1, env_names[2], size='large', transform=axs[0, 2].transAxes)
+    axs[0, 3].text(0.325, 1.1, env_names[3], size='large', transform=axs[0, 3].transAxes)
 
-    fig.subplots_adjust(bottom=0.15, hspace=0.2)
-    fig.legend(critic_name, loc='lower center', ncol=closs, frameon=False, fontsize='medium')
-    # fig.suptitle(name, fontsize='xx-large', y=0.95)
+    fig.tight_layout(h_pad=2)
+    fig.subplots_adjust(bottom=0.175)
+    fig.legend(handles=patches, loc='lower center',ncol=n_data, frameon=False, fontsize='large')
 
-    plt.savefig(filename_png, dpi=300, format='png')
+    plt.savefig(filename_png+'_loss.png', dpi=200, format='png')
 
-def plot_temp(inputs: dict, data: np.ndarray, env_name: List[str], critic_name: List[str], filename_png: str):
+    fig, axs = plt.subplots(nrows=2, ncols=4, figsize=(12,6))
+
+    for a in range(n_algo):
+        for e in range(n_env):
+            for d in range(n_data):
+
+                var_x = scale[e, a, d]
+
+                x_mean = np.mean(var_x, axis=1, keepdims=True)
+
+                x_max, x_min = np.max(var_x, axis=1, keepdims=True), np.min(var_x, axis=1, keepdims=True)
+                x_mad = np.mean(np.abs(var_x - x_mean), axis=1, keepdims=True)
+                x_mad_up = np.minimum(x_max, x_mean+x_mad).reshape(-1)
+                x_mad_lo = np.maximum(x_min, x_mean-x_mad).reshape(-1)
+                
+                x_mean = x_mean.reshape(-1)
+
+                x_mean, x_mad_up, x_mad_lo = np.log10(x_mean), np.log10(x_mad_up), np.log10(x_mad_lo)
+
+                axs[a, e].plot(x_steps, x_mean, color=cols[d], linewidth=0.5)
+                axs[a, e].fill_between(x_steps, x_mad_lo, x_mad_up, facecolor=cols[d], alpha=0.15)
+                axs[a, e].grid(True, linewidth=0.2)
+
+                if a != 1 or e != 0:
+                    axs[a, e].xaxis.set_ticklabels([])
+
+    axs[0, 0].set_ylabel('SAC Cauchy Scale ' + r'$\gamma$' + ' (log10)')
+    axs[1, 0].set_ylabel('TD3 Cauchy Scale ' + r'$\gamma$' + ' (log10)')
+    axs[1, 0].set_xlabel('Steps (1e'+str(exp)+')')
+    
+    axs[0, 0].text(0.325, 1.1, env_names[0], size='large', transform=axs[0, 0].transAxes)
+    axs[0, 1].text(0.325, 1.1, env_names[1], size='large', transform=axs[0, 1].transAxes)
+    axs[0, 2].text(0.325, 1.1, env_names[2], size='large', transform=axs[0, 2].transAxes)
+    axs[0, 3].text(0.325, 1.1, env_names[3], size='large', transform=axs[0, 3].transAxes)
+
+    fig.tight_layout(h_pad=2)
+    fig.subplots_adjust(bottom=0.175)
+    fig.legend(handles=patches, loc='lower center',ncol=n_data, frameon=False, fontsize='large')
+
+    plt.savefig(filename_png+'_scale.png', dpi=200, format='png')
+
+    fig, axs = plt.subplots(nrows=2, ncols=4, figsize=(12,6))
+
+    for a in range(n_algo):
+        for e in range(n_env):
+            for d in range(n_data):
+
+                var_x = kernel[e, a, d]
+
+                # use np.nan conversion to ignore divergences
+                x_mean = np.nanmean(var_x, axis=1, keepdims=True)
+
+                x_max, x_min = np.nanmax(var_x, axis=1, keepdims=True), np.nanmin(var_x, axis=1, keepdims=True)
+                x_mad = np.nanmean(np.abs(var_x - x_mean), axis=1, keepdims=True)
+                x_mad_up = np.minimum(x_max, x_mean+x_mad).reshape(-1)
+                x_mad_lo = np.maximum(x_min, x_mean-x_mad).reshape(-1)
+
+                x_mean = x_mean.reshape(-1)
+
+                x_mean, x_mad_up, x_mad_lo = np.log10(x_mean), np.log10(x_mad_up), np.log10(x_mad_lo)  
+
+                axs[a, e].plot(x_steps, x_mean, color=cols[d], linewidth=0.5)
+                axs[a, e].fill_between(x_steps, x_mad_lo, x_mad_up, facecolor=cols[d], alpha=0.15)
+                axs[a, e].grid(True, linewidth=0.2)
+
+                if a != 1 or e != 0:
+                    axs[a, e].xaxis.set_ticklabels([])
+
+    axs[0, 0].set_ylabel('SAC CIM Kernel ' + r'$\sigma$' + ' (log10)')
+    axs[1, 0].set_ylabel('TD3 CIM Kernel ' + r'$\sigma$' + ' (log10)')
+    axs[1, 0].set_xlabel('Steps (1e'+str(exp)+')')
+    
+    axs[0, 0].text(0.325, 1.1, env_names[0], size='large', transform=axs[0, 0].transAxes)
+    axs[0, 1].text(0.325, 1.1, env_names[1], size='large', transform=axs[0, 1].transAxes)
+    axs[0, 2].text(0.325, 1.1, env_names[2], size='large', transform=axs[0, 2].transAxes)
+    axs[0, 3].text(0.325, 1.1, env_names[3], size='large', transform=axs[0, 3].transAxes)
+
+    fig.tight_layout(h_pad=2)
+    fig.subplots_adjust(bottom=0.175)
+    fig.legend(handles=patches, loc='lower center',ncol=n_data, frameon=False, fontsize='large')
+
+    plt.savefig(filename_png+'_kernel.png', dpi=200, format='png')
+
+    fig, axs = plt.subplots(nrows=2, ncols=4, figsize=(12,6))
+
+    for a in range(n_algo):
+        for e in range(n_env):
+            for d in range(n_data):
+
+                var_x = tail[e, a, d]
+                
+                # use np.nan conversion to ignore divergences
+                x_mean = np.nanmean(var_x, axis=1, keepdims=True)
+
+                x_max, x_min = np.nanmax(var_x, axis=1, keepdims=True), np.nanmin(var_x, axis=1, keepdims=True)
+                x_mad = np.nanmean(np.abs(var_x - x_mean), axis=1, keepdims=True)
+                x_mad_up = np.minimum(x_max, x_mean+x_mad).reshape(-1)
+                x_mad_lo = np.maximum(x_min, x_mean-x_mad).reshape(-1)
+                
+                x_mean = x_mean.reshape(-1)
+
+                axs[a, e].plot(x_steps, x_mean, color=cols[d], linewidth=0.5)
+                axs[a, e].fill_between(x_steps, x_mad_lo, x_mad_up, facecolor=cols[d], alpha=0.15)
+                axs[a, e].grid(True, linewidth=0.2)
+
+                if a != 1 or e != 0:
+                    axs[a, e].xaxis.set_ticklabels([])
+
+    axs[0, 0].set_ylabel('SAC Critic Tail ' + r'$\alpha$')
+    axs[1, 0].set_ylabel('TD3 Critic Tail ' + r'$\alpha$')
+    axs[1, 0].set_xlabel('Steps (1e'+str(exp)+')')
+    
+    axs[0, 0].text(0.325, 1.1, env_names[0], size='large', transform=axs[0, 0].transAxes)
+    axs[0, 1].text(0.325, 1.1, env_names[1], size='large', transform=axs[0, 1].transAxes)
+    axs[0, 2].text(0.325, 1.1, env_names[2], size='large', transform=axs[0, 2].transAxes)
+    axs[0, 3].text(0.325, 1.1, env_names[3], size='large', transform=axs[0, 3].transAxes)
+
+    fig.tight_layout(h_pad=2)
+    fig.subplots_adjust(bottom=0.175)
+    fig.legend(handles=patches, loc='lower center',ncol=n_data, frameon=False, fontsize='large')
+
+    plt.savefig(filename_png+'_tail.png', dpi=200, format='png')
+
+    fig, axs = plt.subplots(nrows=2, ncols=4, figsize=(12,6))
+
+    for a in range(n_algo):
+        for e in range(n_env):
+            for d in range(n_data):
+
+                var_x = shadow[e, a, d]
+
+                x_mean = np.mean(var_x, axis=1, keepdims=True)
+
+                x_max, x_min = np.max(var_x, axis=1, keepdims=True), np.min(var_x, axis=1, keepdims=True)
+                x_mad = np.mean(np.abs(var_x - x_mean), axis=1, keepdims=True)
+                x_mad_up = np.minimum(x_max, x_mean+x_mad).reshape(-1)
+                x_mad_lo = np.maximum(x_min, x_mean-x_mad).reshape(-1)
+                
+                x_mean = x_mean.reshape(-1)
+
+                x_mean, x_mad_up, x_mad_lo = np.log10(x_mean), np.log10(x_mad_up), np.log10(x_mad_lo)
+
+                axs[a, e].plot(x_steps, x_mean, color=cols[d], linewidth=0.5)
+                axs[a, e].fill_between(x_steps, x_mad_lo, x_mad_up, facecolor=cols[d], alpha=0.15)
+                axs[a, e].grid(True, linewidth=0.2)
+
+                if a != 1 or e != 0:
+                    axs[a, e].xaxis.set_ticklabels([])
+
+    axs[0, 0].set_ylabel('SAC Critic Shadow ' + r'$\mu_s$' + ' (log10)')
+    axs[1, 0].set_ylabel('TD3 Critic Shadow ' + r'$\mu_s$' + ' (log10)')
+    axs[1, 0].set_xlabel('Steps (1e'+str(exp)+')')
+    
+    axs[0, 0].text(0.325, 1.1, env_names[0], size='large', transform=axs[0, 0].transAxes)
+    axs[0, 1].text(0.325, 1.1, env_names[1], size='large', transform=axs[0, 1].transAxes)
+    axs[0, 2].text(0.325, 1.1, env_names[2], size='large', transform=axs[0, 2].transAxes)
+    axs[0, 3].text(0.325, 1.1, env_names[3], size='large', transform=axs[0, 3].transAxes)
+
+    fig.tight_layout(h_pad=2)
+    fig.subplots_adjust(bottom=0.175)
+    fig.legend(handles=patches, loc='lower center',ncol=n_data, frameon=False, fontsize='large')
+
+    plt.savefig(filename_png+'_shadow.png', dpi=200, format='png')
+
+    fig, axs = plt.subplots(nrows=2, ncols=4, figsize=(12,6))
+
+    for a in range(n_algo):
+        for e in range(n_env):
+            for d in range(n_data):
+
+                var_x = keqv[e, a, d]
+
+                x_mean = np.mean(var_x, axis=1, keepdims=True)
+
+                x_max, x_min = np.max(var_x, axis=1, keepdims=True), np.min(var_x, axis=1, keepdims=True)
+                x_mad = np.mean(np.abs(var_x - x_mean), axis=1, keepdims=True)
+                x_mad_up = np.minimum(x_max, x_mean+x_mad).reshape(-1)
+                x_mad_lo = np.maximum(x_min, x_mean-x_mad).reshape(-1)
+                
+                x_mean = x_mean.reshape(-1)
+
+                x_mean, x_mad_up, x_mad_lo = np.log10(x_mean), np.log10(x_mad_up), np.log10(x_mad_lo)
+
+                axs[a, e].plot(x_steps, x_mean, color=cols[d], linewidth=0.5)
+                axs[a, e].fill_between(x_steps, x_mad_lo, x_mad_up, facecolor=cols[d], alpha=0.15)
+                axs[a, e].grid(True, linewidth=0.2)
+
+                if a != 1 or e != 0:
+                    axs[a, e].xaxis.set_ticklabels([])
+
+    axs[0, 0].set_ylabel('SAC Multiplier ' + r'$\kappa_{eqv}$' + ' (log10)')
+    axs[1, 0].set_ylabel('TD3 Multiplier ' + r'$\kappa_{eqv}$' + ' (log10)')
+    axs[1, 0].set_xlabel('Steps (1e'+str(exp)+')')
+    
+    axs[0, 0].text(0.325, 1.1, env_names[0], size='large', transform=axs[0, 0].transAxes)
+    axs[0, 1].text(0.325, 1.1, env_names[1], size='large', transform=axs[0, 1].transAxes)
+    axs[0, 2].text(0.325, 1.1, env_names[2], size='large', transform=axs[0, 2].transAxes)
+    axs[0, 3].text(0.325, 1.1, env_names[3], size='large', transform=axs[0, 3].transAxes)
+
+    fig.tight_layout(h_pad=2)
+    fig.subplots_adjust(bottom=0.175)
+    fig.legend(handles=patches, loc='lower center',ncol=n_data, frameon=False, fontsize='large')
+
+    plt.savefig(filename_png+'_keqv.png', dpi=200, format='png')
+
+def plot_add_temp(inputs: dict, env_names: List[str], legend: List[str], multi: bool, 
+                  logtemp: np.ndarray, filename_png: str):
     """
-    Plot SAC sutomatically tuned temperature hyperparameters for only two environments and all critic loss functions.
+    Plots additve environments SAC entropy temperature for loss functions and multi-step returns.
 
     Parameters:
         inputs: dictionary containing all execution details
-        data: mega combined array of everything
-        env_name: name of both environments
-        cirtic_name: name of all critic loss functions
-        filename_png (directory): save path of plot
+        env_names: list of environment names
+        legend: list of labeling across trials
+        multi: True or False as to whther plotting multi-stewp returns
+        logtemp: log SAC entopy temperature across trials
+        filename_png: path for file saving
     """
-    envs = data.shape[0]
-    closs = data.shape[1]
-    cum_steps_log = data[0, 0, 0, :, 0, -1]
+    n_env, n_algo, n_data = logtemp.shape[0], logtemp.shape[1], logtemp.shape[2]
+
+    if multi == True:
+        legend = ['m = '+str(legend[x]) for x in range(n_data)]
+
+    cum_steps_log = np.array([x for x in range(int(inputs['eval_freq']), int(inputs['n_cumsteps']) + 
+                                               int(inputs['eval_freq']), int(inputs['eval_freq']))])
 
     exp = utils.get_exponent(cum_steps_log)
     x_steps = cum_steps_log/10**(exp)
 
-    count_x = int(inputs['n_cumsteps'] / inputs['eval_freq'])
-    count_z = int(inputs['n_trials'] )
+    cols = ['C'+str(x) for x in range(n_data)]
 
-    logtemp = np.zeros((envs, closs, count_x, count_z))
+    patches = [mpatches.Patch(color=cols[x], label=legend[x], alpha=0.8)
+               for x in range(n_data)]
 
-    for a in range(envs):
-        for l in range(closs):
-            for t in range(count_x):
-                for n in range(inputs['n_trials']):
-                    logtemp[a, l, t, n] = data[a, l, n, t, 0, 10]
+    fig, axs = plt.subplots(nrows=2, ncols=2, figsize=(8,8))
 
-    cols = ['C'+str(x) for x in range(closs)]
+    for e in range(n_env):
+        for d in range(n_data):
 
-    env_name = [name[0:name.index("Bullet")] for name in env_name]
+            var_x = logtemp[e, 0, d]
 
-    fig, axs = plt.subplots(nrows=1, ncols=2, figsize=(8,3))
-    
-    for sc in range(envs):
-            for cl in range(closs):
+            var_x = np.exp(var_x)
+
+            x_mean = np.mean(var_x, axis=1, keepdims=True)
+
+            x_max, x_min = np.max(var_x, axis=1, keepdims=True), np.min(var_x, axis=1, keepdims=True)
+            x_mad = np.mean(np.abs(var_x - x_mean), axis=1, keepdims=True)
+            x_mad_up = np.minimum(x_max, x_mean+x_mad).reshape(-1)
+            x_mad_lo = np.maximum(x_min, x_mean-x_mad).reshape(-1)
             
-                logtemp_cl = logtemp[sc, cl] 
-                logtemp_cl = np.exp(logtemp_cl)
+            x_mean = x_mean.reshape(-1)
 
-                logtemp_mean = np.mean(logtemp_cl, axis=1, keepdims=True)
-                logtemp_max, logtemp_min = np.max(logtemp_cl, axis=1, keepdims=True), np.min(logtemp_cl, axis=1, keepdims=True)
-                logtemp_mad = np.mean(np.abs(logtemp_cl - logtemp_mean), axis=1, keepdims=True)
-                logtemp_mad_up = np.minimum(logtemp_max, logtemp_mean+logtemp_mad).reshape(-1)
-                logtemp_mad_lo = np.maximum(logtemp_min, logtemp_mean-logtemp_mad).reshape(-1)
-                logtemp_mean = logtemp_mean.reshape(-1)
+            x_mean, x_mad_up, x_mad_lo = np.log10(x_mean), np.log10(x_mad_up), np.log10(x_mad_lo)
 
-                axs[sc].plot(x_steps, logtemp_mean, color=cols[cl], linewidth=1)
-                axs[sc].fill_between(x_steps, logtemp_mad_lo, logtemp_mad_up, facecolor=cols[cl], alpha=0.1)
-                axs[sc].grid(True, linewidth=0.2)
-                axs[sc].set_title(env_name[sc])
+            if e == 0:
+                axs[0, 0].plot(x_steps, x_mean, color=cols[d], linewidth=0.5)
+                axs[0, 0].fill_between(x_steps, x_mad_lo, x_mad_up, facecolor=cols[d], alpha=0.15)
+                axs[0, 0].grid(True, linewidth=0.2)
+                axs[0, 0].xaxis.set_ticklabels([])
+            elif e == 1:
+                axs[0, 1].plot(x_steps, x_mean, color=cols[d], linewidth=0.5)
+                axs[0, 1].fill_between(x_steps, x_mad_lo, x_mad_up, facecolor=cols[d], alpha=0.15)
+                axs[0, 1].grid(True, linewidth=0.2)
+                axs[0, 1].xaxis.set_ticklabels([])
+            elif e == 2:
+                axs[1, 0].plot(x_steps, x_mean, color=cols[d], linewidth=0.5)
+                axs[1, 0].fill_between(x_steps, x_mad_lo, x_mad_up, facecolor=cols[d], alpha=0.15)
+                axs[1, 0].grid(True, linewidth=0.2)
+            else:
+                axs[1, 1].plot(x_steps, x_mean, color=cols[d], linewidth=0.5)
+                axs[1, 1].fill_between(x_steps, x_mad_lo, x_mad_up, facecolor=cols[d], alpha=0.15)
+                axs[1, 1].grid(True, linewidth=0.2)
+                axs[1, 1].xaxis.set_ticklabels([])
 
-    axs[0].set_ylabel('Entropy Temperature α')
-    axs[0].set_xlabel('Steps (1e'+str(exp)+')')
+    axs[1, 0].set_ylabel('Entropy Temperature (log10)')
+    axs[1, 0].set_xlabel('Steps (1e'+str(exp)+')')
+    
+    axs[0, 0].text(0.35, 1.1, env_names[0], size='large', transform=axs[0, 0].transAxes)
+    axs[0, 1].text(0.35, 1.1, env_names[1], size='large', transform=axs[0, 1].transAxes)
+    axs[1, 0].text(0.35, 1.1, env_names[2], size='large', transform=axs[1, 0].transAxes)
+    axs[1, 1].text(0.35, 1.1, env_names[3], size='large', transform=axs[1, 1].transAxes)
 
-    fig.subplots_adjust(bottom=0.3, hspace=0.2)
-    fig.legend(critic_name, loc='lower center', ncol=closs, frameon=False, fontsize='medium')
+    fig.tight_layout(h_pad=2)
+    fig.subplots_adjust(bottom=0.15)
 
-    plt.savefig(filename_png, dpi=300, format='png')
-0
+    if multi == False:
+        fig.legend(handles=patches, loc='lower center',ncol=int(n_data/2 + 1), frameon=False, fontsize='large')
+    else:
+        fig.legend(handles=patches, loc='lower center',ncol=n_data, frameon=False, fontsize='large')
+
+    plt.savefig(filename_png+'_temp.png', dpi=200, format='png')
+
 def plot_inv(inputs: dict, reward: np.ndarray, lev: np.ndarray, stop: np.ndarray, reten: np.ndarray, loss: np.ndarray, 
              tail: np.ndarray, shadow: np.ndarray, cmax: np.ndarray, keqv: np.ndarray, filename_png: str, 
              T: int =1, V_0: float =1):
@@ -517,10 +607,7 @@ def plot_inv(inputs: dict, reward: np.ndarray, lev: np.ndarray, stop: np.ndarray
         
         x_mean = x_mean.reshape(-1)
         x_med = x_med.reshape(-1)
-
-        print(x_med)
-        print(x_mean)
-
+    
         x_d = np.percentile(inv_x, 25, axis=1, interpolation='lower', keepdims=True)
         x_u = np.percentile(inv_x, 75, axis=1, interpolation='lower', keepdims=True)
         x_d = x_d.reshape(-1)
@@ -643,7 +730,7 @@ def plot_inv(inputs: dict, reward: np.ndarray, lev: np.ndarray, stop: np.ndarray
         axs[1, 1].grid(True, linewidth=0.2)
         axs[1, 1].xaxis.set_ticklabels([])
 
-    axs[1, 1].set_ylabel('Critic Tail ' + r'$\alpha}$')
+    axs[1, 1].set_ylabel('Critic Tail ' + r'$\alpha$')
 
     for i in range(ninv):
 
@@ -713,7 +800,7 @@ def plot_inv(inputs: dict, reward: np.ndarray, lev: np.ndarray, stop: np.ndarray
     fig.subplots_adjust(bottom=0.1,  wspace=0.3, hspace=0.4)
     fig.legend(handles=[a_col, b_col, c_col], loc='lower center', ncol=3, frameon=False, fontsize='medium')
 
-    plt.savefig(filename_png, dpi=300, format='png')
+    plt.savefig(filename_png, dpi=200, format='png')
     
 def plot_inv_all_n_perf(inputs: dict, reward_1: np.ndarray, lev_1: np.ndarray, stop_1: np.ndarray, reten_1: np.ndarray,
                         reward_2: np.ndarray, lev_2: np.ndarray, stop_2: np.ndarray, reten_2: np.ndarray,
@@ -909,7 +996,7 @@ def plot_inv_all_n_perf(inputs: dict, reward_1: np.ndarray, lev_1: np.ndarray, s
     fig.subplots_adjust(bottom=0.075,  wspace=0.25, hspace=0.3)
     fig.legend(handles=[a_col, b_col, c_col], loc='lower center', ncol=3, frameon=False, fontsize='medium')
 
-    plt.savefig(filename_png, dpi=300, format='png')
+    plt.savefig(filename_png, dpi=200, format='png')
 
 def plot_inv_all_n_train(inputs: dict, loss_1: np.ndarray, tail_1: np.ndarray, shadow_1: np.ndarray, keqv1: np.ndarray,
                          loss_2: np.ndarray, tail_2: np.ndarray, shadow_2: np.ndarray, keqv2: np.ndarray,
@@ -1013,7 +1100,7 @@ def plot_inv_all_n_train(inputs: dict, loss_1: np.ndarray, tail_1: np.ndarray, s
             axs[1, n].grid(True, linewidth=0.2)
             axs[1, n].xaxis.set_ticklabels([])
 
-    axs[1, 0].set_ylabel('Critic Tail ' + r'$\alpha}$')
+    axs[1, 0].set_ylabel('Critic Tail ' + r'$\alpha$')
 
     for n in range(3):
         for i in range(ninv):
@@ -1097,7 +1184,7 @@ def plot_inv_all_n_train(inputs: dict, loss_1: np.ndarray, tail_1: np.ndarray, s
     fig.subplots_adjust(bottom=0.075,  wspace=0.25, hspace=0.3)
     fig.legend(handles=[a_col, b_col, c_col], loc='lower center', ncol=3, frameon=False, fontsize='medium')
 
-    plt.savefig(filename_png, dpi=300, format='png')
+    plt.savefig(filename_png, dpi=200, format='png')
 
 def plot_safe_haven(inputs: dict, reward: np.ndarray, lev: np.ndarray, stop: np.ndarray, reten: np.ndarray, loss: np.ndarray, 
                     tail: np.ndarray, shadow: np.ndarray, cmax: np.ndarray, keqv: np.ndarray, lev_sh: np.ndarray,
@@ -1162,7 +1249,7 @@ def plot_safe_haven(inputs: dict, reward: np.ndarray, lev: np.ndarray, stop: np.
         x_u = np.percentile(inv_x, 75, axis=1, interpolation='lower', keepdims=True)
         x_d = (x_d.reshape(-1) - 1) * 100
         x_u = (x_u.reshape(-1) - 1) * 100
-        
+
         # x_mean = np.log10(x_mean)
         # x_med = np.log10(x_med)
         # x_mad_lo = np.log10(x_mad_lo)
@@ -1176,8 +1263,6 @@ def plot_safe_haven(inputs: dict, reward: np.ndarray, lev: np.ndarray, stop: np.
         # axs[0, 0].fill_between(x_steps, x_mad_lo, x_mad_up, facecolor=cols[i], alpha=0.1)
         axs[0, 0].grid(True, linewidth=0.2)
         axs[0, 0].xaxis.set_ticklabels([])
-
-        print(x_med, x_mean)
 
     axs[0, 0].set_ylabel('Growth ' + r'$\bar{g}$' + ' (%)') 
 
@@ -1316,7 +1401,7 @@ def plot_safe_haven(inputs: dict, reward: np.ndarray, lev: np.ndarray, stop: np.
         axs[1, 1].grid(True, linewidth=0.2)
         axs[1, 1].xaxis.set_ticklabels([])
 
-    axs[1, 1].set_ylabel('Critic Tail ' + r'$\alpha}$')
+    axs[1, 1].set_ylabel('Critic Tail ' + r'$\alpha$')
 
     for i in range(ninv):
 
@@ -1397,7 +1482,7 @@ def plot_safe_haven(inputs: dict, reward: np.ndarray, lev: np.ndarray, stop: np.
     fig.subplots_adjust(bottom=0.1,  wspace=0.3, hspace=0.4)
     fig.legend(handles=[a_col, b_col], loc='lower center', ncol=3, frameon=False, fontsize='medium')
 
-    plt.savefig(filename_png, dpi=300, format='png')
+    plt.savefig(filename_png, dpi=200, format='png')
 
 def plot_inv_sh_perf(inputs: dict, reward_a: np.ndarray, lev_a: np.ndarray, stop_a: np.ndarray, reten_a: np.ndarray, levsh_a: np.ndarray,
                      reward_b: np.ndarray, lev_b: np.ndarray, stop_b: np.ndarray, reten_b: np.ndarray, levsh_b: np.ndarray,
@@ -1465,7 +1550,7 @@ def plot_inv_sh_perf(inputs: dict, reward_a: np.ndarray, lev_a: np.ndarray, stop
             # x_med = np.log10(x_med)
             # x_mad_lo = np.log10(x_mad_lo)
             # x_mad_up = np.log10(x_mad_up)
-            # print(x_mean)
+
             axs[0, n].plot(x_steps, x_mean, color=cols[i], linewidth=1)
             axs[0, n].plot(x_steps, x_med, color=cols[i], linewidth=1, linestyle='--')
             # axs[0, n].plot(x_steps, x_d, color=cols[i], linewidth=1, linestyle=':')
@@ -1635,7 +1720,7 @@ def plot_inv_sh_perf(inputs: dict, reward_a: np.ndarray, lev_a: np.ndarray, stop
     fig.subplots_adjust(bottom=0.075,  wspace=0.25, hspace=0.3)
     fig.legend(handles=[a_col, b_col, c_col], loc='lower center', ncol=3, frameon=False, fontsize='medium')
 
-    plt.savefig(filename_png, dpi=300, format='png')
+    plt.savefig(filename_png, dpi=200, format='png')
 
 def plot_inv_sh_train(inputs: dict, loss_1: np.ndarray, tail_1: np.ndarray, shadow_1: np.ndarray, keqv1: np.ndarray,
                       loss_2: np.ndarray, tail_2: np.ndarray, shadow_2: np.ndarray, keqv2: np.ndarray,
@@ -1738,7 +1823,7 @@ def plot_inv_sh_train(inputs: dict, loss_1: np.ndarray, tail_1: np.ndarray, shad
             axs[1, n].grid(True, linewidth=0.2)
             axs[1, n].xaxis.set_ticklabels([])
 
-    axs[1, 0].set_ylabel('Critic Tail ' + r'$\alpha}$')
+    axs[1, 0].set_ylabel('Critic Tail ' + r'$\alpha$')
 
     for n in range(3):
         for i in range(ninv):
@@ -1821,4 +1906,4 @@ def plot_inv_sh_train(inputs: dict, loss_1: np.ndarray, tail_1: np.ndarray, shad
     fig.subplots_adjust(bottom=0.075,  wspace=0.25, hspace=0.3)
     fig.legend(handles=[a_col, b_col], loc='lower center', ncol=3, frameon=False, fontsize='medium')
 
-    plt.savefig(filename_png, dpi=300, format='png')
+    plt.savefig(filename_png, dpi=200, format='png')

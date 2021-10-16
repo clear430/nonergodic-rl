@@ -1,20 +1,38 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+"""
+title:                  coin_flip_envs.py
+python version:         3.9
+
+author:                 Raja Grewal
+email:                  raja_grewal1@pm.me
+website:                https://github.com/rgrewa1
+
+Description:
+    OpenAI Gym compatible environments for training an agent on various binary 
+    coin flip gambles based on
+    https://aip.scitation.org/doi/pdf/10.1063/1.4940236 and
+    https://www.nature.com/articles/s41567-019-0732-0.pdf.
+"""
+
 import gym
 from gym import spaces
 from gym.utils import seeding
 import numpy as np
 from typing import List, Tuple
 
-MAX_VALUE = 1e16                                # maximium potfolio value for normalisation
-INITIAL_PRICE = 1e3                             # intial price of all assets
-INITIAL_VALUE = 1e4                             # intial portfolio value
-MIN_VALUE_RATIO = 1e-2                          # minimum portfolio value ratio (psi)
-MIN_VALUE = MIN_VALUE_RATIO * INITIAL_VALUE
-MAX_VALUE_RATIO = 1                             # maximum possible value realtive to MAX_VALUE
+MAX_VALUE = 1e18                                        # maximium potfolio value for normalisation
+INITIAL_PRICE = 1e3                                     # intial price of all assets
+INITIAL_VALUE = 1e4                                     # intial portfolio value
+MIN_VALUE_RATIO = 1e-2                                  # minimum portfolio value ratio (psi)
+MIN_VALUE = max(MIN_VALUE_RATIO * INITIAL_VALUE, 1)
+MAX_VALUE_RATIO = 1                                     # maximum possible value realtive to MAX_VALUE
 
-MAX_ABS_ACTION = 0.99                           # maximum normalised (absolute) action value (epsilon_1)
-MIN_REWARD = 1e-6                               # minimum step reward (epsilon_2)
-MIN_RETURN = -0.99                              # minimum step return (epsilon_3)
-MIN_WEIGHT = 1e-6                               # minimum all asset weights (epsilon_4)
+MAX_ABS_ACTION = 0.99                                   # maximum normalised (absolute) action value (epsilon_1)
+MIN_REWARD = 1e-6                                       # minimum step reward (epsilon_2)
+MIN_RETURN = -0.99                                      # minimum step return (epsilon_3)
+MIN_WEIGHT = 1e-6                                       # minimum all asset weights (epsilon_4)
 
 # hyperparameters for the coin flip gamble for investors 1-3
 UP_PROB = 0.5                                   # probability of up move

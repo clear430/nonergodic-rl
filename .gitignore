@@ -1,19 +1,32 @@
+# python bytecode cache
 *.pyc
 
-notepad.py.py
-envs/market_envs.py
-envs/market_sim.py
-utils/market_eval.py
+# python virtual environment
+rl_env/
 
+# playground of new ideas
+notepad.py
+
+# output data (available upon request)
+models/
+results/
+
+# documents, figures, and HPC files
 .VSCodeCounter/
 artemis_hpc/
 docs/figs/
-docs/COT_data
-docs/historical_data
-tex/
 paper_drafts/
-models/
-results/additive
-results/multiplicative
-results/multiverse
+tex/
+
+# historical market indicators and prices
+docs/raw_data
+docs/market_datq
+
+# real market environments
+envs/market_envs.py
+utils/gen_market.py
+utils/market_sim.py
+utils/market_eval.py
+
+# protoype multi-stage model
 sarea2/

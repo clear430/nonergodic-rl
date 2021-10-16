@@ -1,16 +1,35 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+"""
+title:                  eval_episodes.py
+python version:         3.9
+torch verison:          1.9
+
+author:                 Raja Grewal
+email:                  raja_grewal1@pm.me
+website:                https://github.com/rgrewa1
+
+Description:
+    Responsible for performing agent evaluation episodes for both 
+    additive and multiplicative environments.
+"""
+
 import sys
 sys.path.append("./")
 
 from datetime import datetime
-import envs.coin_flip_envs as coin_flip_envs
-import envs.dice_roll_envs as dice_roll_envs
-import envs.dice_roll_sh_envs as dice_roll_sh_envs
-# import envs.gbm_envs as gbm_envs
 import gym
 import numpy as np
 import pybullet_envs
 import time
 from typing import Tuple
+
+import envs.coin_flip_envs as coin_flip_envs
+import envs.dice_roll_envs as dice_roll_envs
+import envs.dice_roll_sh_envs as dice_roll_sh_envs
+import envs.gbm_envs as gbm_envs
+import envs.gbm_d_envs as gbm_d_envs
 
 def eval_additive(agent: object, inputs: dict, eval_log: np.ndarray, cum_steps: int, round: int, 
                   eval_run: int, loss: Tuple[float, float, float, float, float, float], logtemp: float, 
@@ -119,6 +138,8 @@ def eval_multiplicative(agent: object, inputs: dict, eval_log: np.ndarray, eval_
         eval_env = eval('dice_roll_envs.'+inputs['env_id']+'()')
     elif inputs['ENV_KEY'] <= 40:
         eval_env = eval('gbm_envs.'+inputs['env_id']+'()')
+    elif inputs['ENV_KEY'] <= 49:
+        eval_env = eval('gbm_d_envs.'+inputs['env_id']+'()')
     else:
         eval_env = eval('dice_roll_sh_envs.'+inputs['env_id']+'()')
 

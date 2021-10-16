@@ -1,14 +1,30 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+"""
+title:                  plot_multiverse.py
+python version:         3.9
+
+author:                 Raja Grewal
+email:                  raja_grewal1@pm.me
+website:                https://github.com/rgrewa1
+
+Description:
+    Plotting of all final summary figures for all optimal leverage experiments. 
+"""
+
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import numpy as np
 
-def plot_inv1(inv1_data: np.ndarray, inv1_data_T: np.ndarray, filename_png: str):
+def plot_inv1(inv1_data: np.ndarray, inv1_data_T: np.ndarray, p4_max: float, filename_png: str):
     """
     Investor 1 grid of plots.
 
     Parameters:
         inv1_data: array of investor 1 data across all fixed leverages
         inv1_data_T: array of investor 1 valutations at maturity 
+        p4_max: maximum value of forth plot
         filename_png (directory): save path of plot
     """
     nlevs = inv1_data.shape[0]
@@ -58,7 +74,7 @@ def plot_inv1(inv1_data: np.ndarray, inv1_data_T: np.ndarray, filename_png: str)
     nor_std, top_std, adj_std = inv1_data[:, 6, -1], inv1_data[:, 7, -1], inv1_data[:, 8, -1]
     nor_med, top_med, adj_med = inv1_data[:, -4, -1], inv1_data[:, -3, -1], inv1_data[:, -2, -1]
 
-    max = 1e30
+    max = p4_max
     min = 1e-39
 
     nor_mad_up, top_mad_up, adj_mad_up = np.minimum(max, nor_mean+nor_mad), np.minimum(max, top_mean+top_mad), np.minimum(max, adj_mean+adj_mad)
@@ -100,12 +116,13 @@ def plot_inv1(inv1_data: np.ndarray, inv1_data_T: np.ndarray, filename_png: str)
 
     plt.savefig(filename_png, dpi=300, format='png')
     
-def plot_inv2(inv2_data: np.ndarray, filename_png: str):
+def plot_inv2(inv2_data: np.ndarray, max_x: int, filename_png: str):
     """
     Investor 2 mean values and mean leverages.
 
     Parameters:
         inv2_data: array of investor 2 data for a single stop-loss
+        max_x: number of time steps to be plotted
         filename_png (directory): save path of plot
     """
     x_steps = np.arange(0, inv2_data.shape[3])
@@ -117,7 +134,7 @@ def plot_inv2(inv2_data: np.ndarray, filename_png: str):
 
     fig, axs = plt.subplots(nrows=1, ncols=2, figsize=(8, 3))
     
-    max_x = 30         # maximum number of time steps to be plotted
+    max_x = max_x      # maximum number of time steps to be plotted
     value_0 = 1e2      # intial portfolio value of each investor
 
     for sub in range(3):

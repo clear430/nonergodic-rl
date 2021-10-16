@@ -1,9 +1,25 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+"""
+title:                  plot_summary.py
+python version:         3.9
+
+author:                 Raja Grewal
+email:                  raja_grewal1@pm.me
+website:                https://github.com/rgrewa1
+
+Description:
+    Plotting of reinforcement learning trial summaries at the conclusion 
+    of each experiment. 
+"""
+
 import sys
 sys.path.append("./")
 
-import extras.utils as utils
 import matplotlib.pyplot as plt
 import numpy as np
+
 import extras.utils as utils
 
 def plot_learning_curve(inputs: dict, trial_log: np.ndarray, filename_png: str):

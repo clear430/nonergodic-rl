@@ -1,3 +1,18 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+"""
+title:                  replay.py
+python version:         3.9
+
+author:                 Raja Grewal
+email:                  raja_grewal1@pm.me
+website:                https://github.com/rgrewa1
+
+Description:
+    Responsible for creating experience replay buffer with uniform step sampling. 
+"""
+
 import numpy as np
 from typing import List, Tuple
 
@@ -147,7 +162,6 @@ class ReplayBuffer():
             actions: sample action history
         """
         # find which episode the sampled step (experience) is located
-        # for environments composed of a single never-ending training episode this will not work
         try:
             sample_idx = int(np.max(np.where(step - epis_history > 0)) + 1) if step > epis_history[0] \
                                                                             else 0
@@ -170,7 +184,7 @@ class ReplayBuffer():
                 actions = self.epis_action_memory[0][0:n_rewards + 1]
             except:
                 try:
-                    # used for the the very first training step of the first training episode
+                    # used for the very first training step of the first training episode
                     rewards = self.epis_reward_memory[0][0]
                     states = self.epis_state_memory[0][0]
                     actions = self.epis_action_memory[0][0]

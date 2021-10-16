@@ -1,3 +1,19 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+"""
+title:                  utils.py
+python version:         3.9
+
+author:                 Raja Grewal
+email:                  raja_grewal1@pm.me
+website:                https://github.com/rgrewa1
+
+Description:
+    Responsible for various additional tools required for file naming, directory 
+    generation, shadow means, and aggregating output training data for final figure plotting.
+"""
+
 import numpy as np
 import scipy.optimize as op
 import scipy.special as sp
@@ -130,8 +146,8 @@ def shadow_means(alpha: np.ndarray, min: np.ndarray, max: np.ndarray,
         alpha: sample tail index
         min: sample minimum critic loss
         max: sample maximum critic loss
-        low_mul: lower bound multiplier of sample minimum to form minimum threshold of interest
-        max_mul: upper bound multiplier of maximum of distributions
+        low_mul: lower bound multiplier of sample minimum to form threshold of interest
+        max_mul: upper bound multiplier of sample maximum to form upper limit
 
     Returns:
         shadow: shadow mean
@@ -171,7 +187,192 @@ def shadow_equiv(mean: np.ndarray, alpha: np.ndarray, min: np.ndarray,
 
     return max_mul_solve
 
-def mul_inv_aggregate(env_keys: list, gym_envs: dict, mul_inputs: dict, safe_haven: bool =False) \
+def add_loss_aggregate(env_keys: list, gym_envs: dict, inputs: dict, algos: list =['TD3'], loss: list =['MSE']) \
+         -> np.ndarray:
+    """
+    Combine environment loss evaluation data for additive experiments.
+
+    Parameters:
+        env_keys: list of environments
+        gym_envvs: dictionary of all environment details
+        inputs: dictionary of additive execution parameters
+        algos: list of RL algorithms
+        loss: list of critic loss functions
+
+    Retuens:
+        data: aggregated evaluation data across all ioss functions
+    """
+    step_exp = int(len(str(int(inputs['n_cumsteps']))) - 1)
+    buff_exp = int(len(str(int(inputs['buffer']))) - 1)
+
+    data = np.zeros((len(env_keys), len(algos), len(loss), int(inputs['n_trials']), 
+                    int(inputs['n_cumsteps'] / inputs['eval_freq']), int(inputs['n_eval']), 20))
+
+    name = [gym_envs[str(key)][0] for key in env_keys]
+    path = ['./results/additive/' + n + '/' for n in name]
+
+    num1 = 0
+    for env in name:
+        num2 = 0
+        for a in algos:
+            num3 = 0
+            for l in loss:
+
+                dir = ['--',
+                    'A_',
+                    a+'-',
+                    inputs['s_dist'],
+                    '_'+l,
+                    '-'+str(inputs['critic_mean_type']),
+                    '_B'+str(int(inputs['buffer']))[0:2]+'e'+str(buff_exp-1),
+                    '_M'+str(inputs['multi_steps']),
+                    '_S'+str(int(inputs['n_cumsteps']))[0:2]+'e'+str(step_exp-1),
+                    '_N'+str(inputs['n_trials'])  
+                    ]
+
+                dir = ''.join(dir)
+
+                data_path = path[num1]+env+dir
+
+                file = np.load(data_path+'_eval.npy')
+
+                data[num1, num2, num3] = file
+
+                num3 += 1
+            num2 += 1
+        num1 += 1
+
+    return data
+
+def add_multi_aggregate(env_keys: list, gym_envs: dict, inputs: dict, algos: list =['TD3'], multi: list =[1]) \
+         -> np.ndarray:
+    """
+    Combine environment multi-step evaluation data for additive experiments.
+
+    Parameters:
+        env_keys: list of environments
+        gym_envvs: dictionary of all environment details
+        inputs: dictionary of additive execution parameters
+        algos: list of RL algorithms
+        loss: list of multi-steps
+
+    Retuens:
+        data: aggregated evaluation data across all ioss functions
+    """
+    step_exp = int(len(str(int(inputs['n_cumsteps']))) - 1)
+    buff_exp = int(len(str(int(inputs['buffer']))) - 1)
+
+    data = np.zeros((len(env_keys), len(algos), len(multi), int(inputs['n_trials']), 
+                    int(inputs['n_cumsteps'] / inputs['eval_freq']), int(inputs['n_eval']), 20))
+
+    name = [gym_envs[str(key)][0] for key in env_keys]
+    path = ['./results/additive/' + n + '/' for n in name]
+
+    num1 = 0
+    for env in name:
+        num2 = 0
+        for a in algos:
+            num3 = 0
+            for m in multi:
+
+                dir = ['--',
+                    'A_',
+                    a+'-',
+                    inputs['s_dist'],
+                    '_MSE',
+                    '-'+str(inputs['critic_mean_type']),
+                    '_B'+str(int(inputs['buffer']))[0:2]+'e'+str(buff_exp-1),
+                    '_M'+str(m),
+                    '_S'+str(int(inputs['n_cumsteps']))[0:2]+'e'+str(step_exp-1),
+                    '_N'+str(inputs['n_trials'])  
+                    ]
+
+                dir = ''.join(dir)
+
+                data_path = path[num1]+env+dir
+
+                file = np.load(data_path+'_eval.npy')
+
+                data[num1, num2, num3] = file
+
+                num3 += 1
+            num2 += 1
+        num1 += 1
+
+    return data
+
+def add_summary(inputs: dict, data: np.ndarray) \
+        -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray,
+                 np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Seperate and aggregate arrays into variables.
+    
+    Parameters:
+        inputs: dictionary of execution parameters
+        data: aggregated evaluation data across all experiments
+
+    Retuens:
+        reward: final scores
+        loss: critic loss
+        scale: Cauchy scales
+        kernerl: CIM kernel size
+        logtemp: SAC log entropy temperature
+        tail: tail exponent
+        shadow: shadow critic loss
+        cmax: maximum critic loss
+        keqv: max multiplier for equvilance between shadow and empirical means
+
+    """
+    n_env, n_algo, n_data = data.shape[0], data.shape[1], data.shape[2]
+
+    count_x = int(inputs['n_cumsteps'] / inputs['eval_freq'])
+    count_y = int(inputs['n_trials'] * int(inputs['n_eval']))
+    count_z = int(inputs['n_trials'] )
+
+    reward = np.zeros((n_env, n_algo, n_data, count_x, count_y))
+    loss = np.zeros((n_env, n_algo, n_data, count_x, count_z * 2))
+    scale = np.zeros((n_env, n_algo, n_data, count_x, count_z * 2))
+    kernel = np.zeros((n_env, n_algo, n_data, count_x, count_z * 2))
+    logtemp = np.zeros((n_env, n_algo, n_data, count_x, count_z))
+
+    shadow = np.zeros((n_env, n_algo, n_data, count_x, count_z * 2))
+    tail = np.zeros((n_env, n_algo, n_data, count_x, count_z * 2))
+    cmin = np.zeros((n_env, n_algo, n_data, count_x, count_z * 2))
+    cmax = np.zeros((n_env, n_algo, n_data, count_x, count_z * 2))
+    keqv = np.zeros((n_env, n_algo, n_data, count_x, count_z * 2)) 
+
+    for e in range(n_env):
+        for a in range(n_algo):
+            for d in range(n_data):
+                for t in range(count_x):
+                    for n in range(inputs['n_trials']):
+
+                        loss[e, a, d, t, (n * 2):(n * 2) + 2] = data[e, a, d, n, t, 0, 3:5]
+                        scale[e, a, d, t, (n * 2):(n * 2) + 2] = data[e, a, d, n, t, 0, 15:17]
+                        kernel[e, a, d, t, (n * 2):(n * 2) + 2] = data[e, a, d, n, t, 0, 17:19]
+                        logtemp[e, a, d, t, n] = data[e, a, d, n, t, 0, 14]
+
+                        shadow[e, a, d, t, (n * 2):(n * 2) + 2] = data[e, a, d, n, t, 0, 9:11]
+                        tail[e, a, d, t, (n * 2):(n * 2) + 2] = data[e, a, d, n, t, 0, 11:13]
+                        cmin[e, a, d, t, (n * 2):(n * 2) + 2] = data[e, a, d, n, t, 0, 5:7]
+                        cmax[e, a, d, t, (n * 2):(n * 2) + 2] = data[e, a, d, n, t, 0, 7:9]
+
+                        for s in range(int(inputs['n_eval'])):
+                            reward[e, a, d, t, s + n * int(inputs['n_eval'])] = data[e, a, d, n, t, s, 1]
+
+    shadow[np.isnan(shadow)] = loss[np.isnan(shadow)]
+
+    for e in range(n_env):
+        for a in range(n_algo):
+            for d in range(n_data):
+                for t in range(count_x):
+                    for n in range(inputs['n_trials'] * 2):
+                        keqv[e, a, d, t, n] = shadow_equiv(loss[e, a, d, t, n], tail[e, a, d, t, n], 
+                                                           cmin[e, a, d, t, n], loss[e, a, d, t, n], 1)
+
+    return reward, loss, scale, kernel, logtemp, tail, shadow, cmax, keqv
+
+def mul_inv_aggregate(env_keys: list, gym_envs: dict, inputs: dict, safe_haven: bool =False) \
         -> np.ndarray:
     """
     Combine environment evaluation data for investors across the same number of assets.
@@ -179,28 +380,41 @@ def mul_inv_aggregate(env_keys: list, gym_envs: dict, mul_inputs: dict, safe_hav
     Parameters:
         env_keys: list of environments
         gym_envvs: dictionary of all environment details
-        mul_inputs: dictionary of execution parameters
+        inputs: dictionary of multiplicative execution parameters
         safe_have: whether investor is using insurance safe haven
 
     Retuens:
         eval: aggregated evaluation data across all investors
     """
+    step_exp = int(len(str(int(inputs['n_cumsteps']))) - 1)
+    buff_exp = int(len(str(int(inputs['buffer']))) - 1)
+
+    dir = ['--',
+           'M_',
+           inputs['algo']+'-',
+           inputs['s_dist'],
+           '_'+inputs['loss_fn'],
+           '-'+str(inputs['critic_mean_type']),
+           '_B'+str(int(inputs['buffer']))[0:2]+'e'+str(buff_exp-1),
+           '_M'+str(inputs['multi_steps']),
+           '_S'+str(int(inputs['n_cumsteps']))[0:2]+'e'+str(step_exp-1),
+           '_N'+str(inputs['n_trials'])  
+           ]
+    
+    dir = ''.join(dir)
+    
     sh = 1 if safe_haven == True else 0
 
-    mul_nsteps = str(int(mul_inputs['n_cumsteps']))[0:2]
-    mul_nstep_exp = str(int(len(str(int(mul_inputs['n_cumsteps']))) - 1) - 1)
-
-    for key in env_keys:
+    for k in env_keys:
         name = [gym_envs[str(key)][0] for key in env_keys]
         path = ['./results/multiplicative/' + n + '/' for n in name]
 
-        eval = np.zeros((len(name), int(mul_inputs['n_trials']), 
-                            int(mul_inputs['n_cumsteps'] / mul_inputs['eval_freq']), 
-                            int(mul_inputs['n_eval']), 20 + 16 + sh))
+        eval = np.zeros((len(name), int(inputs['n_trials']), 
+                            int(inputs['n_cumsteps'] / inputs['eval_freq']), 
+                            int(inputs['n_eval']), 20 + 16 + sh))
         num = 0
         for env in name:
-            data_path = path[num]+env+'--M_TD3-N_MSE-E_B10e5_M1_S'+mul_nsteps+'e'+mul_nstep_exp+ \
-                        '_N'+str(int(mul_inputs['n_trials']))
+            data_path = path[num]+env+dir
 
             file1 = np.load(data_path+'_eval.npy')
             file2 = np.load(data_path+'_eval_risk.npy')
@@ -216,10 +430,10 @@ def mul_inv_n_summary(mul_inputs: dict, aggregate_n: np.ndarray, safe_haven: boo
         -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray,
                  np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """
-    Seperate aggregate array into variables.
+    Seperate and aggregate arrays into variables.
     
     Parameters:
-        mul_inputs: dictionary of execution parameters
+        inputs: dictionary of execution parameters
         aggregate_n: aggregated evaluation data across all investors
 
     Retuens:
@@ -243,7 +457,7 @@ def mul_inv_n_summary(mul_inputs: dict, aggregate_n: np.ndarray, safe_haven: boo
     loss = np.zeros((ninv, count_x, count_z * 2))
     shadow = np.zeros((ninv, count_x, count_z * 2))
     tail = np.zeros((ninv, count_x, count_z * 2))
-    lmin = np.zeros((ninv, count_x, count_z * 2))
+    cmin = np.zeros((ninv, count_x, count_z * 2))
     cmax = np.zeros((ninv, count_x, count_z * 2))
     keqv = np.zeros((ninv, count_x, count_z * 2)) 
 
@@ -257,11 +471,11 @@ def mul_inv_n_summary(mul_inputs: dict, aggregate_n: np.ndarray, safe_haven: boo
         for t in range(count_x):
             for n in range(mul_inputs['n_trials']):
                 
-                    loss[i, t, (n * 2):(n * 2) + 2 ] = aggregate_n[i, n, t, 0, 3:5]
-                    shadow[i, t, (n * 2):(n * 2) + 2 ] = aggregate_n[i, n, t, 0, 9:11]
-                    tail[i, t, (n * 2):(n * 2) + 2 ] = aggregate_n[i, n, t, 0, 11:13]
-                    lmin[i, t, (n * 2):(n * 2) + 2 ] = aggregate_n[i, n, t, 0, 5:7]
-                    cmax[i, t, (n * 2):(n * 2) + 2 ] = aggregate_n[i, n, t, 0, 7:9]
+                    loss[i, t, (n * 2):(n * 2) + 2] = aggregate_n[i, n, t, 0, 3:5]
+                    shadow[i, t, (n * 2):(n * 2) + 2] = aggregate_n[i, n, t, 0, 9:11]
+                    tail[i, t, (n * 2):(n * 2) + 2] = aggregate_n[i, n, t, 0, 11:13]
+                    cmin[i, t, (n * 2):(n * 2) + 2] = aggregate_n[i, n, t, 0, 5:7]
+                    cmax[i, t, (n * 2):(n * 2) + 2] = aggregate_n[i, n, t, 0, 7:9]
 
                     for s in range(int(mul_inputs['n_eval'])):
                         reward[i, t, s + n * int(mul_inputs['n_eval'])] = aggregate_n[i, n, t, s, 20]
@@ -278,6 +492,6 @@ def mul_inv_n_summary(mul_inputs: dict, aggregate_n: np.ndarray, safe_haven: boo
         for t in range(count_x):
             for n in range(mul_inputs['n_trials'] * 2):
                 keqv[i, t, n] = shadow_equiv(loss[i, t, n], tail[i, t, n], 
-                                             lmin[i, t, n], loss[i, t, n], 1)
+                                             cmin[i, t, n], loss[i, t, n], 1)
 
     return reward, lev, stop, reten, loss, tail, shadow, cmax, keqv, lev_sh

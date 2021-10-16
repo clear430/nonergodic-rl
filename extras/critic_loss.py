@@ -1,3 +1,21 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+"""
+title:                  critic_loss.py
+python version:         3.9
+torch verison:          1.9
+
+author:                 Raja Grewal
+email:                  raja_grewal1@pm.me
+website:                https://github.com/rgrewa1
+
+Description:
+    Responsible for aggregating mini-batch of critic current and target critic 
+    values into empirical (arithmetic) mean losses for neural network backpropagation 
+    to learn Q-values. Also generates shadow mean estimates for the mini-batch.
+"""
+
 import numpy as np
 import torch as T
 from typing import Tuple
@@ -21,7 +39,7 @@ def truncation(estimated: T.FloatTensor, target: T.FloatTensor) \
     zero1 = estimated - estimated
     zero2 = target - target
     
-    # 3-sigma rule
+    # 3-sigma rejection rule
     estimated = T.where(T.abs(estimated - mean1) > 3 * sigma1, zero1, estimated)   
     target = T.where(T.abs(target - mean2) > 3 * sigma2, zero2, target)
 
@@ -46,7 +64,7 @@ def cauchy(estimated: T.cuda.FloatTensor, target: T.cuda.FloatTensor, scale: flo
     return T.log(1 + arg)
 
 def nagy_algo(estimated: T.cuda.FloatTensor, target: T.cuda.FloatTensor, scale: float) \
-        -> float:
+        -> np.ndarray:
     """
     Use the Nagy alogrithm to estimate the Cauchy scale paramter based on residual errors in
     Eq. 18 in http://www.jucs.org/jucs_12_9/parameter_estimation_of_the/jucs_12_09_1332_1344_nagy.pdf
@@ -90,7 +108,7 @@ def correntropy(estimated: T.cuda.FloatTensor, target: T.cuda.FloatTensor, kerne
 
     return (1 - T.exp(-arg/(2 * kernel**2)) / T.sqrt(2 * np.pi * kernel))
 
-def cim_size(estimated: T.cuda.FloatTensor, target: T.cuda.FloatTensor) -> float:
+def cim_size(estimated: T.cuda.FloatTensor, target: T.cuda.FloatTensor) -> np.ndarray:
     """
     Empirically estimated kernel size for CIM taken as the average reconstruction error
     based on Eq. 25 in  https://lcs.ios.ac.cn/~ydshen/ICDM-12.pdf.
@@ -190,7 +208,7 @@ def hill_est(values: T.cuda.FloatTensor) -> T.cuda.FloatTensor:
     hill_1 = T.log(geo_mean / min_val)
     gamma = hill_1 
         
-    # method of moments
+    # method of moments estimator
     # hill_2 = ((vals - min_val)**2).mean()
     # gamma += 1 - 1 / 2 * (1 - hill_1**2 / hill_2)**(-1)
 
@@ -232,7 +250,7 @@ def aggregator(values: T.cuda.FloatTensor, shadow_low_mul: T.cuda.FloatTensor,
     Parameters:
         values: critic loss per sample in the mini-batch without aggregation
         shadow_low_mul: lower bound multiplier of sample minimum to form minimum threshold of interest
-        shadow_high_mul: upper bound multiplier of sample maximum for tail distributions
+        shadow_high_mul: upper bound multiplier of sample maximum to form upper limit
         zipf_x: array for Zipf plot x-axis
         zipf_x2: sum of squared deviations form the mean for Zipf plot x-axis
     
@@ -269,7 +287,7 @@ def loss_function(estimated: T.cuda.FloatTensor, target: T.cuda.FloatTensor,
         estimated: current Q-values from mini-batch
         target: raget Q-values from mini-batch
         shadow_low_mul: lower bound multiplier of sample minimum to form minimum threshold of interest
-        shadow_high_mul: upper bound multiplier of maximum of distributions
+        shadow_high_mul: upper bound multiplier of maximum to form upper limit
         zipf_x: array for Zipf plot x-axis
         zipf_x2: sum of squared deviations form the mean for Zipf plot x-axis
         loss_type: loss function title
@@ -313,7 +331,7 @@ def loss_function(estimated: T.cuda.FloatTensor, target: T.cuda.FloatTensor,
                                                    zipf_x, zipf_x2)
         return mean, min, max, shadow, alpha
 
-    elif loss_type == "TCA":
+    elif loss_type == "TCAU":
         estimated, target = truncation(estimated, target)
         values = cauchy(estimated, target, scale)
         mean, min, max, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, 

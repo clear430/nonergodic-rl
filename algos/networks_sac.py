@@ -1,4 +1,20 @@
-import extras.utils as utils 
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+"""
+title:                  networks_sac.py
+python version:         3.9
+torch verison:          1.9
+
+author:                 Raja Grewal
+email:                  raja_grewal1@pm.me
+website:                https://github.com/rgrewa1
+
+Description:
+    Responsible for generating actor-critic deep (linear) neural networks for the
+    Soft Actor-Critic (SAC) algorithm.
+"""
+
 import os
 import torch as T
 from torch.distributions.normal import Normal
@@ -8,6 +24,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from typing import Tuple
+
+import extras.utils as utils 
 
 class ActorNetwork(nn.Module):
     """
@@ -117,9 +135,10 @@ class ActorNetwork(nn.Module):
         mu, log_scale = moments[:, :self.num_actions], moments[:, self.num_actions:]
         scale = log_scale.exp()
 
-        # important to enhance learning stability with certain critic loss functions
-        mu = T.nan_to_num(mu, nan=0, posinf=None, neginf=None)
-        scale = T.nan_to_num(scale, nan=1, posinf=None, neginf=None)
+        # important to enhance learning stability with very smooth critic loss functions
+        if T.any(T.isnan(mu)) or T.any(T.isnan(scale)):
+            mu = T.nan_to_num(mu, nan=0, posinf=0, neginf=0)
+            scale = T.nan_to_num(scale, nan=3, posinf=3, neginf=3)
 
         if self.stoch == 'N':
             probabilities = Normal(loc=mu, scale=scale)
@@ -160,23 +179,20 @@ class ActorNetwork(nn.Module):
         mu, log_var = moments[:, :self.num_actions], moments[:, self.num_actions:]
         var = log_var.exp()
 
-        # important to enhance learning stability with certain critic loss functions
-        mu = T.nan_to_num(mu, nan=0, posinf=None, neginf=None)
-        var = T.nan_to_num(var, nan=1, posinf=None, neginf=None)
+        # important to enhance learning stability with very smooth critic loss functions
+        if T.any(T.isnan(mu)) or T.any(T.isnan(var)):
+            mu = T.nan_to_num(mu, nan=0, posinf=0, neginf=0)
+            var = T.nan_to_num(var, nan=3, posinf=3, neginf=3)
 
-        if batch_size > 1:
-            pass
-        else:
-            mu, var = mu.view(-1), var.view(-1)
-        
         # create diagonal covariance matrices for each sample and perform Cholesky decomposition
-        cov_mat = T.stack([T.eye(self.num_actions) for i in range(batch_size)]).to(self.device)
+        cov_mat = T.stack([T.eye(self.num_actions) for sample in range(batch_size)]).to(self.device)
 
         if batch_size > 1:
             for sample in range(batch_size):
                 for vol in range(self.num_actions):
                         cov_mat[sample, vol, vol] = var[sample, vol]    # diagonal elements are variance
         else:
+            mu, var = mu.view(-1), var.view(-1)
             for vol in range(self.num_actions):     
                 cov_mat[0, vol, vol] = var[vol]
 
@@ -189,9 +205,8 @@ class ActorNetwork(nn.Module):
         bounded_action = T.tanh(unbounded_action) * self.max_action
         unbounded_logprob_action = probabilities.log_prob(unbounded_action).to(self.device)
 
-        # ensure defined bounded log by adding minute noise
-        log_inv_jacobian = T.log(1 - (bounded_action / self.max_action)**2 
-                                 + self.reparam_noise).sum(dim=1)
+        # ensure logarithm is defined in the vicinity of zero by adding minute noise
+        log_inv_jacobian = T.log(1 - (bounded_action / self.max_action)**2 + self.reparam_noise).sum(dim=1)
         bounded_logprob_action = unbounded_logprob_action - log_inv_jacobian
 
         return bounded_action, bounded_logprob_action
