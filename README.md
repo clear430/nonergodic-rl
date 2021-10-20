@@ -3,7 +3,7 @@
 Research encompasses several overlapping areas: 
 1. Peculiarities regarding use of critic loss functions, tail exponents, and shadow means,
 2. Multi-step returns and replay buffer coupling in continuous action spaces,
-3. Reinforcement learning in multiplicative (non-ergodic) domains, maximising the time-average growth rate, and
+3. Learning in multiplicative (non-ergodic) domains, maximising the time-average growth rate, and
 4. Designing energy efficient multi-stage actors for operation in extremely remote environments.
 
 Implementation using [Python](https://www.python.org) 3.9.7 and [PyTorch](https://pytorch.org) 1.9.1 with [CUDA](https://developer.nvidia.com/cuda-zone) 11.1. 
@@ -20,7 +20,7 @@ Research based on extending a [capstone](https://github.com/rgrewa1/capstone) pr
 * Multi-step returns for continuous action spaces using TD3 and SAC is not advised due to lack of global policy maximisation across the infinite action space unlike the finite discrete case.
 
 ### Multiplicative Experiments
-* The maximisation of probability-based expectations methodology offered universally by contemporary decision theory is wholly inappropriate for multiplicative processes due to the conflation of probabilities with payoffs.
+* The maximisation of probability-based expectations methodology universally prescribed by contemporary decision theory is inappropriate for multiplicative processes due to conflation of probabilities with payoffs.
 *  State-of-the-art model-free off-policy reinforcement learning algorithms that are designed to maximise expected additive rewards are modified to operate in any conceivable multiplicative environment.  
 * The model-free agent now fully autonomously, self-learns the actions required to maximise value through the avoidance of steep losses, represented by raising the time-average growth rate.
 * The theory is experimentally validated by converging to known optimal growth-maximising actions (leverages) for gambles involving coin flips, die rolls, and geometric Brownian motion. 
@@ -35,7 +35,7 @@ The data regarding agent training performance (NumPy arrays), the learned models
 The breakdown for additive agents, multiplicative agents, and optimal leverage experiments are 2.7 GB, 13.8 GB, and 0.2 GB respectively. All data is available upon request. Please contact raja $_$ grewal1 -at- pm ‘dot’ me.
 
 ## Usage 
-Using the [release](https://github.com/rgrewa1/nonergodic-rl/releases) is recommended which contains only executable code (contents inside `docs/` are excluded).
+Using the latest [release](https://github.com/rgrewa1/nonergodic-rl/releases) is recommended.
 
 All reinforcement learning agent training is executed using `main.py` with instructions provided within the file. Upon the completion of each experiment, relevant directories within `models/` and `results/` titled by the environment name will be created containing all output data and summary plots. 
 
@@ -43,7 +43,7 @@ Final aggregated figures for all agent experiments that share common training pa
 
 Binary coin flip and trinary die roll experiments pertaining to empirical optimal leverages are conducted using `scripts/lev_coin.py` and `scripts/lev_dice.py` respectively with instructions contained inside the files. The data is then output in `results/multiverse/` and summary figures are placed in `docs/figs/`.
 
-The general process for executing the code inside a virtual environment on Linux involves the following commands:
+Executing the code inside a virtual environment on Linux involves the following general commands:
 ```commandline
 git clone https://github.com/rgrewa1/nonergodic-rl.git
 
@@ -71,7 +71,7 @@ There are also a few additional prerequisites for installing certain packages:
 * `gym`: The interface compiler [SWIG](http://www.swig.org/) to connect C/C++ programs with scripting languages is required.
 * `mpi4py`: The presence of a Message Passing Interface (MPI) library for Linux or [Microsoft MPI](https://www.microsoft.com/en-us/download/details.aspx?id=57467) for Windows is required. Alternatively, this package can be entirely ignored if the user has no intention of training the agent on the (additive) [DeepMimic](https://arxiv.org/pdf/1804.02717.pdf) environments ported to [PyBullet](https://pybullet.org/wordpress/).
 * `pybullet`: A C++ compiler is required such as the [GNU C++ Compiler](https://gcc.gnu.org/) for Linux or [Microsoft Visual C++](https://visualstudio.microsoft.com/) for Windows. For Windows, install Visual Studio Community and in the Visual Studio Installer select the desktop development with C++ workload with both optional features MSVC v142 - VS 2019 C++ x64/x86 build tools and the Windows 10 SDK.
-* `torch`: PyTorch should be installed with the appropriate compute platform following using the official [instructions](https://pytorch.org/get-started/locally/). Choice of CUDA version depends on user Nvidia GPU compatibility while use of CPU is discouraged.
+* `torch`: PyTorch should be installed with the appropriate compute platform following using the official [instructions](https://pytorch.org/get-started/locally/). Choice of CUDA version depends on Nvidia GPU compatibility while the use of CPU is discouraged due to significantly reduced backpropagation speed.
 
 ## References
 * Reinforcement learning ([Szepesvári 2009](https://sites.ualberta.ca/~szepesva/papers/RLAlgsInMDPs.pdf), [Sutton and Bartow 2018](http://incompleteideas.net/book/RLbook2020.pdf))
@@ -80,7 +80,7 @@ There are also a few additional prerequisites for installing certain packages:
 * Soft Actor-Critic (SAC) ([Ziebart 2010](https://www.cs.cmu.edu/~bziebart/publications/thesis-bziebart.pdf), [Haarnoja et al. 2017](http://proceedings.mlr.press/v70/haarnoja17a/haarnoja17a-supp.pdf), [Haarnoja et al. 2018](https://arxiv.org/pdf/1812.05905.pdf))
 * Critic loss functions from NMF ([Guan et al. 2019](https://arxiv.org/pdf/1906.00495.pdf))
 * Multi-step returns and replay coupling ([De Asis et al. 2018](https://www.aaai.org/ocs/index.php/AAAI/AAAI18/paper/view/16294/16593), [Meng, Gorbet and Kulic 2020](https://arxiv.org/pdf/2006.12692.pdf), [Fedus et al. 2020](https://arxiv.org/pdf/2007.06700.pdf))
-* Non-i.i.d. data and fat tails ([Fazekas and Klesov 2006](https://epubs.siam.org/doi/pdf/10.1137/S0040585X97978385), [Cirillo and Taleb 2016](https://www.tandfonline.com/doi/pdf/10.1080/14697688.2016.1162908?needAccess=true), [Cirillo and Taleb 2020](https://www.nature.com/articles/s41567-020-0921-x.pdf), [Taleb 2020](https://arxiv.org/ftp/arxiv/papers/2001/2001.10488.pdf))
+* Non-iid data and fat tails ([Fazekas and Klesov 2006](https://epubs.siam.org/doi/pdf/10.1137/S0040585X97978385), [Cirillo and Taleb 2016](https://www.tandfonline.com/doi/pdf/10.1080/14697688.2016.1162908?needAccess=true), [Cirillo and Taleb 2020](https://www.nature.com/articles/s41567-020-0921-x.pdf), [Taleb 2020](https://arxiv.org/ftp/arxiv/papers/2001/2001.10488.pdf))
 * Primer on statistical mechanics, ensemble averages, and entropy ([Landau and Lifshitz 1969](https://archive.org/details/ost-physics-landaulifshitz-statisticalphysics))
 * Multiplicative dynamics ([Bernoulli 1738](http://risk.garven.com/wp-content/uploads/2013/09/St.-Petersburg-Paradox-Paper.pdf), [Kelly 1956](https://cpb-us-w2.wpmucdn.com/u.osu.edu/dist/7/36891/files/2017/07/Kelly1956-1uwz47o.pdf), [Peters 2011a](https://www.tandfonline.com/doi/pdf/10.1080/14697688.2010.513338?needAccess=true), [Peters 2011b](https://royalsocietypublishing.org/doi/pdf/10.1098/rsta.2011.0065), [Peters 2011c](https://arxiv.org/pdf/1110.1578.pdf), [Peters and Gell-Mann 2016](https://aip.scitation.org/doi/pdf/10.1063/1.4940236), [Peters 2019](https://www.nature.com/articles/s41567-019-0732-0.pdf), [Peters et al. 2020](https://arxiv.org/ftp/arxiv/papers/2005/2005.00056.pdf), [Meder et al. 2020](https://arxiv.org/ftp/arxiv/papers/1906/1906.04652.pdf), [Peters and Adamou 2021](https://arxiv.org/pdf/1801.03680.pdf), [Spitznagel 2021](https://www.wiley.com/en-us/Safe+Haven%3A+Investing+for+Financial+Storms-p-9781119401797))
 * Power consumption of neural networks ([Han et al. 2015](https://proceedings.neurips.cc/paper/2015/file/ae0eb3eed39d2bcef4622b2499a05fe6-Paper.pdf), [García-Martín et al. 2019](https://www.sciencedirect.com/science/article/pii/S0743731518308773))
@@ -88,7 +88,7 @@ There are also a few additional prerequisites for installing certain packages:
 ## Acknowledgements
 The [Sydney Informatics Hub](https://www.sydney.edu.au/research/facilities/sydney-informatics-hub.html) and the University of Sydney’s high performance computing cluster, Artemis, for providing the computing resources that have contributed to the results reported herein.
 
-The base TD3 and SAC algorithms were implemented using guidance from the following repositories: [DLR-RM/stable-baelines3](https://github.com/DLR-RM/stable-baselines3), [haarnoja/sac](https://github.com/haarnoja/sac), [openai/spinningup](https://github.com/openai/spinningup), [p-christ/Deep-Reinforcement-Learning-Algorithms-with-PyTorch](https://github.com/p-christ/Deep-Reinforcement-Learning-Algorithms-with-PyTorch), [philtabor/Actor-Critic-Methods-Paper-To-Code](https://github.com/philtabor/Actor-Critic-Methods-Paper-To-Code), [rail-berkley/softlearning](https://github.com/rail-berkeley/softlearning), [rlworkgroup/garage](https://github.com/rlworkgroup/garage), and [sfujim/TD3](https://github.com/sfujim/TD3/).
+The base TD3 and SAC algorithms were implemented using guidance from: [DLR-RM/stable-baelines3](https://github.com/DLR-RM/stable-baselines3), [haarnoja/sac](https://github.com/haarnoja/sac), [openai/spinningup](https://github.com/openai/spinningup), [p-christ/Deep-Reinforcement-Learning-Algorithms-with-PyTorch](https://github.com/p-christ/Deep-Reinforcement-Learning-Algorithms-with-PyTorch), [philtabor/Actor-Critic-Methods-Paper-To-Code](https://github.com/philtabor/Actor-Critic-Methods-Paper-To-Code), [rail-berkley/softlearning](https://github.com/rail-berkeley/softlearning), [rlworkgroup/garage](https://github.com/rlworkgroup/garage), and [sfujim/TD3](https://github.com/sfujim/TD3/).
 
 Prior to the completion of several academic papers summarising our key findings, if you use any of this work, please cite our results like this:
 ```commandline
