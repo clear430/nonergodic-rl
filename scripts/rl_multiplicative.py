@@ -30,6 +30,7 @@ import envs.dice_roll_sh_envs as dice_roll_sh_envs
 import envs.gbm_envs as gbm_envs
 import envs.gbm_d_envs as gbm_d_envs
 # import envs.market_envs as market_envs
+# import envs.snp_envs as snp_envs
 # import extras.market_sim as market_sim
 import extras.plots_summary as plots
 import extras.eval_episodes as eval_episodes
@@ -47,8 +48,10 @@ def multiplicative_env(gym_envs: dict, inputs: dict):
         env = eval('gbm_envs.'+gym_envs[str(inputs['ENV_KEY'])][0]+'()')
     elif inputs['ENV_KEY'] <= 49:
         env = eval('gbm_d_envs.'+gym_envs[str(inputs['ENV_KEY'])][0]+'()')
-    elif inputs['ENV_KEY'] <= 56:
+    elif inputs['ENV_KEY'] <= 57:
         env = eval('dice_roll_sh_envs.'+gym_envs[str(inputs['ENV_KEY'])][0]+'()')
+    elif inputs['ENV_KEY'] <= 60:
+        env = eval('snp_envs.'+gym_envs[str(inputs['ENV_KEY'])][0]+'()')
     else:
         env = eval('market_envs.'+gym_envs[str(inputs['ENV_KEY'])][0]+'()')
 
