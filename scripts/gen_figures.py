@@ -16,15 +16,18 @@ Description:
     in the report for all reinforcement learning experiments.
 
 Instructions: 
-    1. Select additive environment aggregation inputs.
-    2. Select multiplicative environment aggregation inputs.
-    3. Run python file all figures data will be placed into the ./docs/figures directory.
+    1. Select additive environment aggregation inputs. Enter into the dictionary the common training
+       hyperparameters and then into the lists the features that are varied.
+    2. Select multiplicative environment aggregation inputs. Enter into each of the dictionaries the 
+       common training hyperparameters and into the lists the appropriate environments.
+    3. Run python file and all figures will be placed into the ./docs/figures directory.
 """
 
 import sys
 sys.path.append("./")
 
 import os
+from typing import List
 
 from main import gym_envs
 import extras.plots_figures as plots
@@ -32,80 +35,77 @@ import extras.utils as utils
 
 # ADDITIVE ENVIRONMENTS 
 
-add_inputs = {
+add_inputs: dict = {
     'n_trials': 10,
     'n_cumsteps': 3e5,
     'eval_freq': 1e3,
     'n_eval': 1e1,
     'buffer': 1e6,
     'critic_mean_type': 'E',
-    'shadow_low_mul': 1e0,
     's_dist': 'N',
-    'algo': 'TD3',
-    'loss_fn': 'MSE',
-    'multi_steps': 1,
+    'multi_steps': 1,    # default for varying critic loss functions
     }
 
-add_envs = [6, 7, 8, 10]
-add_name = ['Hopper', 'Walker', 'Cheetah', 'Humanoid']
-add_algos = ['SAC', 'TD3']
-add_loss = ['MSE', 'HUB', 'MAE', 'HSC', 'CAU', 'TCAU', 'MSE2', 'MSE4', 'MSE6']
-add_multi = [1, 3, 5, 7, 9]
+# must select exactly four environments and two algorithms (can repeat)
+add_envs: List[int] = [6, 7, 8, 10]    # environment ENV_KEYS from main.gym_envs dictionary
+add_name: List[str] = ['Hopper', 'Walker', 'Cheetah', 'Humanoid']    # title of plotted environment results
+add_algos: List[str] = ['SAC', 'TD3']
+add_loss: List[str] = ['MSE', 'HUB', 'MAE', 'HSC', 'CAU', 'TCAU', 'MSE2', 'MSE4', 'MSE6']
+add_multi: List[int] = [1, 3, 5, 7, 9]
 
 # MULTIPLICATVE ENVIRONMENTS
 
-mul_inputs_1 = {
+# two dictionaries provided for different training hyperparameters
+mul_inputs_1: dict = {
     'n_trials': 10,
-    'n_cumsteps': 4e4,
+    'n_cumsteps': 4e4,    # 40,000 training steps
     'eval_freq': 1e3,
     'n_eval': 1e3,
     'buffer': 1e6,
     'critic_mean_type': 'E',
-    'shadow_low_mul': 1e0,
     's_dist': 'N',
     'algo': 'TD3',
     'loss_fn': 'MSE',
     'multi_steps': 1,
     }
 
-mul_inputs_2 = {
+mul_inputs_2: dict = {
     'n_trials': 10,
-    'n_cumsteps': 8e4,
+    'n_cumsteps': 8e4,    # 80,000 training steps
     'eval_freq': 1e3,
     'n_eval': 1e3,
     'buffer': 1e6,
     'critic_mean_type': 'E',
-    'shadow_low_mul': 1e0,
     's_dist': 'N',
     'algo': 'TD3',
     'loss_fn': 'MSE',
     'multi_steps': 1,
     }
 
+# must select exactly three (non-unique) environments for each list
 # assets following the equally likely +50%/-40% gamble
-coin_n1_keys = [14, 17, 20]
-coin_n2_keys = [15, 18, 21]
-coin_n10_keys = [16, 19, 22]
+coin_n1_keys: List[int] = [14, 17, 20]
+coin_n2_keys: List[int] = [15, 18, 21]
+coin_n10_keys: List[int] = [16, 19, 22]
 # assets following the dice roll
-dice_n1_keys = [23, 26, 29]
-dice_n2_keys = [24, 27, 30]
-dice_n10_keys = [25, 28, 31]
+dice_n1_keys: List[int] = [23, 26, 29]
+dice_n2_keys: List[int] = [24, 27, 30]
+dice_n10_keys: List[int] = [25, 28, 31]
 # assets following gbm
-gbm_n1_keys = [32, 35, 38]
-gbm_n2_keys = [33, 36, 39]
-gbm_n10_keys = [34, 37, 40]
-# assets following bgm (discrete)
-gbm_d_n1_keys = [41, 44, 47]
-gbm_d_n2_keys = [42, 45, 48]
-gbm_d_n10_keys = [43, 46, 49]
+gbm_n1_keys: List[int] = [32, 35, 38]
+gbm_n2_keys: List[int] = [33, 36, 39]
+gbm_n10_keys: List[int] = [34, 37, 40]
+# assets following gbm (discrete)
+gbm_d_n1_keys: List[int] = [41, 44, 47]
+gbm_d_n2_keys: List[int] = [42, 45, 48]
+gbm_d_n10_keys: List[int] = [43, 46, 49]
+
+# must select exactly two (non-unique) environments for each list
 # assets following the dice roll with safe haven
-dice_sh_keys = [50, 51]
-dice_sh_a_keys = [52, 53]
-dice_sh_b_keys = [54, 55]
-dice_sh_c_keys = [56, 57]
-# market performance across actual assets
-snp_keys = [58, 59, 60]
-market_keys = [61]
+dice_sh_keys: List[int] = [50, 51]
+dice_sh_a_keys: List[int] = [52, 53]
+dice_sh_b_keys: List[int] = [54, 55]
+dice_sh_c_keys: List[int] = [56, 57]
 
 if __name__ == '__main__':
 
@@ -116,15 +116,18 @@ if __name__ == '__main__':
 
     # ADDITIVE ENVIRONMENTS
 
+    # critic loss function plots
     plots.loss_fn_plot(path+'critic_loss.png')
 
-    path_loss = 'add_loss'
+    # critic loss functions
+    path_loss: str = 'add_loss'
     loss_data = utils.add_loss_aggregate(add_envs, gym_envs, add_inputs, add_algos, add_loss)
     r, l, cs, ck, lt, t, sh, c, k = utils.add_summary(add_inputs, loss_data)
     plots.plot_add(add_inputs, add_name, add_loss, False, r, l, cs, ck, t, sh, k, path+path_loss)
     plots.plot_add_temp(add_inputs, add_name, add_loss, False, lt, path+path_loss)
 
-    path_multi = 'add_multi'
+    # multi-step return
+    path_multi: str = 'add_multi'
     multi_data = utils.add_multi_aggregate(add_envs, gym_envs, add_inputs, add_algos, add_multi)
     r, l, cs, ck, lt, t, sh, c, k = utils.add_summary(add_inputs, multi_data)
     plots.plot_add(add_inputs, add_name, add_multi, True, r, l, cs, ck, t, sh, k, path+path_multi)
@@ -132,8 +135,9 @@ if __name__ == '__main__':
 
     # MULTIPLICATIVE ENVIRONMENTS
     
-    path_env = 'mul_coin_inv'
-    mul_inputs = mul_inputs_1
+    # coin flip
+    path_env: str = 'mul_coin_inv'
+    mul_inputs: dict = mul_inputs_1
     coin_inv_n1 = utils.mul_inv_aggregate(coin_n1_keys, gym_envs, mul_inputs, safe_haven=False)
     coin_inv_n2 = utils.mul_inv_aggregate(coin_n2_keys, gym_envs, mul_inputs, safe_haven=False)
     coin_inv_n10 = utils.mul_inv_aggregate(coin_n10_keys, gym_envs, mul_inputs, safe_haven=False)
@@ -148,8 +152,9 @@ if __name__ == '__main__':
     plots.plot_inv_all_n_train(mul_inputs_1, lo1, t1, sh1, k1, lo2, t2, sh2, k2, lo10, t10, sh10, k10,
                               path+path_env+'_train.png')
 
-    path_env = 'mul_dice_inv'
-    mul_inputs = mul_inputs_1
+    # dice roll
+    path_env: str = 'mul_dice_inv'
+    mul_inputs: dict = mul_inputs_1
     dice_inv_n1 = utils.mul_inv_aggregate(dice_n1_keys, gym_envs, mul_inputs, safe_haven=False)
     dice_inv_n2 = utils.mul_inv_aggregate(dice_n2_keys, gym_envs, mul_inputs, safe_haven=False)
     dice_inv_n10 = utils.mul_inv_aggregate(dice_n10_keys, gym_envs, mul_inputs, safe_haven=False)
@@ -164,10 +169,12 @@ if __name__ == '__main__':
     plots.plot_inv_all_n_train(mul_inputs, lo1, t1, sh1, k1, lo2, t2, sh2, k2, lo10, t10, sh10, k10,
                               path+path_env+'_train.png')
 
+    # maximum leverage with GBM plot
     plots.plot_gbm_max_lev(path+'gbm_max_lev.png')
 
-    path_env = 'mul_gbm_inv'
-    mul_inputs = mul_inputs_2
+    # GBM
+    path_env: str = 'mul_gbm_inv'
+    mul_inputs: dict = mul_inputs_2
     gbm_inv_n1 = utils.mul_inv_aggregate(gbm_n1_keys, gym_envs, mul_inputs, safe_haven=False)
     gbm_inv_n2 = utils.mul_inv_aggregate(gbm_n2_keys, gym_envs, mul_inputs, safe_haven=False)
     gbm_inv_n10 = utils.mul_inv_aggregate(gbm_n10_keys, gym_envs, mul_inputs, safe_haven=False)
@@ -182,8 +189,9 @@ if __name__ == '__main__':
     plots.plot_inv_all_n_train(mul_inputs, lo1, t1, sh1, k1, lo2, t2, sh2, k2, lo10, t10, sh10, k10,
                               path+path_env+'_train.png')
 
-    path_env = 'mul_gbm_d_inv'
-    mul_inputs = mul_inputs_2
+    # GBM with discrete portfolio compounding 
+    path_env: str = 'mul_gbm_d_inv'
+    mul_inputs: dict = mul_inputs_2
     gbm_d_inv_n1 = utils.mul_inv_aggregate(gbm_d_n1_keys, gym_envs, mul_inputs, safe_haven=False)
     gbm_d_inv_n2 = utils.mul_inv_aggregate(gbm_d_n2_keys, gym_envs, mul_inputs, safe_haven=False)
     gbm_d_inv_n10 = utils.mul_inv_aggregate(gbm_d_n10_keys, gym_envs, mul_inputs, safe_haven=False)
@@ -198,9 +206,10 @@ if __name__ == '__main__':
     plots.plot_inv_all_n_train(mul_inputs, lo1, t1, sh1, k1, lo2, t2, sh2, k2, lo10, t10, sh10, k10,
                               path+path_env+'_train.png')
 
-    path_env = 'mul_dice_sh'
-    mul_spitz_inputs = mul_inputs_1
-    mul_inputs = mul_inputs_1
+    # dice roll with insurance safe haven
+    path_env: str = 'mul_dice_sh'
+    mul_spitz_inputs: dict = mul_inputs_1
+    mul_inputs: dict = mul_inputs_1
     dice_sh = utils.mul_inv_aggregate(dice_sh_keys, gym_envs, mul_spitz_inputs, safe_haven=True)
     dice_inv_a = utils.mul_inv_aggregate(dice_sh_a_keys, gym_envs, mul_inputs, safe_haven=True)
     dice_inv_b = utils.mul_inv_aggregate(dice_sh_b_keys, gym_envs, mul_inputs, safe_haven=True)

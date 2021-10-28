@@ -23,6 +23,7 @@ Instructions:
 """
 
 import time
+from typing import Dict, List
 
 from algos.algo_sac import Agent_sac
 from algos.networks_sac import ActorNetwork as ActorNetwork_sac
@@ -35,18 +36,18 @@ from scripts.rl_additive import additive_env
 from scripts.rl_multiplicative import multiplicative_env
 
 # model-free off-policy agents: list ['SAC', 'TD3']
-algo_name = ['TD3']
+algo_name: List[str] = ['TD3']
 
 # critic loss functions: list ['MSE', 'HUB', 'MAE', 'HSC', 'CAU', 'TCAU', 'CIM', 'MSE2', 'MSE4', 'MSE6']
-critic_loss = ['MSE']
+critic_loss: List[str] = ['MSE']
 
 # bootstrapping of target critic values and discounted rewards: list [integer > 0] 
-multi_steps = [1]
+multi_steps: List[int] = [1]
 
 # environments to train agent: list [integer ENV_KEY from gym_envs]
-envs = [14]
+envs: List[int] = [14]
 
-gym_envs = {
+gym_envs: Dict[str, list] = {
     # ENV_KEY: [env_id, state_dim, action_dim, intial warm-up steps to generate random seed]
 
     # ADDITIVE ENVIRONMENTS
@@ -100,7 +101,7 @@ gym_envs = {
     # '61': ['Market', 40, 12, 1e4],
     }
 
-inputs_dict = {
+inputs_dict: dict = {
     # additive environment execution parameters
     'n_trials_add': 10,                         # number of total unique training trials
     'n_cumsteps_add': 3e5,                      # maximum cumulative steps per trial (must be greater than environment warm-up)
@@ -129,7 +130,7 @@ inputs_dict = {
     'shadow_low_mul': 1e0,                      # lower bound multiplier of minimum for critic power law  
     'shadow_high_mul': 1e1,                     # upper bound multiplier of maximum for critic power law
 
-    # SAC hyperparameters
+    # SAC hyperparameters (https://arxiv.org/pdf/1812.05905.pdf)
     'sac_actor_learn_rate': 3e-4,               # actor learning rate (Adam optimiser)
     'sac_critic_learn_rate': 3e-4,              # critic learning rate (Adam optimiser)
     'sac_temp_learn_rate': 3e-4,                # log temperature learning rate (Adam optimiser)
@@ -142,7 +143,7 @@ inputs_dict = {
     'reward_scale': 1,                          # constant scaling factor of next reward ('inverse temperature')
     'reparam_noise': 1e-6,                      # miniscule constant to keep logarithm bounded
 
-    # TD3 hyperparameters          
+    # TD3 hyperparameters (https://arxiv.org/pdf/1802.09477.pdf)          
     'td3_actor_learn_rate': 1e-3,               # ibid.
     'td3_critic_learn_rate': 1e-3,              # ibid.
     'td3_layer_1_units': 400,                   # ibid.
@@ -169,9 +170,9 @@ inputs_dict = {
     }
 
 # CONDUCT TESTS
-gte0 = 'must be greater than or equal to 0'
-gt0 = 'must be greater than 0'
-gte1 = 'must be greater than or equal to 1'
+gte0: str = 'must be greater than or equal to 0'
+gt0: str = 'must be greater than 0'
+gte1: str = 'must be greater than or equal to 1'
 
 # execution tests
 assert isinstance(inputs_dict['n_trials_add'], (float, int)) and \
@@ -307,7 +308,7 @@ assert isinstance(inputs_dict['bootstraps'], list) and \
         all(mstep >= 1 for mstep in inputs_dict['bootstraps']), \
             'multi-steps must be a list of positve integers'
 
-keys = [int(env) for env in gym_envs]
+keys: List[int] = [int(env) for env in gym_envs]
 assert isinstance(inputs_dict['envs'], list) and \
     set(inputs_dict['envs']).issubset(set(keys)), \
         'environments must be selected from gym_envs dict keys'

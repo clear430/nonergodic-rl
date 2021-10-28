@@ -55,14 +55,15 @@ def multiplicative_env(gym_envs: dict, inputs: dict):
     else:
         env = eval('market_envs.'+gym_envs[str(inputs['ENV_KEY'])][0]+'()')
 
-    inputs = {'input_dims': env.observation_space.shape, 'num_actions': env.action_space.shape[0], 
-              'max_action': env.action_space.high.min(), 'min_action': env.action_space.low.max(),    # assume all actions span equal domain 
-              'env_id': gym_envs[str(inputs['ENV_KEY'])][0], 'random': gym_envs[str(inputs['ENV_KEY'])][3], 
-              'dynamics': 'M',    # gambling dynamics 'M' (multiplicative)
-              'n_trials': inputs['n_trials_mul'], 'n_cumsteps': inputs['n_cumsteps_mul'],
-              'eval_freq': inputs['eval_freq_mul'], 'n_eval': inputs['n_eval_mul'], 
-              'algo': 'TD3', 'loss_fn': 'MSE', 'multi_steps': 1, **inputs
-              }
+    inputs: dict = {
+        'input_dims': env.observation_space.shape, 'num_actions': env.action_space.shape[0], 
+        'max_action': env.action_space.high.min(), 'min_action': env.action_space.low.max(),    # assume all actions span equal domain 
+        'env_id': gym_envs[str(inputs['ENV_KEY'])][0], 'random': gym_envs[str(inputs['ENV_KEY'])][3], 
+        'dynamics': 'M',    # gambling dynamics 'M' (multiplicative)
+        'n_trials': inputs['n_trials_mul'], 'n_cumsteps': inputs['n_cumsteps_mul'],
+        'eval_freq': inputs['eval_freq_mul'], 'n_eval': inputs['n_eval_mul'], 
+        'algo': 'TD3', 'loss_fn': 'MSE', 'multi_steps': 1, **inputs
+        }
 
     for algo in inputs['algo_name']:
         for loss_fn in inputs['critic_loss']:
