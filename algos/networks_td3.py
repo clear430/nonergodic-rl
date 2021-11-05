@@ -21,8 +21,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
-import extras.utils as utils 
-
 class ActorNetwork(nn.Module):
     """
     Actor network for single GPU.
@@ -38,12 +36,13 @@ class ActorNetwork(nn.Module):
             Loads network parameters.
     """
 
-    def __init__(self, inputs_dict: dict, target: bool):
+    def __init__(self, inputs_dict: dict, model_name: str, target: bool):
         """
         Intialise class varaibles by creating neural network with Adam optimiser.
 
         Parameters:
             inputs_dict: dictionary containing all execution details
+            model_name: directory and naming of model
             target: whether constructing target network (1) or not (0)
         """
         super(ActorNetwork, self).__init__()
@@ -56,29 +55,21 @@ class ActorNetwork(nn.Module):
         fc1_dim = int(inputs_dict['td3_layer_1_units'])
         fc2_dim = int(inputs_dict['td3_layer_2_units'])
         lr_alpha = inputs_dict['td3_actor_learn_rate']
-        
-        # directory to save network checkpoints
-        dir = './models/'
-        dir += 'additive/' if inputs_dict['dynamics'] == 'A' else 'multiplicative/'
-        dir += str(inputs_dict['env_id'])
-
-        if not os.path.exists(dir):
-            os.makedirs(dir)
-        
-        file = utils.save_directory(inputs_dict, results=False) + '_' + nn_name + '.pt'
+            
+        file = model_name + '_' + nn_name + '.pt'
         self.file_checkpoint = os.path.join(file)
 
         # network inputs environment state space features
-        self.fc1 = nn.Linear(self.input_dims, fc1_dim)
-        self.fc2 = nn.Linear(fc1_dim, fc2_dim)
-        self.mu = nn.Linear(fc2_dim, self.num_actions)
+        self.fc1 = T.jit.script(nn.Linear(self.input_dims, fc1_dim))
+        self.fc2 = T.jit.script(nn.Linear(fc1_dim, fc2_dim))
+        self.mu = T.jit.script(nn.Linear(fc2_dim, self.num_actions))
 
         self.optimiser = optim.Adam(self.parameters(), lr=lr_alpha)
         self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
 
         self.to(self.device)
 
-    def forward(self, state: T.cuda.FloatTensor) -> T.cuda.FloatTensor:
+    def forward(self, state: T.FloatTensor) -> T.FloatTensor:
         """
         Forward propogation of mini-batch states to obtain next actor actions.
 
@@ -117,12 +108,13 @@ class CriticNetwork(nn.Module):
             Loads network parameters.
     """
     
-    def __init__(self, inputs_dict: dict, critic: int, target: bool):
+    def __init__(self, inputs_dict: dict, model_name:str, critic: int, target: bool):
         """
         Intialise class varaibles by creating neural network with Adam optimiser.
 
         Parameters:
             inputs_dict: dictionary containing all execution details
+            model_name: directory and naming of model
             critic: number assigned to critic
             target: whether constructing target network (1) or not (0)
         """
@@ -137,30 +129,22 @@ class CriticNetwork(nn.Module):
         fc1_dim = int(inputs_dict['td3_layer_1_units'])
         fc2_dim = int(inputs_dict['td3_layer_2_units'])
         lr_beta = inputs_dict['td3_critic_learn_rate']
-
-        # directory to save network checkpoints
-        dir = './models/'
-        dir += 'additive/' if inputs_dict['dynamics'] == 'A' else 'multiplicative/'
-        dir += str(inputs_dict['env_id'])
-
-        if not os.path.exists(dir):
-            os.makedirs(dir)
         
-        file = utils.save_directory(inputs_dict, results=False) + '_' + nn_name + '.pt'
+        file = model_name + '_' + nn_name + '.pt'
         self.file_checkpoint = os.path.join(file)
 
         # network inputs environment state space features and number of actions
-        self.fc1 = nn.Linear(self.input_dims + self.num_actions, fc1_dim)
-        self.fc2 = nn.Linear(fc1_dim, fc2_dim)
-        self.q = nn.Linear(fc2_dim, 1)
+        self.fc1 = T.jit.script(nn.Linear(self.input_dims + self.num_actions, fc1_dim))
+        self.fc2 = T.jit.script(nn.Linear(fc1_dim, fc2_dim))
+        self.q = T.jit.script(nn.Linear(fc2_dim, 1))
 
         self.optimiser = optim.Adam(self.parameters(), lr=lr_beta)
         self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
 
         self.to(self.device)
 
-    def forward(self, state: T.cuda.FloatTensor, action: T.cuda.FloatTensor) \
-            -> T.cuda.FloatTensor:
+    def forward(self, state: T.FloatTensor, action: T.FloatTensor) \
+            -> T.FloatTensor:
         """
         Forward propogation of mini-batch state-action pairs to obtain Q-value.
 

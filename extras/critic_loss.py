@@ -20,6 +20,7 @@ import numpy as np
 import torch as T
 from typing import Tuple
 
+@T.jit.script
 def truncation(estimated: T.FloatTensor, target: T.FloatTensor) \
         -> Tuple[T.FloatTensor, T.FloatTensor]:
     """
@@ -45,8 +46,9 @@ def truncation(estimated: T.FloatTensor, target: T.FloatTensor) \
 
     return estimated, target
 
-def cauchy(estimated: T.cuda.FloatTensor, target: T.cuda.FloatTensor, scale: float) \
-        -> T.cuda.FloatTensor:
+@T.jit.script
+def cauchy(estimated: T.FloatTensor, target: T.FloatTensor, scale: float) \
+        -> T.FloatTensor:
     """
     Cauchy loss function.
 
@@ -63,8 +65,9 @@ def cauchy(estimated: T.cuda.FloatTensor, target: T.cuda.FloatTensor, scale: flo
 
     return T.log(1 + arg)
 
-def nagy_algo(estimated: T.cuda.FloatTensor, target: T.cuda.FloatTensor, scale: float) \
-        -> np.ndarray:
+@T.jit.script
+def nagy_algo(estimated: T.FloatTensor, target: T.FloatTensor, scale: float) \
+        -> T.FloatTensor:
     """
     Use the Nagy alogrithm to estimate the Cauchy scale paramter based on residual errors in
     Eq. 18 in http://www.jucs.org/jucs_12_9/parameter_estimation_of_the/jucs_12_09_1332_1344_nagy.pdf
@@ -86,12 +89,13 @@ def nagy_algo(estimated: T.cuda.FloatTensor, target: T.cuda.FloatTensor, scale: 
     inv_error = 1/error
     
     if inv_error >= 1:
-        return (scale * T.sqrt(inv_error - 1)).detach().cpu().numpy()
+        return scale * T.sqrt(inv_error - 1)
     else:
-        return scale.detach().cpu().numpy()
+        return scale
 
-def correntropy(estimated: T.cuda.FloatTensor, target: T.cuda.FloatTensor, kernel: float) \
-        -> T.cuda.FloatTensor:
+@T.jit.script
+def correntropy(estimated: T.FloatTensor, target: T.FloatTensor, kernel: float) \
+        -> T.FloatTensor:
     """
     Correntropy-Induced Metric (CIM) loss function.
 
@@ -108,7 +112,8 @@ def correntropy(estimated: T.cuda.FloatTensor, target: T.cuda.FloatTensor, kerne
 
     return (1 - T.exp(-arg/(2 * kernel**2)) / T.sqrt(2 * np.pi * kernel))
 
-def cim_size(estimated: T.cuda.FloatTensor, target: T.cuda.FloatTensor) -> np.ndarray:
+@T.jit.script
+def cim_size(estimated: T.FloatTensor, target: T.FloatTensor) -> T.FloatTensor:
     """
     Empirically estimated kernel size for CIM taken as the average reconstruction error
     based on Eq. 25 in  https://lcs.ios.ac.cn/~ydshen/ICDM-12.pdf.
@@ -123,10 +128,11 @@ def cim_size(estimated: T.cuda.FloatTensor, target: T.cuda.FloatTensor) -> np.nd
     arg = (target-estimated)**2
     kernel = T.std(arg.detach().clone(), unbiased=False)
 
-    return kernel.cpu().numpy()
+    return kernel
 
-def hypersurface(estimated: T.cuda.FloatTensor, target: T.cuda.FloatTensor) \
-        -> T.cuda.FloatTensor:
+@T.jit.script
+def hypersurface(estimated: T.FloatTensor, target: T.FloatTensor) \
+        -> T.FloatTensor:
     """
     Hypersurface cost based loss function.
 
@@ -141,8 +147,9 @@ def hypersurface(estimated: T.cuda.FloatTensor, target: T.cuda.FloatTensor) \
 
     return (T.sqrt(1 + arg) - 1) 
 
-def mse(estimated: T.cuda.FloatTensor, target: T.cuda.FloatTensor, exp:int =0) \
-        -> T.cuda.FloatTensor:
+@T.jit.script
+def mse(estimated: T.FloatTensor, target: T.FloatTensor, exp: int =0) \
+        -> T.FloatTensor:
     """
     MSE loss function.
 
@@ -155,9 +162,10 @@ def mse(estimated: T.cuda.FloatTensor, target: T.cuda.FloatTensor, exp:int =0) \
         loss (float): loss values
     """
     return (target-estimated)**(int(2 + exp))
-    
-def mae(estimated: T.cuda.FloatTensor, target: T.cuda.FloatTensor) \
-        -> T.cuda.FloatTensor:
+
+@T.jit.script    
+def mae(estimated: T.FloatTensor, target: T.FloatTensor) \
+        -> T.FloatTensor:
     """
     MAE loss function.
 
@@ -170,8 +178,9 @@ def mae(estimated: T.cuda.FloatTensor, target: T.cuda.FloatTensor) \
     """
     return T.abs(target-estimated)
 
-def huber(estimated: T.cuda.FloatTensor, target: T.cuda.FloatTensor) \
-        -> T.cuda.FloatTensor:
+@T.jit.script
+def huber(estimated: T.FloatTensor, target: T.FloatTensor) \
+        -> T.FloatTensor:
     """
     Huber loss function.
 
@@ -187,7 +196,8 @@ def huber(estimated: T.cuda.FloatTensor, target: T.cuda.FloatTensor) \
 
     return loss
 
-def hill_est(values: T.cuda.FloatTensor) -> T.cuda.FloatTensor:
+@T.jit.script
+def hill_est(values: T.FloatTensor) -> T.FloatTensor:
     """
     Calculates using extreme value thoery the Hill estimator as a proxy for the tail index 
     of a power law provided alpha > 0. Treats all values as extreme.
@@ -214,8 +224,9 @@ def hill_est(values: T.cuda.FloatTensor) -> T.cuda.FloatTensor:
 
     return 1 / gamma
 
-def zipf_plot(values: T.cuda.FloatTensor, zipf_x: T.cuda.FloatTensor, zipf_x2: T.cuda.FloatTensor) \
-        -> T.cuda.FloatTensor:
+@T.jit.script
+def zipf_plot(values: T.FloatTensor, zipf_x: T.FloatTensor, zipf_x2: T.FloatTensor) \
+        -> T.FloatTensor:
     """
     Obtain gradient of Zipf (or Pareto Q-Q) plot using ordered statistics.
 
@@ -238,11 +249,11 @@ def zipf_plot(values: T.cuda.FloatTensor, zipf_x: T.cuda.FloatTensor, zipf_x2: T
 
     return 1 / gamma
 
-def aggregator(values: T.cuda.FloatTensor, shadow_low_mul: T.cuda.FloatTensor, 
-               shadow_high_mul: T.cuda.FloatTensor, zipf_x: T.cuda.FloatTensor, 
-               zipf_x2: T.cuda.FloatTensor) \
-        -> Tuple[T.cuda.FloatTensor, T.cuda.FloatTensor, T.cuda.FloatTensor, 
-                 T.cuda.FloatTensor, T.cuda.FloatTensor]:
+@T.jit.script
+def aggregator(values: T.FloatTensor, shadow_low_mul: float, shadow_high_mul: float, 
+               zipf_x: T.FloatTensor, zipf_x2: T.FloatTensor) \
+        -> Tuple[T.FloatTensor, T.FloatTensor, T.FloatTensor, 
+                 T.FloatTensor, T.FloatTensor]:
     """
     Aggregates several mini-batch summary statistics: 'empirical' mean (strong LLN approach), min/max, 
     uses power law heuristics to estimate the shadow mean, and the tail exponent.
@@ -274,12 +285,11 @@ def aggregator(values: T.cuda.FloatTensor, shadow_low_mul: T.cuda.FloatTensor,
 
     return mean, min, max, shadow, alpha
 
-def loss_function(estimated: T.cuda.FloatTensor, target: T.cuda.FloatTensor, 
-                  shadow_low_mul: T.cuda.FloatTensor, shadow_high_mul: T.cuda.FloatTensor, 
-                  zipf_x: T.cuda.FloatTensor, zipf_x2: T.cuda.FloatTensor, 
+def loss_function(estimated: T.FloatTensor, target: T.FloatTensor, shadow_low_mul: float, 
+                  shadow_high_mul: float, zipf_x: T.FloatTensor, zipf_x2: T.FloatTensor, 
                   loss_type: str, scale: float, kernel: float) \
-        -> Tuple[T.cuda.FloatTensor, T.cuda.FloatTensor, T.cuda.FloatTensor, 
-                 T.cuda.FloatTensor, T.cuda.FloatTensor]:
+        -> Tuple[T.FloatTensor, T.FloatTensor, T.FloatTensor, 
+                 T.FloatTensor, T.FloatTensor]:
     """
     Gives scalar critic loss value (retaining graph) for network backpropagation.
     

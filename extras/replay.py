@@ -75,11 +75,6 @@ class ReplayBuffer():
         self.epis_state_memory = []
         self.epis_action_memory = []
 
-        # required for intialisation
-        self._contruct_history(1, 0)
-        self._episode_rewards_states_actions([])
-        self._multi_step_rewards_states_actions(np.zeros((1)), np.zeros((1,1)), np.zeros((1,1)), 1)
-
     def store_exp(self, state: np.ndarray, action: np.ndarray, reward: float, 
                   next_state: np.ndarray, done: bool):
         """

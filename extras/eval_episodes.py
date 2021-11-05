@@ -23,7 +23,7 @@ import gym
 import numpy as np
 import pybullet_envs
 import time
-from typing import Tuple
+from typing import NoReturn, Tuple
 
 import envs.coin_flip_envs as coin_flip_envs
 import envs.dice_roll_envs as dice_roll_envs
@@ -33,7 +33,7 @@ import envs.gbm_d_envs as gbm_d_envs
 
 def eval_additive(agent: object, inputs: dict, eval_log: np.ndarray, cum_steps: int, round: int, 
                   eval_run: int, loss: Tuple[float, float, float, float, float, float], logtemp: float, 
-                  loss_params: Tuple[float, float, float, float]):
+                  loss_params: Tuple[float, float, float, float]) -> NoReturn:
     """
     Evaluates agent policy on environment without learning for a fixed number of episodes.
 
@@ -109,7 +109,7 @@ def eval_additive(agent: object, inputs: dict, eval_log: np.ndarray, cum_steps: 
 
 def eval_multiplicative(agent: object, inputs: dict, eval_log: np.ndarray, eval_risk_log: np.ndarray, cum_steps: int,
                         round: int, eval_run: int, loss: Tuple[float, float, float, float, float, float], 
-                        logtemp: float, loss_params: Tuple[float, float, float, float]):
+                        logtemp: float, loss_params: Tuple[float, float, float, float]) -> NoReturn:
     """
     Evaluates agent policy on environment without learning for a fixed number of episodes.
 
@@ -182,10 +182,10 @@ def eval_multiplicative(agent: object, inputs: dict, eval_log: np.ndarray, eval_
     mad_step = np.mean(np.abs(step - mean_step))
     std_step = np.std(step, ddof=0)
 
-    stats = [mean_run, mean_step, med_run, med_step, mad_run, mad_step, std_run, std_step]
+    stats = [mean_run-1, mean_step, med_run-1, med_step, mad_run, mad_step, std_run, std_step]
 
     steps_sec = np.sum(eval_log[round, eval_run, :, 2]) / np.sum(eval_log[round, eval_run, :, 0])
 
-    print("{} Evaluations Summary {:1.0f}/s r/st: mean {:1.0f}/{:1.0f}, med {:1.0f}/{:1.0f}, mad {:1.0f}/{:1.0f}, std {:1.0f}/{:1.0f}"
+    print("{} Evaluations Summary {:1.0f}/s r/st: mean {:1.4f}%/{:1.0f}, med {:1.4f}%/{:1.0f}, mad {:1.3f}%/{:1.0f}, std {:1.4f}%/{:1.0f}"
           .format(datetime.now().strftime('%d %H:%M:%S'), steps_sec, 
                   stats[0], stats[1], stats[2], stats[3], stats[4], stats[5], stats[6], stats[7]))

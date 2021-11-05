@@ -15,12 +15,14 @@ Description:
 """
 
 import numpy as np
+import os
 import torch as T
-from typing import Tuple
+from typing import NoReturn, Tuple
 
 from algos.networks_sac import ActorNetwork, CriticNetwork
 from extras.replay import ReplayBuffer
 import extras.critic_loss as closs
+import extras.utils as utils
 
 class Agent_sac():
     """
@@ -97,12 +99,23 @@ class Agent_sac():
         self.time_step = 0
         self.learn_step_cntr = 0
 
-        self.actor = ActorNetwork(inputs_dict, target=0)
-        self.critic_1 = CriticNetwork(inputs_dict, critic=1, target=0)
-        self.target_critic_1 = CriticNetwork(inputs_dict, critic=1, target=1)
-        self.critic_2 = CriticNetwork(inputs_dict, critic=2, target=0) 
-        self.target_critic_2 = CriticNetwork(inputs_dict, critic=2, target=1)
+        # directory to save network checkpoints
+        dir = './models/'
+        dir += 'additive/' if inputs_dict['dynamics'] == 'A' else 'multiplicative/'
+        dir += str(inputs_dict['env_id'])
+        
+        if not os.path.exists(dir):
+            os.makedirs(dir)
+        
+        # generic directory and name of PyTorch model
+        model_name = utils.save_directory(inputs_dict, results=False)
 
+        self.actor = ActorNetwork(inputs_dict, model_name, target=0)
+        self.target_actor = ActorNetwork(inputs_dict, model_name, target=1)
+        self.critic_1 = CriticNetwork(inputs_dict, model_name, critic=1, target=0)
+        self.target_critic_1 = CriticNetwork(inputs_dict, model_name, critic=1, target=1)
+        self.critic_2 = CriticNetwork(inputs_dict, model_name, critic=2, target=0) 
+        self.target_critic_2 = CriticNetwork(inputs_dict, model_name, critic=2, target=1)
         self.critic_mean = str(inputs_dict['critic_mean_type'])
         self.shadow_low_mul = inputs_dict['shadow_low_mul']
         self.shadow_high_mul = inputs_dict['shadow_high_mul']
@@ -122,13 +135,8 @@ class Agent_sac():
         self.temp_optimiser = T.optim.Adam([self.log_alpha], lr=self.lr_kappa)
         self.entropy_target = -int(self.num_actions)    # heuristic assumption
 
-        # required for method intialisation
-        self._mini_batch()
-        self._multi_step_target(None, None, None, None, )
-        self._update_critic_parameters(self.tau)
-
     def store_transistion(self, state: np.ndarray, action: np.ndarray, reward: float, 
-                          next_state: np.ndarray, done: bool):
+                          next_state: np.ndarray, done: bool) -> NoReturn:
         """
         Store a transistion to the buffer containing a total up to max_size.
 
@@ -141,7 +149,7 @@ class Agent_sac():
         """
         self.memory.store_exp(state, action, reward, next_state, done)
 
-    def select_next_action(self, state: T.cuda.FloatTensor) -> Tuple[np.ndarray, T.cuda.FloatTensor]:
+    def select_next_action(self, state: T.FloatTensor) -> Tuple[np.ndarray, T.FloatTensor]:
         """
         Agent selects next action from stochastic policy, or during warmup a random action taken.
 
@@ -173,8 +181,8 @@ class Agent_sac():
 
         return numpy_next_action, next_action
 
-    def _mini_batch(self) -> Tuple[T.cuda.FloatTensor, T.cuda.FloatTensor, T.cuda.FloatTensor, 
-                                   T.cuda.FloatTensor, T.cuda.BoolTensor, T.cuda.IntTensor]:
+    def _mini_batch(self) -> Tuple[T.FloatTensor, T.FloatTensor, T.FloatTensor, 
+                                   T.FloatTensor, T.BoolTensor, T.IntTensor]:
         """
         Uniform sampling from replay buffer and send to GPU.
 
@@ -201,10 +209,9 @@ class Agent_sac():
         return batch_states, batch_actions, batch_rewards, batch_next_states, \
                batch_dones, batch_eff_length 
 
-    def _multi_step_target(self, batch_rewards: T.cuda.FloatTensor, 
-                           batch_next_states: T.cuda.FloatTensor, batch_dones: T.cuda.BoolTensor, 
-                           batch_eff_length: T.cuda.IntTensor) \
-            -> T.cuda.FloatTensor:
+    def _multi_step_target(self, batch_rewards: T.FloatTensor, batch_next_states: T.FloatTensor, 
+                           batch_dones: T.BoolTensor, batch_eff_length: T.IntTensor) \
+            -> T.FloatTensor:
         """
         Multi-step target soft Q-values for mini-batch. 
 
@@ -276,15 +283,15 @@ class Agent_sac():
         q1, q2 = q1.view(self.batch_size, 1), q2.view(self.batch_size, 1)
         
         # updates CIM kernel size empirically
-        kernel_1 = closs.cim_size(q1, batch_target)
-        kernel_2 = closs.cim_size(q2, batch_target)
+        kernel_1 = closs.cim_size(q1, batch_target).cpu().numpy()
+        kernel_2 = closs.cim_size(q2, batch_target).cpu().numpy()
 
         # backpropogation of critic loss
-        self.critic_1.optimiser.zero_grad()
-        self.critic_2.optimiser.zero_grad()
+        self.critic_1.optimiser.zero_grad(set_to_none=True)
+        self.critic_2.optimiser.zero_grad(set_to_none=True)
 
         q1_mean, q1_min, q1_max, \
-             q1_shadow, q1_alpha = closs.loss_function(q1, batch_target, self.shadow_low_mul, self.shadow_high_mul,
+            q1_shadow, q1_alpha = closs.loss_function(q1, batch_target, self.shadow_low_mul, self.shadow_high_mul,
                                                        self.zipf_x, self.zipf_x2, self.loss_type, 
                                                              self.cauchy_scale_1, kernel_1)
         q2_mean, q2_min, q2_max, \
@@ -307,13 +314,13 @@ class Agent_sac():
         self.critic_2.optimiser.step()
 
         # updates Cauchy scale parameter using the Nagy algorithm
-        self.cauchy_scale_1 = closs.nagy_algo(q1, batch_target, self.cauchy_scale_1)
-        self.cauchy_scale_2 = closs.nagy_algo(q2, batch_target, self.cauchy_scale_2)
+        self.cauchy_scale_1 = closs.nagy_algo(q1, batch_target, self.cauchy_scale_1).cpu().numpy()
+        self.cauchy_scale_2 = closs.nagy_algo(q2, batch_target, self.cauchy_scale_2).cpu().numpy()
 
         self.learn_step_cntr += 1
 
         if self.learn_step_cntr % self.target_critic_update == 0:
-            self._update_critic_parameters(self.tau)
+            self._update_critic_parameters()
 
         cpu_q1_mean, cpu_q2_mean = q1_mean.detach().cpu().numpy(), q2_mean.detach().cpu().numpy()
         cpu_q1_min, cpu_q2_min = q1_min.detach().cpu().numpy(), q2_min.detach().cpu().numpy()
@@ -348,9 +355,10 @@ class Agent_sac():
         soft_q = T.min(q1, q2).view(-1)
 
         # learn stochastic actor policy by minimising KL divergence (advantage function)
-        self.actor.optimiser.zero_grad()
+        self.actor.optimiser.zero_grad(set_to_none=True)
         actor_loss = (soft_q - self.log_alpha.exp() * batch_logprob_actions).view(-1)
 
+        # application of fractional Kelly betting where emphasis is placed on improving the worst peformers
         if self.actor_percentile != 1:
             actor_loss = actor_loss.sort(descending=False)[0]
             actor_loss = actor_loss[:self.actor_bottom_count]
@@ -385,12 +393,9 @@ class Agent_sac():
 
         return loss, cpu_logtmep, loss_params
 
-    def _update_critic_parameters(self, tau: float):
+    def _update_critic_parameters(self) -> NoReturn:
         """
-        Update target critic deep network parameters with smoothing.
-
-        Parameters:
-            tau (float<=1): Polyak averaging rate for target network parameter updates
+        Update target critic deep network parameters with Polyak averaging rate smoothing.
         """
         for param_1, target_param_1, param_2, target_param_2 in \
              zip(self.critic_1.parameters(), self.target_critic_1.parameters(), 
@@ -399,7 +404,7 @@ class Agent_sac():
           target_param_1.data.copy_(self.tau * param_1.data + (1 - self.tau) * target_param_1.data)
           target_param_2.data.copy_(self.tau * param_2.data + (1 - self.tau) * target_param_2.data)
         
-    def save_models(self):
+    def save_models(self) -> NoReturn:
         """
         Saves all 3 networks.
         """
@@ -407,7 +412,7 @@ class Agent_sac():
         self.critic_1.save_checkpoint()
         self.critic_2.save_checkpoint()
 
-    def load_models(self):
+    def load_models(self) -> NoReturn:
         """
         Loads all 3 networks.
         """

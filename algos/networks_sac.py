@@ -25,8 +25,6 @@ import torch.nn.functional as F
 import torch.optim as optim
 from typing import Tuple
 
-import extras.utils as utils 
-
 class ActorNetwork(nn.Module):
     """
     Actor network for single GPU.
@@ -52,7 +50,7 @@ class ActorNetwork(nn.Module):
             Loads network parameters.
     """
 
-    def __init__(self, inputs_dict: dict, target: bool):
+    def __init__(self, inputs_dict: dict, model_name: str, target: bool):
         """
         Intialise class varaibles by creating neural network with Adam optimiser.
 
@@ -72,29 +70,21 @@ class ActorNetwork(nn.Module):
         lr_alpha = inputs_dict['sac_actor_learn_rate']
         self.stoch = str(inputs_dict['s_dist'])
         self.reparam_noise = inputs_dict['reparam_noise']
-        
-        # directory to save network checkpoints
-        dir = './models/'
-        dir += 'additive/' if inputs_dict['dynamics'] == 'A' else 'multiplicative/'
-        dir += str(inputs_dict['env_id'])
-
-        if not os.path.exists(dir):
-            os.makedirs(dir)
-        
-        file = utils.save_directory(inputs_dict, results=False) + '_' + nn_name + '.pt'
+               
+        file = model_name + '_' + nn_name + '.pt'
         self.file_checkpoint = os.path.join(file)
 
         # network inputs environment state space features
-        self.fc1 = nn.Linear(self.input_dims, fc1_dim)
-        self.fc2 = nn.Linear(fc1_dim, fc2_dim)
-        self.pi = nn.Linear(fc2_dim, self.num_actions * 2)
+        self.fc1 = T.jit.script(nn.Linear(self.input_dims, fc1_dim))
+        self.fc2 = T.jit.script(nn.Linear(fc1_dim, fc2_dim))
+        self.pi = T.jit.script(nn.Linear(fc2_dim, self.num_actions * 2))
 
         self.optimiser = optim.Adam(self.parameters(), lr=lr_alpha)
         self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
 
         self.to(self.device)
 
-    def forward(self, state: T.cuda.FloatTensor) -> T.cuda.FloatTensor:
+    def forward(self, state: T.FloatTensor) -> T.FloatTensor:
         """
         Forward propogation of state to obtain fixed Gaussian distribution parameters
         (moments) for each possible action component. 
@@ -114,8 +104,7 @@ class ActorNetwork(nn.Module):
 
         return moments
     
-    def stochastic_uv(self, state: T.cuda.FloatTensor) \
-            -> Tuple[T.cuda.FloatTensor, T.cuda.FloatTensor]:
+    def stochastic_uv(self, state: T.FloatTensor) -> Tuple[T.FloatTensor, T.FloatTensor]:
         """ 
         Stochastic action selection sampled from several unbounded univarite distirbution
         using the reparameterisation trick from https://arxiv.org/pdf/1312.6114.pdf. Addition
@@ -158,8 +147,7 @@ class ActorNetwork(nn.Module):
 
         return bounded_action, bounded_logprob_action
     
-    def stochastic_mv_gaussian(self, state: T.cuda.FloatTensor) \
-            -> Tuple[T.cuda.FloatTensor, T.cuda.FloatTensor]:
+    def stochastic_mv_gaussian(self, state: T.FloatTensor) -> Tuple[T.FloatTensor, T.FloatTensor]:
         """
         Stochastic action selection sampled from unbounded spherical Gaussian input 
         noise with tanh bounding using Jacobian transformation. Allows each mini-batch 
@@ -233,7 +221,7 @@ class CriticNetwork(nn.Module):
             Loads network parameters.
     """
 
-    def __init__(self, inputs_dict: dict, critic: int, target: bool):
+    def __init__(self, inputs_dict: dict, model_name: str, critic: int, target: bool):
         """
         Intialise class varaibles by creating neural network with Adam optimiser.
 
@@ -253,30 +241,21 @@ class CriticNetwork(nn.Module):
         fc1_dim = int(inputs_dict['sac_layer_1_units'])
         fc2_dim = int(inputs_dict['sac_layer_2_units'])
         lr_beta = inputs_dict['sac_critic_learn_rate']
-
-        # directory to save network checkpoints
-        dir = './models/'
-        dir += 'additive/' if inputs_dict['dynamics'] == 'A' else 'multiplicative/'
-        dir += str(inputs_dict['env_id'])
-
-        if not os.path.exists(dir):
-            os.makedirs(dir)
         
-        file = utils.save_directory(inputs_dict, results=False) + '_' + nn_name + '.pt'
+        file = model_name + '_' + nn_name + '.pt'
         self.file_checkpoint = os.path.join(file)
 
         # network inputs environment state space features and number of actions
-        self.fc1 = nn.Linear(self.input_dims + self.num_actions, fc1_dim)
-        self.fc2 = nn.Linear(fc1_dim, fc2_dim)
-        self.q = nn.Linear(fc2_dim, 1)
+        self.fc1 = T.jit.script(nn.Linear(self.input_dims + self.num_actions, fc1_dim))
+        self.fc2 = T.jit.script(nn.Linear(fc1_dim, fc2_dim))
+        self.q = T.jit.script(nn.Linear(fc2_dim, 1))
 
         self.optimiser = optim.Adam(self.parameters(), lr=lr_beta)
         self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
 
         self.to(self.device)
 
-    def forward(self, state: T.cuda.FloatTensor, action: T.cuda.FloatTensor) \
-            -> T.cuda.FloatTensor:
+    def forward(self, state: T.FloatTensor, action: T.FloatTensor) -> T.FloatTensor:
         """
         Forward propogation of state-action pair to obtain soft Q-value.
 
