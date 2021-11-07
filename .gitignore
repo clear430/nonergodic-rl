@@ -25,12 +25,12 @@ docs/market_datq
 # real market environments
 envs/market_envs.py
 envs/snp_evns.py
+utils/bootstrap.py
 utils/extract_xlsx.py
 utils/gen_market.py
-utils/make_time_csv.py
 utils/market_sim.py
 utils/market_eval.py
-utils/rep_bootstrap.py
+utils/scrape_stooq.py
 
-# protoype multi-stage model
+# prototype multi-stage model
 sarea2/
