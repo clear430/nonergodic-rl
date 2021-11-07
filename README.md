@@ -16,7 +16,7 @@ Research based on extending a [capstone](https://github.com/rgrewa1/capstone) pr
 ## Key Findings
 ### Additive Experiments
 * Critic loss evaluation using MSE is an acceptable starting point but use of HUB, MAE, and HSC should be considered as there exists serious potential for ‘free’ performance gains depending on environment.
-* Critic loss mini-batches appear to exhibit extreme kurtosis (fat tails) and so aggregation using with empirical arithmetic means (Monte-Carlo approach) severely underestimates the true population mean.
+* Critic loss mini-batches appear to exhibit extreme kurtosis (fat tails) and so aggregation using 'empirical' arithmetic means (Monte-Carlo approach) severely underestimates the true population mean.
 * Multi-step returns for continuous action spaces using TD3 and SAC is not advised due to lack of global policy maximisation across the infinite action space unlike the finite discrete case.
 
 ### Multiplicative Experiments
