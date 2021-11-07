@@ -141,8 +141,8 @@ class ActorNetwork(nn.Module):
                                    .sum(1, keepdim=True).to(self.device)
         
         # ensure defined bounded log by adding minute noise
-        log_inv_jacobian = T.log(1 - (bounded_action / self.max_action)**2 
-                                 + self.reparam_noise).sum(dim=1, keepdim=True)
+        log_inv_jacobian = T.log(1 - (bounded_action / self.max_action)**2 + self.reparam_noise) \
+                           .sum(dim=1, keepdim=True).to(self.device)
         bounded_logprob_action = unbounded_logprob_action - log_inv_jacobian
 
         return bounded_action, bounded_logprob_action
@@ -173,16 +173,13 @@ class ActorNetwork(nn.Module):
             var = T.nan_to_num(var, nan=3, posinf=3, neginf=3)
 
         # create diagonal covariance matrices for each sample and perform Cholesky decomposition
-        cov_mat = T.stack([T.eye(self.num_actions) for sample in range(batch_size)]).to(self.device)
-
         if batch_size > 1:
-            for sample in range(batch_size):
-                for vol in range(self.num_actions):
-                        cov_mat[sample, vol, vol] = var[sample, vol]    # diagonal elements are variance
+            # agent training using mini-batch learning
+            cov_mat= T.stack([T.diag(var[sample]) for sample in range(batch_size)]).to(self.device)
         else:
+            # agent evaluation 
             mu, var = mu.view(-1), var.view(-1)
-            for vol in range(self.num_actions):     
-                cov_mat[0, vol, vol] = var[vol]
+            cov_mat = T.stack([T.diag(var)]).to(self.device)
 
         chol_ltm = T.linalg.cholesky(cov_mat)
 
@@ -194,7 +191,8 @@ class ActorNetwork(nn.Module):
         unbounded_logprob_action = probabilities.log_prob(unbounded_action).to(self.device)
 
         # ensure logarithm is defined in the vicinity of zero by adding minute noise
-        log_inv_jacobian = T.log(1 - (bounded_action / self.max_action)**2 + self.reparam_noise).sum(dim=1)
+        log_inv_jacobian = T.log(1 - (bounded_action / self.max_action)**2 + self.reparam_noise) \
+                           .sum(dim=1).to(self.device)
         bounded_logprob_action = unbounded_logprob_action - log_inv_jacobian
 
         return bounded_action, bounded_logprob_action
