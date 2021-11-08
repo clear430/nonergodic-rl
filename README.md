@@ -6,7 +6,7 @@ Research encompasses several overlapping areas:
 3. Learning in multiplicative (non-ergodic) domains, maximising the time-average growth rate, and
 4. Designing energy efficient multi-stage actors for operation in extremely remote environments.
 
-Implementation using [Python](https://www.python.org) 3.9.7 and [PyTorch](https://pytorch.org) 1.9.1 with [CUDA](https://developer.nvidia.com/cuda-zone) 11.1. 
+Implementation using [Python](https://www.python.org) 3.9.8 and [PyTorch](https://pytorch.org) 1.9.1 with [CUDA](https://developer.nvidia.com/cuda-zone) 11.1. 
 - Built using an AMD Ryzen 7 5800X, Nvidia RTX 3070, 64GB RAM, and a Samsung SSD 980 Pro.
 - Tested on [Pop!\_OS](https://pop.system76.com) 21.04, [Ubuntu](https://ubuntu.com) 20.04 LTS, [Arch](https://archlinux.org) 2021.10.01, and Windows 10/11 21H2.
 - Experiments performed on the [Artemis](https://sydneyuni.atlassian.net/wiki/spaces/RC/pages/1033929078/Artemis+HPC+documentation) high performance computing cluster using [CentOS](https://www.centos.org) 6.9.
