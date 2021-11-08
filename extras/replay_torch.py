@@ -2,21 +2,23 @@
 # -*- coding: utf-8 -*-
 
 """
-title:                  replay.py
+title:                  replay_torch.py
 python version:         3.9
+torch version:          1.9
 
 author:                 Raja Grewal
 email:                  raja_grewal1@pm.me
 website:                https://github.com/rgrewa1
 
 Description:
-    Responsible for creating experience replay buffer with uniform step sampling. 
+    Responsible for creating experience replay buffer with uniform step sampling
+    with GPU acceleration using PyTorch.
 """
 
-import numpy as np
+import torch as T
 from typing import List, Tuple
 
-class ReplayBuffer():
+class ReplayBufferTorch():
     """
     Experience replay buffer with uniform sampling based on 
     https://link.springer.com/content/pdf/10.1023%2FA%3A1022628806385.pdf.
@@ -48,12 +50,13 @@ class ReplayBuffer():
         Paramters:
             inputs_dict: dictionary containing all execution details
         """
+        self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
+        
         self.input_dims = sum(inputs_dict['input_dims'])
         self.num_actions = int(inputs_dict['num_actions'])
         self.batch_size = int(inputs_dict['batch_size'][inputs_dict['algo']])
         self.gamma = inputs_dict['discount']
-        self.multi_steps = int(inputs_dict['multi_steps'])
-        self.r_abs_zero = inputs_dict['r_abs_zero']
+        self.multi_steps = T.tensor(int(inputs_dict['multi_steps']), device=self.device)
 
         self.dyna = str(inputs_dict['dynamics'])
         
@@ -64,19 +67,25 @@ class ReplayBuffer():
 
         self.mem_idx = 0
 
-        self.state_memory = np.empty((self.mem_size, self.input_dims))
-        self.action_memory = np.empty((self.mem_size, self.num_actions))
-        self.reward_memory = np.empty(self.mem_size)
-        self.next_state_memory = np.empty((self.mem_size, self.input_dims))
-        self.terminal_memory = np.empty(self.mem_size, dtype=np.bool8)
-
-        self.epis_idx = [np.nan]
+        self.state_memory = T.empty((self.mem_size, self.input_dims), dtype=T.float, device=self.device)
+        self.action_memory = T.empty((self.mem_size, self.num_actions), dtype=T.float, device=self.device)
+        self.reward_memory = T.empty((self.mem_size,), dtype=T.float, device=self.device)
+        self.next_state_memory = T.empty((self.mem_size, self.input_dims), dtype=T.float, device=self.device)
+        self.terminal_memory = T.empty((self.mem_size,), dtype=T.bool, device=self.device)
+        self.eff_length = T.ones((1,), dtype=T.int, device=self.device) 
+        
+        # multi-step return features
+        self.epis_idx = [float('nan')]
         self.epis_reward_memory = []
         self.epis_state_memory = []
         self.epis_action_memory = []
 
-    def store_exp(self, state: np.ndarray, action: np.ndarray, reward: float, 
-                  next_state: np.ndarray, done: bool):
+        self.multi_rewards = T.empty((self.batch_size,), device=self.device)
+        self.multi_states = T.empty((self.batch_size, self.input_dims), device=self.device)
+        self.multi_actions = T.empty((self.batch_size, self.num_actions), device=self.device)
+
+    def store_exp(self, state: T.FloatTensor, action: T.FloatTensor, reward: float, 
+                  next_state: T.FloatTensor, done: bool):
         """
         Store a transistion to the buffer containing a total up to a maximum size and log 
         history of rewards, states, and actions for each episode.
@@ -90,13 +99,12 @@ class ReplayBuffer():
         """
         idx = self.mem_idx % self.mem_size
 
-        self.state_memory[idx] = state
-        self.action_memory[idx] = action
-        self.reward_memory[idx] = np.max(reward, self.r_abs_zero)
-        self.next_state_memory[idx] = next_state
-        self.terminal_memory[idx] = done
+        self.state_memory[idx] = T.tensor(state, dtype=T.float)
+        self.action_memory[idx] = T.tensor(action, dtype=T.float)
+        self.reward_memory[idx] = T.tensor(reward, dtype=T.float)
+        self.next_state_memory[idx] = T.tensor(next_state, dtype=T.float)
+        self.terminal_memory[idx] = T.tensor(done, dtype=T.bool)
 
-        # note this only works if buffer >= cumulative training steps
         if self.multi_steps > 1:
             self.epis_idx[-1] = idx
 
@@ -105,7 +113,7 @@ class ReplayBuffer():
                 current_start = self.epis_idx[-2] + 1
                 current_reward_memory = self.reward_memory[current_start:idx + 1]
                 current_state_memory = self.next_state_memory[current_start:idx + 1]
-                current_action_memory = self.action_memory[current_start:idx + 1]  
+                current_action_memory = self.action_memory[current_start:idx + 1]
             except:
                 try:
                     # used for the start of a new training episode (excluding the first)
@@ -119,7 +127,7 @@ class ReplayBuffer():
                     current_action_memory = self.action_memory[idx]
 
             #  log history for the very first training episode
-            if np.all(self.terminal_memory != True) and done is not True:
+            if T.all(self.terminal_memory != True) and done is not True:
                 self.epis_idx = [idx + 1]
                 self.epis_reward_memory = [current_reward_memory]
                 self.epis_state_memory = [current_state_memory]
@@ -141,8 +149,8 @@ class ReplayBuffer():
 
         self.mem_idx += 1
 
-    def _contruct_history(self, step: int, epis_history: np.ndarray) \
-            -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def _contruct_history(self, step: int, epis_history: T.FloatTensor) \
+            -> Tuple[T.FloatTensor, T.FloatTensor, T.FloatTensor]:
         """
         Given a single mini-batch sample (or step), obtain the history of rewards, and 
         state-action pairs.
@@ -158,7 +166,8 @@ class ReplayBuffer():
         """
         # find which episode the sampled step (experience) is located
         if step > epis_history[0]:
-            sample_idx = int(np.max(np.where(step - epis_history > 0)) + 1)
+            sample_idx = T.where(step - epis_history > 0)[0]
+            sample_idx = T.max(sample_idx + 1)
             n_rewards = step - epis_history[sample_idx - 1]
         else:
             sample_idx, n_rewards = 0, step
@@ -181,13 +190,13 @@ class ReplayBuffer():
                     states = self.epis_state_memory[0][0]
                     actions = self.epis_action_memory[0][0]
                 except:
-                    # required for intialisation
-                    rewards, states, actions = [0], [np.zeros((self.input_dims,))], [np.zeros((self.num_actions,))]
-
+                    rewards, states, actions = [0], [T.zeros((self.input_dims,), device=self.device)], \
+                                               [T.zeros((self.num_actions,), device=self.device)]
+        
         return rewards, states, actions
 
     def _episode_rewards_states_actions(self, batch: List[int]) \
-            -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+            -> Tuple[T.FloatTensor, T.FloatTensor, T.FloatTensor]:
         """
         Collect respective histories for each sample in the mini-batch.
 
@@ -199,7 +208,7 @@ class ReplayBuffer():
             sample_epis_states: mini-batch state history
             sample_epis_actions: mini-batch actions history
         """
-        epis_history = np.array(self.epis_idx)
+        epis_history = T.tensor(self.epis_idx, device=self.device)
         batch_histories = [self._contruct_history(step, epis_history) for step in batch]
 
         sample_epis_rewards = [x[0] for x in batch_histories]
@@ -208,9 +217,9 @@ class ReplayBuffer():
 
         return sample_epis_rewards, sample_epis_states, sample_epis_actions
 
-    def _multi_step_rewards_states_actions(self, reward_history: np.ndarray, state_history: np.ndarray, 
-                                           action_history: np.ndarray, multi_length: int) \
-            -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def _multi_step_rewards_states_actions(self, reward_history: T.FloatTensor, state_history: T.FloatTensor, 
+                                           action_history: T.FloatTensor, multi_length: int) \
+            -> Tuple[T.FloatTensor, T.FloatTensor, T.FloatTensor]:
         """
         For a single mini-batch sample, generate multi-step rewards and identify intial state-action pair.
 
@@ -228,24 +237,25 @@ class ReplayBuffer():
         idx = int(multi_length)
 
         # the sampled step is treated as the (n-1)th step 
-        discounted_rewards = [self.gamma**t * reward_history[-idx + t] for t in range(idx - 1)]
+        discounted_rewards = T.tensor([self.gamma**t * reward_history[-idx + t] for t in range(idx - 1)], \
+                                       device=self.device)
 
         if self.dyna == 'A':
-            multi_reward = np.sum(discounted_rewards)
+            multi_reward = T.sum(discounted_rewards)
         else:
-            multi_reward = np.prod(discounted_rewards)
+            multi_reward = T.prod(discounted_rewards)
 
         intial_state = state_history[-idx]
         intial_action = action_history[-idx]
 
         return multi_reward, intial_state, intial_action
     
-    def _multi_step_batch(self, step_rewards: List[np.ndarray], 
-                          step_states: List[np.ndarray], step_actions: List[np.ndarray]) \
-            -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    def _multi_step_batch(self, step_rewards: List[T.FloatTensor], 
+                          step_states: List[T.FloatTensor], step_actions: List[T.FloatTensor]) \
+            -> Tuple[T.FloatTensor, T.FloatTensor, T.FloatTensor, T.FloatTensor]:
         """
         Collect respective multi-step returns and intial state-action pairs for each sample in the mini-batch.
-        
+
         Parameters:
             step_rewards: complete reward history of entire mini-batch
             step_states: complete state history of entire mini-batch
@@ -258,21 +268,23 @@ class ReplayBuffer():
             batch_eff_length: effective n-step bootstrapping length
         """
         # effective length taken to be the minimum of either history length or multi-steps
-        batch_eff_length = np.minimum(np.array([x.shape[0] for x in step_rewards]), self.multi_steps)
+        batch_eff_length = T.tensor([x.shape[0] for x in step_rewards], device=self.device)
+        batch_eff_length = T.minimum(batch_eff_length, self.multi_steps)
 
         batch_multi = [self._multi_step_rewards_states_actions(step_rewards[x], step_states[x], 
                                                                step_actions[x], batch_eff_length[x]) 
                        for x in range(self.batch_size)]
 
-        batch_multi_rewards = np.array([batch_multi[x][0] for x in range(self.batch_size)])
-        batch_states = np.array([batch_multi[x][1] for x in range(self.batch_size)])
-        batch_actions = np.array([batch_multi[x][2] for x in range(self.batch_size)])
-        
+        batch_multi_rewards = [batch_multi[x][0] for x in range(self.batch_size)]
+        batch_states = [batch_multi[x][1] for x in range(self.batch_size)]
+        batch_actions = [batch_multi[x][2] for x in range(self.batch_size)]
+
         return batch_multi_rewards, batch_states, batch_actions, batch_eff_length
 
-    def sample_exp(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    def sample_exp(self) -> Tuple[T.FloatTensor, T.FloatTensor, T.FloatTensor, 
+                                  T.FloatTensor, T.FloatTensor, T.FloatTensor]:
         """
-        Uniformly sample a batch from replay buffer for agent learning.
+        Uniformly sample a batch from replay buffer for agent learning
 
         Returns:
             states: batch of environment states
@@ -284,18 +296,24 @@ class ReplayBuffer():
         """
         # pool batch from either partial or fully populated buffer
         max_mem = min(self.mem_idx, self.mem_size)
-        batch = np.random.choice(max_mem, size=self.batch_size, replace=False)
-
+        batch = T.randperm(max_mem, device=self.device)[:self.batch_size]
+        
         states = self.state_memory[batch]
         actions = self.action_memory[batch]
         rewards = self.reward_memory[batch]
         next_states = self.next_state_memory[batch]
         dones = self.terminal_memory[batch]
-        eff_length = 1
+        eff_length = self.eff_length[0]
 
         if self.multi_steps > 1:
             step_rewards, step_states, step_actions = self._episode_rewards_states_actions(batch)
             rewards, states, \
                 actions, eff_length = self._multi_step_batch(step_rewards, step_states, step_actions)
+            
+            for step in range(self.batch_size):
+                self.multi_rewards[step] = rewards[step]
+                self.multi_states[step, :] = states[step]
+                self.multi_actions[step, :] = actions[step]
+            rewards, states, actions = self.multi_rewards, self.multi_states, self.multi_actions        
 
         return states, actions, rewards, next_states, dones, eff_length

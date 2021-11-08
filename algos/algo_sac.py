@@ -21,6 +21,7 @@ from typing import NoReturn, Tuple
 
 from algos.networks_sac import ActorNetwork, CriticNetwork
 from extras.replay import ReplayBuffer
+from extras.replay_torch import ReplayBufferTorch
 import extras.critic_loss as closs
 import extras.utils as utils
 
@@ -83,7 +84,11 @@ class Agent_sac():
         self.stoch = str(inputs_dict['s_dist'])
         self.batch_size = int(inputs_dict['batch_size'][inputs_dict['algo']])
 
-        self.memory = ReplayBuffer(inputs_dict)
+        self.buffer_torch = inputs_dict['buffer_gpu']
+        if self.buffer_torch == False:
+            self.memory = ReplayBuffer(inputs_dict)
+        else:
+            self.memory = ReplayBufferTorch(inputs_dict)
 
         self.gamma = inputs_dict['discount']
         self.multi_steps = int(inputs_dict['multi_steps'])
@@ -197,14 +202,16 @@ class Agent_sac():
         if self.memory.mem_idx < self.batch_size:
             return np.nan, np.nan, np.nan, np.nan, np.nan, np.nan
             
-        states, actions, rewards, next_states, dones, eff_length = self.memory.sample_exp()
+        batch_states, batch_actions, batch_rewards, \
+            batch_next_states, batch_dones, batch_eff_length = self.memory.sample_exp()
 
-        batch_states = T.tensor(states, dtype=T.float, device=self.critic_1.device)
-        batch_actions = T.tensor(actions, dtype=T.float, device=self.critic_1.device)
-        batch_rewards = T.tensor(rewards, dtype=T.float, device=self.critic_1.device)
-        batch_next_states = T.tensor(next_states, dtype=T.float, device=self.critic_1.device)
-        batch_dones = T.tensor(dones, dtype=T.bool, device=self.critic_1.device)
-        batch_eff_length = T.tensor(eff_length, dtype=T.int, device=self.critic_1.device)
+        if self.buffer_torch == False:
+            batch_states = T.tensor(batch_states, dtype=T.float, device=self.critic_1.device)
+            batch_actions = T.tensor(batch_actions, dtype=T.float, device=self.critic_1.device)
+            batch_rewards = T.tensor(batch_rewards, dtype=T.float, device=self.critic_1.device)
+            batch_next_states = T.tensor(batch_next_states, dtype=T.float, device=self.critic_1.device)
+            batch_dones = T.tensor(batch_dones, dtype=T.bool, device=self.critic_1.device)
+            batch_eff_length = T.tensor(batch_eff_length, dtype=T.int, device=self.critic_1.device)
 
         return batch_states, batch_actions, batch_rewards, batch_next_states, \
                batch_dones, batch_eff_length 

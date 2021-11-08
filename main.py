@@ -118,6 +118,7 @@ inputs_dict: dict = {
 
     # learning variables
     'buffer': 1e6,                              # maximum transistions in experience replay buffer
+    'buffer_gpu': True,                         # use GPU-accelerated buffer (faster for single-step, much slower for multi-step)
     'discount': 0.99,                           # discount factor for successive steps
     'trail': 50,                                # moving average of training episode scores used for model saving
     'cauchy_scale': 1,                          # Cauchy scale parameter initialisation value
@@ -211,6 +212,7 @@ assert isinstance(inputs_dict['buffer'], (float, int)) and \
             inputs_dict['buffer'] >= inputs_dict['n_cumsteps_add'] and \
                 inputs_dict['buffer'] >= inputs_dict['n_cumsteps_mul'], \
                     'must consist of only upto 2 leading non-zero digits and be greater than or equal to both 1 and n_cumsteps'
+assert isinstance(inputs_dict['buffer_gpu'], bool), 'must be either True or False'
 assert inputs_dict['discount'] >= 0 \
     and inputs_dict['discount'] < 1, 'should be within [0, 1)'
 assert isinstance(inputs_dict['trail'], (float, int)) and \
