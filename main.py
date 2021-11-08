@@ -32,6 +32,7 @@ from algos.algo_td3 import Agent_td3
 from algos.networks_td3 import ActorNetwork as ActorNetwork_td3
 from algos.networks_td3 import CriticNetwork as CriticNetwork_td3
 from extras.replay import ReplayBuffer
+from extras.replay_torch import ReplayBufferTorch
 from scripts.rl_additive import additive_env
 from scripts.rl_multiplicative import multiplicative_env
 
@@ -360,6 +361,8 @@ assert hasattr(CriticNetwork_td3, 'load_checkpoint'), 'missing TD3 critic load f
 # replay buffer method checks
 assert hasattr(ReplayBuffer, 'store_exp'), 'missing transition store functionality'
 assert hasattr(ReplayBuffer, 'sample_exp'), 'missing uniform transition sampling functionality'
+assert hasattr(ReplayBufferTorch, 'store_exp'), 'missing transition store functionality'
+assert hasattr(ReplayBufferTorch, 'sample_exp'), 'missing uniform transition sampling functionality'
 
 if __name__ == '__main__':
 
