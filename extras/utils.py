@@ -108,13 +108,36 @@ def multi_log_dim(inputs: dict) -> int:
         dim += 2
     if '_n10_' in env:
         dim += 10
-
-    if 'Market_' in env:
-        dim += 10
         
     if '_SH_' in env:
         dim = 4 + 2 + 1
 
+    return dim
+
+def market_log_dim(inputs: dict, n_assets: int) -> int:
+    """
+    Generates risk-related parameter log dimension for market experiments 
+    with dimensions dependent on the environment characteristics.
+
+    Parameters
+        inputs: dictionary containg all execution details
+        n_assets: number of assets for leverages
+        
+    Returns:
+        dim: dimensions for log array
+    """
+    env = inputs['env_id']
+    
+    dim = 4
+    
+    if n_assets > 1:
+        dim += n_assets    
+    
+    if '_InvB' in env:
+        dim += 1
+    if '_InvC' in env:
+        dim += 2
+        
     return dim
 
 def get_exponent(array: np.ndarray) -> int:
@@ -186,6 +209,90 @@ def shadow_equiv(mean: np.ndarray, alpha: np.ndarray, min: np.ndarray,
         max_mul_solve = x0
 
     return max_mul_solve
+
+def shuffle_data(prices: np.ndarray, interval_days: int) -> np.ndarray:
+    """
+    Split data into identical subset intervals and randomly shuffle data within each interval.
+    Purpose is to generate a faily random (non-parametric) bootsrap (or seed) for known 
+    historical data while preserving overall long-term trends and stucture.
+
+    Parameters:
+        prices: array of all historical assets prices across a shared time period
+        interval_days: size of ordered subsets
+
+    Returns:
+        prices: prices randomly shuffled within each interval
+
+    """
+    length = prices.shape[0]
+    mod = length%interval_days
+
+    intervals = int((length - mod) / interval_days)
+
+    for x in range(intervals):
+        group = prices[x * interval_days: (x + 1) * interval_days]
+        prices[x * interval_days: (x + 1) * interval_days] = np.random.permutation(group)
+
+    if mod != 0:
+        group = prices[intervals * interval_days:]
+        prices[intervals * interval_days:] = np.random.permutation(group)
+
+    return prices
+
+def train_test_split(prices: np.ndarray, train_years: float, test_years: float, gap_years: float) \
+        -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Generate sequential train/test split of time series data with fixed gap between sets. This formulation 
+    preserves the non-i.i.d. nature of the data keeping heteroscedasticity and serial correlation relatively 
+    unchanged compared to random sampling.
+
+    Parameters:
+        prices: array of all assets prices across a shared time period
+        train_years: length of training period
+        test_years: length of testing period
+        gap_years: fixed length between end of training and start of testing periods
+
+    Returns:
+        train: array of training period
+        test: array of evaluation period
+    """
+    train_days = int(252 * train_years)
+    test_days = int(252 * test_years)
+    gap_days = int(252 * gap_years)
+
+    max_train = prices.shape[0] - (1 + train_days + gap_days + test_days)
+
+    start_train = np.random.randint(train_days - 1, max_train)
+    end_train = start_train + train_days + 1
+    start_test = end_train + gap_days
+    end_test = start_test + test_days + 1
+
+    train, test = prices[start_train:end_train], prices[start_test:end_test]
+
+    return train, test
+
+def time_slice(prices: np.ndarray, extract_years: float) -> np.ndarray:
+    """
+    Extract sequential slice of time series preserveing the non-i.i.d. nature of the data
+    keeping heteroscedasticity and serial correlation relatively unchanged compared to random sampling.
+
+    Parameters:
+        prices: array of all assets prices across a shared time period
+        extract_years: length of period to be extracted
+
+    Returns:
+        market_extract: extracted time sliced data from complete time series
+    """
+    extract_days = int(252 * extract_years)
+
+    max_train = prices.shape[0] - (1 + extract_days)
+
+    start = np.random.randint(extract_days - 1, max_train)
+    end = start + extract_days + 1
+
+    market_extract = prices[start:end]
+
+    return market_extract
 
 def add_loss_aggregate(env_keys: list, gym_envs: dict, inputs: dict, algos: list =['TD3'], loss: list =['MSE']) \
          -> np.ndarray:
