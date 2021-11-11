@@ -400,7 +400,7 @@ if __name__ == '__main__':
         os.makedirs(dir)
 
     if not os.path.exists('./docs/figs'):
-            os.makedirs('./docs/figs')
+        os.makedirs('./docs/figs')
 
     # RUN EXPERIMENTS
 
