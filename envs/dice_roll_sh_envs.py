@@ -72,7 +72,7 @@ class Dice_SH_n1_U(gym.Env):
 
     def __init__(self):
         """
-        Intialise class varaibles by creating state-action space and reward range
+        Intialise class varaibles by creating state-action space and reward range.
         """
         super(Dice_SH_n1_U, self).__init__()
 
@@ -191,7 +191,7 @@ class Dice_SH_n1_I(gym.Env):
 
     def __init__(self):
         """
-        Intialise class varaibles by creating state-action space and reward range
+        Intialise class varaibles by creating state-action space and reward range.
         """
         super(Dice_SH_n1_I, self).__init__()
 
@@ -314,7 +314,7 @@ class Dice_SH_n1_InvA_U(gym.Env):
 
     def __init__(self):
         """
-        Intialise class varaibles by creating state-action space and reward range
+        Intialise class varaibles by creating state-action space and reward range.
         """
         super(Dice_SH_n1_InvA_U, self).__init__()
 
@@ -430,7 +430,7 @@ class Dice_SH_n1_InvA_I(gym.Env):
 
     def __init__(self):
         """
-        Intialise class varaibles by creating state-action space and reward range
+        Intialise class varaibles by creating state-action space and reward range.
         """
         super(Dice_SH_n1_InvA_I, self).__init__()
 
@@ -557,7 +557,7 @@ class Dice_SH_n1_InvB_U(gym.Env):
 
     def __init__(self):
         """
-        Intialise class varaibles by creating state-action space and reward range
+        Intialise class varaibles by creating state-action space and reward range.
         """
         super(Dice_SH_n1_InvB_U, self).__init__()
 
@@ -679,7 +679,7 @@ class Dice_SH_n1_InvB_I(gym.Env):
 
     def __init__(self):
         """
-        Intialise class varaibles by creating state-action space and reward range
+        Intialise class varaibles by creating state-action space and reward range.
         """
         super(Dice_SH_n1_InvB_I, self).__init__()
 
@@ -812,7 +812,7 @@ class Dice_SH_n1_InvC_U(gym.Env):
 
     def __init__(self):
         """
-        Intialise class varaibles by creating state-action space and reward range
+        Intialise class varaibles by creating state-action space and reward range.
         """
         super(Dice_SH_n1_InvC_U, self).__init__()
 
@@ -871,7 +871,7 @@ class Dice_SH_n1_InvC_U(gym.Env):
         
         # amount of portoflio to bet and outcome
         if initial_wealth <= INITIAL_VALUE:
-            # revert to investor 2 risk-taking
+            # revert to reinvestor B risk-taking
             min_wealth = INITIAL_VALUE * stop_loss
             active = initial_wealth - min_wealth
         else:
@@ -942,7 +942,7 @@ class Dice_SH_n1_InvC_I(gym.Env):
 
     def __init__(self):
         """
-        Intialise class varaibles by creating state-action space and reward range
+        Intialise class varaibles by creating state-action space and reward range.
         """
         super(Dice_SH_n1_InvC_I, self).__init__()
 
@@ -1010,7 +1010,7 @@ class Dice_SH_n1_InvC_I(gym.Env):
         
         # amount of portoflio to bet and outcome
         if initial_wealth <= INITIAL_VALUE:
-            # revert to investor 2 risk-taking
+            # revert to reinvestor B risk-taking
             min_wealth = INITIAL_VALUE * stop_loss
             active = initial_wealth - min_wealth
         else:

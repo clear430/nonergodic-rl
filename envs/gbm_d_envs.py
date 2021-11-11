@@ -62,7 +62,7 @@ class GBM_D_n1_InvA(gym.Env):
 
     def __init__(self):
         """
-        Intialise class varaibles by creating state-action space and reward range
+        Intialise class varaibles by creating state-action space and reward range.
         """
         super(GBM_D_n1_InvA, self).__init__()
 
@@ -177,7 +177,7 @@ class GBM_D_n2_InvA(gym.Env):
 
     def __init__(self):
         """
-        Intialise class varaibles by creating state-action space and reward range
+        Intialise class varaibles by creating state-action space and reward range.
         """
         super(GBM_D_n2_InvA, self).__init__()
 
@@ -293,7 +293,7 @@ class GBM_D_n10_InvA(gym.Env):
 
     def __init__(self):
         """
-        Intialise class varaibles by creating state-action space and reward range
+        Intialise class varaibles by creating state-action space and reward range.
         """
         super(GBM_D_n10_InvA, self).__init__()
 
@@ -424,7 +424,7 @@ class GBM_D_n1_InvB(gym.Env):
 
     def __init__(self):
         """
-        Intialise class varaibles by creating state-action space and reward range
+        Intialise class varaibles by creating state-action space and reward range.
         """
         super(GBM_D_n1_InvB, self).__init__()
 
@@ -545,7 +545,7 @@ class GBM_D_n2_InvB(gym.Env):
 
     def __init__(self):
         """
-        Intialise class varaibles by creating state-action space and reward range
+        Intialise class varaibles by creating state-action space and reward range.
         """
         super(GBM_D_n2_InvB, self).__init__()
 
@@ -667,7 +667,7 @@ class GBM_D_n10_InvB(gym.Env):
 
     def __init__(self):
         """
-        Intialise class varaibles by creating state-action space and reward range
+        Intialise class varaibles by creating state-action space and reward range.
         """
         super(GBM_D_n10_InvB, self).__init__()
 
@@ -805,7 +805,7 @@ class GBM_D_n1_InvC(gym.Env):
 
     def __init__(self):
         """
-        Intialise class varaibles by creating state-action space and reward range
+        Intialise class varaibles by creating state-action space and reward range.
         """
         super(GBM_D_n1_InvC, self).__init__()
 
@@ -862,7 +862,7 @@ class GBM_D_n1_InvC(gym.Env):
         
         # amount of portoflio to bet and outcome
         if initial_wealth <= INITIAL_VALUE:
-            # revert to investor 2 risk-taking
+            # revert to reinvestor B risk-taking
             min_wealth = INITIAL_VALUE * stop_loss
             active = initial_wealth - min_wealth
         else:
@@ -934,7 +934,7 @@ class GBM_D_n2_InvC(gym.Env):
 
     def __init__(self):
         """
-        Intialise class varaibles by creating state-action space and reward range
+        Intialise class varaibles by creating state-action space and reward range.
         """
         super(GBM_D_n2_InvC, self).__init__()
 
@@ -991,7 +991,7 @@ class GBM_D_n2_InvC(gym.Env):
 
         # amount of portoflio to bet and outcome
         if initial_wealth <= INITIAL_VALUE:
-            # revert to investor 2 risk-taking
+            # revert to reinvestor B risk-taking
             min_wealth = INITIAL_VALUE * stop_loss
             active = initial_wealth - min_wealth
         else:
@@ -1064,7 +1064,7 @@ class GBM_D_n10_InvC(gym.Env):
 
     def __init__(self):
         """
-        Intialise class varaibles by creating state-action space and reward range
+        Intialise class varaibles by creating state-action space and reward range.
         """
         super(GBM_D_n10_InvC, self).__init__()
 
@@ -1125,7 +1125,7 @@ class GBM_D_n10_InvC(gym.Env):
 
         # amount of portoflio to bet and outcome
         if initial_wealth <= INITIAL_VALUE:
-            # revert to investor 2 risk-taking
+            # revert to reinvestor B risk-taking
             min_wealth = INITIAL_VALUE * stop_loss
             active = initial_wealth - min_wealth
         else:
