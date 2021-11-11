@@ -20,17 +20,9 @@ tex/
 
 # historical market indicators and prices
 docs/raw_data
-docs/market_datq
 
 # real market environments
-envs/market_envs.py
-envs/snp_evns.py
-utils/bootstrap.py
 utils/extract_xlsx.py
-utils/gen_market.py
-utils/market_sim.py
-utils/market_eval.py
-utils/scrape_stooq.py
 
 # prototype multi-stage model
 sarea2/
