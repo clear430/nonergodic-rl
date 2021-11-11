@@ -39,11 +39,13 @@ Using the latest [release](https://github.com/rgrewa1/nonergodic-rl/releases) is
 
 Binary coin flip and trinary die roll experiments pertaining to empirical optimal leverages are conducted using `scripts/lev_coin.py` and `scripts/lev_dice.py` respectively with instructions contained inside the files. The data is then output in `results/multiverse/` and summary figures are placed in `docs/figs/`.
 
+Training on real financial market environments require the generation of updated historical data from [Stooq](https://stooq.com/) using `scripts/gen_market_data.py` with customisation options available within the file.
+
 All reinforcement learning agent training is executed using `main.py` with instructions provided within the file. Upon the completion of each experiment, relevant subdirectories within `models/` and `results/` titled by the reward dynamic (additive or multiplicative) will be created. Inside each will exist directories titled by the environment name that will contain all output data and summary plots.
 
 Final aggregated figures for all agent experiments that share common training parameters are generated using `scripts/gen_figures.py` and outputted in `docs/figs/`. The specific aggregation details must be input in the file.
 
-Executing the code inside a virtual environment on Linux involves the following general commands:
+Executing the code inside a virtual environment on involves the following general commands:
 ```commandline
 git clone https://github.com/rgrewa1/nonergodic-rl.git
 
@@ -59,6 +61,8 @@ python scripts/lev_coin.py
 
 python scripts/lev_dice.py
 
+python scripts/gen_market_data.py
+
 python main.py
 
 python scripts/gen_figures.py
@@ -70,7 +74,7 @@ rl_env/scripts/activate.ps1
 There are also a few additional prerequisites for installing certain packages:
 * `gym`: The interface compiler [SWIG](http://www.swig.org/) to connect C/C++ programs with scripting languages is required.
 * `mpi4py`: The presence of a Message Passing Interface (MPI) library for Linux or [Microsoft MPI](https://www.microsoft.com/en-us/download/details.aspx?id=57467) for Windows is required. This package can be entirely ignored if there is no intention of training the agent on the (additive) [DeepMimic](https://arxiv.org/pdf/1804.02717.pdf) environments ported to [PyBullet](https://pybullet.org/wordpress/).
-* `pybullet`: A C++ compiler is required such as the [GNU C++ Compiler](https://gcc.gnu.org/) for Linux or [Microsoft Visual C++](https://visualstudio.microsoft.com/) for Windows. On Windows, install Visual Studio Community and in the Visual Studio Installer select the “Desktop development with C++” workload with both optional features “MSVC v142 - VS 2019 C++ x64/x86 build tools” and the “Windows 10 SDK”. Alternatively, this package can also be ignored if there is no intention of performing (additive) experiments using any [PyBullet](https://pybullet.org/wordpress/) environment.
+* `pybullet`: A C++ compiler is required such as the [GNU C++ Compiler](https://gcc.gnu.org/) for Linux or [Microsoft Visual C++](https://visualstudio.microsoft.com/) for Windows. On Windows, install Visual Studio Community and in the Visual Studio Installer select the “Desktop development with C++” workload with both optional features “MSVC v143 - VS 2022 C++ x64/x86 build tools” and the “Windows 10 SDK”. Alternatively, this package can also be ignored if there is no intention of performing (additive) experiments using any [PyBullet](https://pybullet.org/wordpress/) environment.
 * `torch`: PyTorch previous versions should be installed with the appropriate compute platform following using the official [instructions](https://pytorch.org/get-started/locally/). Choice of CUDA version depends on Nvidia GPU compatibility while the use of CPU is discouraged due to significantly reduced backpropagation speed.
 
 ## References
