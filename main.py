@@ -34,6 +34,7 @@ from algos.networks_td3 import CriticNetwork as CriticNetwork_td3
 from extras.replay import ReplayBuffer
 from extras.replay_torch import ReplayBufferTorch
 from scripts.rl_additive import additive_env
+from scripts.rl_market import market_env
 from scripts.rl_multiplicative import multiplicative_env
 
 # model-free off-policy agents: list ['SAC', 'TD3']
@@ -46,7 +47,7 @@ critic_loss: List[str] = ['MSE']
 multi_steps: List[int] = [1]
 
 # environments to train agent: list [integer ENV_KEY from gym_envs]
-envs: List[int] = [14]
+envs: List[int] = [61]
 
 gym_envs: Dict[str, list] = {
     # ENV_KEY: [env_id, state_dim, action_dim, intial warm-up steps to generate random seed]
@@ -95,11 +96,24 @@ gym_envs: Dict[str, list] = {
     '52': ['Dice_SH_n1_InvA_U', 2, 1, 1e3], '53': ['Dice_SH_n1_InvA_I', 3, 2, 1e3],
     '54': ['Dice_SH_n1_InvB_U', 2, 2, 1e3], '55': ['Dice_SH_n1_InvB_I', 3, 3, 1e3],  
     '56': ['Dice_SH_n1_InvC_U', 2, 3, 1e3], '57': ['Dice_SH_n1_InvC_I', 3, 4, 1e3], 
-    # assets following market environment (not public)
-    # '58': ['S&P500_InvA', 11, 1, 1e3], 
-    # '59': ['S&P500_InvB', 11, 2, 1e3], 
-    # '60': ['S&P500_InvC', 11, 3, 1e3],
-    # '61': ['Market', 40, 12, 1e4],
+
+    # MARKET ENVIRONMENTS
+    # Stooq-based (cleaned) historical daily data from 1985-10-01 to 2021-11-10
+
+    # S&P500 index (^SPX)
+    '58': ['SNP_InvA', 2, 1, 1e3], '59': ['SNP_InvB', 2, 2, 1e3], '60': ['SNP_InvC', 2, 3, 1e3],
+    # US equity indicies (^SPX, ^DJI, ^NDX)
+    '61': ['EI_InvA', 4, 3, 1e3], '62': ['EI_InvB', 4, 4, 1e3], '63': ['EI_InvC', 4, 5, 1e3],
+    # US-listed equity indicies and a few commoditites
+    '64': ['Minor_InvA', 7, 6, 1e3], '65': ['Minor_InvB', 7, 7, 1e3], '66': ['Minor_InvC', 7, 8, 1e3],
+    # US-listed equity indicies and several commoditites
+    '67': ['Medium_InvA', 10, 9, 1e3], '68': ['Medium_InvB', 10, 10, 1e3], '69': ['Medium_InvC', 10, 11, 1e3],
+    # US-listed equity indicies and many commoditites
+    '70': ['Major_InvA', 15, 14, 1e3], '71': ['Major_InvB', 15, 15, 1e3], '72': ['Major_InvC', 15, 16, 1e3],
+    # US equity indicies and 26/30 Dow Jones (^DJI) components
+    '73': ['DJI_InvA', 30, 29, 1e3], '74': ['DJI_InvB', 30, 30, 1e3], '75': ['DJI_InvC', 30, 31, 1e3],
+    # Combined Major + DJI market
+    '76': ['Full_InvA', 41, 40, 1e3], '77': ['Full_InvB', 41, 41, 1e3], '78': ['Full_InvC', 41, 42, 1e3],
     }
 
 inputs_dict: dict = {
@@ -116,6 +130,17 @@ inputs_dict: dict = {
     'eval_freq_mul': 1e3,                       # ibid.
     'n_eval_mul': 1e3,                          # ibid.
     'max_eval_steps': 1e0,                      # maximum steps per evaluation episode
+
+    # multiplicative environment execution parameters
+    'n_trials_mar': 10,                         # ibid.
+    'n_cumsteps_mar': 8e4,                      # ibid.
+    'eval_freq_mar': 1e3,                       # ibid.
+    'n_eval_mar': 1e2,                          # ibid.
+    'train_years': 3,                           # length of sequential training periods
+    'test_years': 1,                            # length of sequential testing periods
+    'gap_years': 0.25,                          # length between end of training and start of testing periods
+    'train_shuffle_days': 10,                   # size of interval to shuffle time-series data for training
+    'test_shuffle_days': 5,                     # size of interval to shuffle time-series data for inference
 
     # learning variables
     'buffer': 1e6,                              # maximum transistions in experience replay buffer
@@ -205,6 +230,26 @@ assert isinstance(inputs_dict['n_eval_mul'], (float, int)) and \
     int(inputs_dict['n_eval_mul']) >= 1, gte1
 assert isinstance(inputs_dict['max_eval_steps'], (float, int)) and \
     int(inputs_dict['max_eval_steps']) >= 1, gte1
+assert isinstance(inputs_dict['n_cumsteps_mar'], (float, int)) and \
+    set(list(str(inputs_dict['n_cumsteps_mar'])[2:])).issubset(set(['0', '.'])) and \
+        int(inputs_dict['n_cumsteps_mar']) >= 1, \
+            'must consist of only 2 leading non-zero digits and be greater than or equal to 1'
+assert isinstance(inputs_dict['eval_freq_mar'], (float, int)) and \
+    int(inputs_dict['eval_freq_mar']) >= 1 and \
+        int(inputs_dict['eval_freq_mar']) <= int(inputs_dict['n_cumsteps_mul']), \
+            'must be greater than or equal to 1 and less than or equal to n_cumsteps'
+assert isinstance(inputs_dict['n_eval_mar'], (float, int)) and \
+    int(inputs_dict['n_eval_mar']) >= 1, gte1
+assert isinstance(inputs_dict['train_years'], (float, int)) and \
+    int(inputs_dict['train_years']) > 0, gt0
+assert isinstance(inputs_dict['test_years'], (float, int)) and \
+    int(inputs_dict['test_years']) > 0, gt0
+assert isinstance(inputs_dict['gap_years'], (float, int)) and \
+    int(inputs_dict['gap_years']) >= 0, gte0
+assert isinstance(inputs_dict['train_shuffle_days'], (int)) and \
+    int(inputs_dict['train_shuffle_days']) >= 1, gte1
+assert isinstance(inputs_dict['test_shuffle_days'], (int)) and \
+    int(inputs_dict['test_shuffle_days']) >= 1, gte1
 
 # learning varaible tests
 assert isinstance(inputs_dict['buffer'], (float, int)) and \
@@ -333,6 +378,7 @@ for key in inputs_dict['envs']:
 
 # SAC algorithm method checks
 assert hasattr(Agent_sac, 'select_next_action'), 'missing SAC agent action selection'
+assert hasattr(Agent_sac, 'eval_next_action'), 'missing SAC agent evaluation action selection'
 assert hasattr(Agent_sac, 'store_transistion'), 'missing SAC transition storage functionality'
 assert hasattr(Agent_sac, 'learn'), 'missing SAC agent learning functionality'
 assert hasattr(Agent_sac, 'save_models'), 'missing SAC agent save functionality'
@@ -347,6 +393,7 @@ assert hasattr(CriticNetwork_sac, 'load_checkpoint'), 'missing SAC critic load f
 
 # TD3 algorithm method checks
 assert hasattr(Agent_td3, 'select_next_action'), 'missing TD3 agent action selection'
+assert hasattr(Agent_td3, 'eval_next_action'), 'missing TD3 agent evaluation action selection'
 assert hasattr(Agent_td3, 'store_transistion'), 'missing TD3 transition storage functionality'
 assert hasattr(Agent_td3, 'learn'), 'missing TD3 agent learning functionality'
 assert hasattr(Agent_td3, 'save_models'), 'missing TD3 agent save functionality'
@@ -373,9 +420,11 @@ if __name__ == '__main__':
             
         if env_key <= 13:
             additive_env(gym_envs=gym_envs, inputs=inputs_dict)
-        else:
+        elif env_key <= 57:
             multiplicative_env(gym_envs=gym_envs, inputs=inputs_dict)
-        
+        else:
+            market_env(gym_envs=gym_envs, inputs=inputs_dict)
+
     end_time = time.perf_counter()
     total_time = end_time-start_time
 
