@@ -41,7 +41,11 @@ class Agent_td3():
     select_next_action(state):
         Select next agent action based on provided single state using given 
         deterministic policy distribution.
-    
+
+    eval_next_action(state):
+        Select next agent action for evaluation based on provided state using given 
+        deterministic policy distribution with zero noise.
+
     _mini_batch(batch_size):
         Randomly collects mini-batch from replay buffer and sends to GPU.
 
@@ -197,6 +201,21 @@ class Agent_td3():
         self.time_step += 1
         
         return numpy_next_action, next_action
+
+    def eval_next_action(self, state: T.FloatTensor) -> np.ndarray:
+        """
+        Agent selects next action from determinstic policy with no noise used for 
+        direct agent inference/evaluation.
+
+        Parameters:
+            state: current environment state
+
+        Return:
+            numpy_next_action: action to be taken by agent in next step for gym
+        """
+        current_state = T.tensor(state, dtype=T.float).to(self.actor.device)
+        
+        return self.actor.forward(current_state).detach().cpu().numpy()
 
     def _mini_batch(self) -> Tuple[T.FloatTensor, T.FloatTensor, T.FloatTensor, 
                                    T.FloatTensor, T.BoolTensor, T.IntTensor]:
