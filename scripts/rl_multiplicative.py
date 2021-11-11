@@ -29,9 +29,6 @@ import envs.dice_roll_envs as dice_roll_envs
 import envs.dice_roll_sh_envs as dice_roll_sh_envs
 import envs.gbm_envs as gbm_envs
 import envs.gbm_d_envs as gbm_d_envs
-# import envs.market_envs as market_envs
-# import envs.snp_envs as snp_envs
-# import extras.market_sim as market_sim
 import extras.plots_summary as plots
 import extras.eval_episodes as eval_episodes
 import extras.utils as utils
@@ -50,10 +47,6 @@ def multiplicative_env(gym_envs: dict, inputs: dict):
         env = eval('gbm_d_envs.'+gym_envs[str(inputs['ENV_KEY'])][0]+'()')
     elif inputs['ENV_KEY'] <= 57:
         env = eval('dice_roll_sh_envs.'+gym_envs[str(inputs['ENV_KEY'])][0]+'()')
-    elif inputs['ENV_KEY'] <= 60:
-        env = eval('snp_envs.'+gym_envs[str(inputs['ENV_KEY'])][0]+'()')
-    else:
-        env = eval('market_envs.'+gym_envs[str(inputs['ENV_KEY'])][0]+'()')
 
     inputs: dict = {
         'input_dims': env.observation_space.shape, 'num_actions': env.action_space.shape[0], 
@@ -114,45 +107,38 @@ def multiplicative_env(gym_envs: dict, inputs: dict):
 
                             # conduct periodic agent evaluation episodes without learning
                             if cum_steps % int(inputs['eval_freq']) == 0:
-                                
-                                if inputs['ENV_KEY'] <= 57:
-                                    eval_episodes.eval_multiplicative(agent, inputs, eval_log, eval_risk_log, cum_steps, 
-                                                                      round, eval_run, loss, logtemp, loss_params)
-                                else:
-                                    # market_sim.eval_multiplicative(agent, inputs, eval_log, eval_risk_log, cum_steps, 
-                                    #                                round, eval_run, loss, logtemp, loss_params)
-                                    pass
-
+                                eval_episodes.eval_multiplicative(agent, inputs, eval_log, eval_risk_log, cum_steps, 
+                                                                  round, eval_run, loss, logtemp, loss_params)
                                 eval_run += 1
 
                             if cum_steps > int(inputs['n_cumsteps']-1):
                                 break
 
-                            time_log.append(end_time - start_time)
-                            score_log.append(score)
-                            step_log.append(step)
-                            loss_log.append(loss)
-                            logtemp_log.append(logtemp)
-                            loss_params_log.append(loss_params)
-                            risk_log.append(risk)
+                        time_log.append(end_time - start_time)
+                        score_log.append(score)
+                        step_log.append(step)
+                        loss_log.append(loss)
+                        logtemp_log.append(logtemp)
+                        loss_params_log.append(loss_params)
+                        risk_log.append(risk)
 
-                            # save actor-critic neural network weights for checkpointing
-                            trail_score = np.mean(score_log[-inputs['trail']:])
-                            if trail_score > best_score:
-                                best_score = trail_score
-                                agent.save_models()
-                                print('New high trailing score!')
+                        # save actor-critic neural network weights for checkpointing
+                        trail_score = np.mean(score_log[-inputs['trail']:])
+                        if trail_score > best_score:
+                            best_score = trail_score
+                            agent.save_models()
+                            print('New high trailing score!')
 
-                            print('{} {}-{}-{}-{} ep/st/cst {}/{}/{} {:1.0f}/s: V/g ${:1.2f}/{:1.6f}%, C/Cm/Cs {:1.2f}/{:1.2f}/{:1.2f}, a/c/k/A/T {:1.2f}/{:1.2f}/{:1.2f}/{:1.2f}/{:1.2f}'
-                                  .format(datetime.now().strftime('%d %H:%M:%S'),
-                                          inputs['algo'], inputs['s_dist'], inputs['loss_fn'], round+1, episode, step, cum_steps, step/time_log[-1], 
-                                          risk[1], reward-1, np.mean(loss[0:2]), np.mean(loss[4:6]), np.mean(loss[6:8]), 
-                                          np.mean(loss[8:10]), np.mean(loss_params[0:2]), np.mean(loss_params[2:4]), loss[8]+3, np.exp(logtemp)))
-                                          
-                            # EPISODE PRINT STATEMENT
-                            # rl_algorithm-sampling_distribution-loss_function-trial,  ep/st/cst = episode/steps/cumulative_steps,  /s = training_steps_per_second,
-                            # V/g = valuation/time-average-growth-rate,  C/Cm/Cs = avg_critic_loss/max_critic_loss/shadow_critic_loss
-                            # c/k/a/A/T = avg_Cauchy_scale/avg_CIM_kernel_size/avg_tail_exponent/avg_actor_loss/sac_entropy_temperature
+                        print('{} {}-{}-{}-{} ep/st/cst {}/{}/{} {:1.0f}/s: g/V {:1.6f}%/${:1.2f}, C/Cm/Cs {:1.2f}/{:1.2f}/{:1.2f}, a/c/k/A/T {:1.2f}/{:1.2f}/{:1.2f}/{:1.2f}/{:1.2f}'
+                                .format(datetime.now().strftime('%d %H:%M:%S'),
+                                        inputs['algo'], inputs['s_dist'], inputs['loss_fn'], round+1, episode, step, cum_steps, step/time_log[-1], 
+                                        reward-1, risk[1], np.mean(loss[0:2]), np.mean(loss[4:6]), np.mean(loss[6:8]), 
+                                        np.mean(loss[8:10]), np.mean(loss_params[0:2]), np.mean(loss_params[2:4]), loss[8]+3, np.exp(logtemp)))
+                                        
+                        # EPISODE PRINT STATEMENT
+                        # rl_algorithm-sampling_distribution-loss_function-trial,  ep/st/cst = episode/steps/cumulative_steps,  /s = training_steps_per_second,
+                        # g/V = annualised-time-average-growth-rate/valuation,  C/Cm/Cs = avg_critic_loss/max_critic_loss/shadow_critic_loss
+                        # c/k/a/A/T = avg_Cauchy_scale/avg_CIM_kernel_size/avg_tail_exponent/avg_actor_loss/sac_entropy_temperature
 
                         episode += 1
 
