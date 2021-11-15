@@ -50,12 +50,11 @@ def eval_additive(agent: object, inputs: dict, eval_log: np.ndarray, cum_steps: 
         logtemp: log entropy adjustment factor (temperature)
         loss_params: values of Cauchy scale parameters and kernel sizes for critics
     """
-    print('{} {}-{}-{}-{} {} Evaluations cst {}:'.format(datetime.now().strftime('%d %H:%M:%S'), 
-          inputs['algo'], inputs['s_dist'], inputs['loss_fn'], round+1, int(inputs['n_eval']), cum_steps))
-
-    print('{} Training Summary: T/Cg/Cs {:1.2f}/{:1.2f}/{:1.2f}, C/A {:1.1f}/{:1.1f}'
-          .format(datetime.now().strftime('%d %H:%M:%S'), np.exp(logtemp), sum(loss_params[0:2])/2, 
-                  sum(loss_params[2:4])/2, sum(loss[0:2]), loss[-1]))
+    print('{} {}-{}-{}-{} {} Evaluations at cst {}: C/Cm/Cs {:1.2f}/{:1.2f}/{:1.2f}, a/c/k/A/T {:1.2f}/{:1.2f}/{:1.2f}/{:1.2f}/{:1.2f}'
+            .format(datetime.now().strftime('%d %H:%M:%S'), 
+                    inputs['algo'], inputs['s_dist'], inputs['loss_fn'], round+1, int(inputs['n_eval']), cum_steps,
+                    np.mean(loss[0:2]), np.mean(loss[4:6]), np.mean(loss[6:8]), 
+                    np.mean(loss[8:10]), np.mean(loss_params[0:2]), np.mean(loss_params[2:4]), loss[8]+3, np.exp(logtemp)))
     
     eval_env = gym.make(inputs['env_id'])
     
@@ -126,13 +125,12 @@ def eval_multiplicative(agent: object, inputs: dict, eval_log: np.ndarray, eval_
         logtemp: log entropy adjustment factor (temperature)
         loss_params: values of Cauchy scale parameters and kernel sizes for critics
     """
-    print('{} {}-{}-{}-{} {} Evaluations cst {}:'.format(datetime.now().strftime('%d %H:%M:%S'), 
-          inputs['algo'], inputs['s_dist'], inputs['loss_fn'], round+1, int(inputs['n_eval']), cum_steps))
+    print('{} {}-{}-{}-{} {} Evaluations at cst {}: C/Cm/Cs {:1.2f}/{:1.2f}/{:1.2f}, a/c/k/A/T {:1.2f}/{:1.2f}/{:1.2f}/{:1.2f}/{:1.2f}'
+            .format(datetime.now().strftime('%d %H:%M:%S'), 
+                    inputs['algo'], inputs['s_dist'], inputs['loss_fn'], round+1, int(inputs['n_eval']), cum_steps,
+                    np.mean(loss[0:2]), np.mean(loss[4:6]), np.mean(loss[6:8]), 
+                    np.mean(loss[8:10]), np.mean(loss_params[0:2]), np.mean(loss_params[2:4]), loss[8]+3, np.exp(logtemp)))
 
-    print('{} Training Summary: T/Cg/Cs {:1.2f}/{:1.2f}/{:1.2f}, C/A {:1.1f}/{:1.1f}'
-          .format(datetime.now().strftime('%d %H:%M:%S'), np.exp(logtemp), sum(loss_params[0:2])/2, 
-                  sum(loss_params[2:4])/2, sum(loss[0:2]), loss[-1]))
-    
     if inputs['ENV_KEY'] <= 22:
         eval_env = eval('coin_flip_envs.'+inputs['env_id']+'()')
     elif inputs['ENV_KEY'] <= 31:
@@ -209,28 +207,12 @@ def eval_market(market_data: np.ndarray, agent: object, inputs: dict, eval_log: 
         logtemp: log entropy adjustment factor (temperature)
         loss_params: values of Cauchy scale parameters and kernel sizes for critics
     """
-    print('{} {}-{}-{}-{} {} Evaluations cst {}:'.format(datetime.now().strftime('%d %H:%M:%S'), 
-          inputs['algo'], inputs['s_dist'], inputs['loss_fn'], round+1, int(inputs['n_eval']), cum_steps))
-
-    print('{} Training Summary: T/Cg/Cs {:1.2f}/{:1.2f}/{:1.2f}, C/A {:1.1f}/{:1.1f}'
-          .format(datetime.now().strftime('%d %H:%M:%S'), np.exp(logtemp), sum(loss_params[0:2])/2, 
-                  sum(loss_params[2:4])/2, sum(loss[0:2]), loss[-1]))
-    
-    if inputs['ENV_KEY'] <= 60:
-        market_data = np.load('./docs/market_data/stooq_snp.npy')
-    elif inputs['ENV_KEY'] <= 63:
-        market_data = np.load('./docs/market_data/stooq_usei.npy')
-    elif inputs['ENV_KEY'] <= 66:
-        market_data = np.load('./docs/market_data/stooq_minor.npy')
-    elif inputs['ENV_KEY'] <= 69:
-        market_data = np.load('./docs/market_data/stooq_medium.npy')
-    elif inputs['ENV_KEY'] <= 72:
-        market_data = np.load('./docs/market_data/stooq_major.npy')
-    elif inputs['ENV_KEY'] <= 75:
-        market_data = np.load('./docs/market_data/stooq_dji.npy')
-    else:
-        market_data = np.load('./docs/market_data/stooq_full.npy')
-
+    print('{} {}-{}-{}-{} {} Evaluations at cst {}: C/Cm/Cs {:1.2f}/{:1.2f}/{:1.2f}, a/c/k/A/T {:1.2f}/{:1.2f}/{:1.2f}/{:1.2f}/{:1.2f}'
+            .format(datetime.now().strftime('%d %H:%M:%S'), 
+                    inputs['algo'], inputs['s_dist'], inputs['loss_fn'], round+1, int(inputs['n_eval']), cum_steps,
+                    np.mean(loss[0:2]), np.mean(loss[4:6]), np.mean(loss[6:8]), 
+                    np.mean(loss[8:10]), np.mean(loss_params[0:2]), np.mean(loss_params[2:4]), loss[8]+3, np.exp(logtemp)))
+                        
     n_assets = market_data.shape[1]
     test_length = int(252 * (inputs['test_years']))
     eval_env = eval('market_envs.Market_'+inputs['env_id'][-4:]+'(n_assets, test_length)')
