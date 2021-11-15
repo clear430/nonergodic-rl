@@ -138,7 +138,6 @@ inputs_dict: dict = {
     'n_eval_mar': 1e2,                          # ibid.
     'train_years': 3,                           # length of sequential training periods
     'test_years': 1,                            # length of sequential testing periods
-    'gap_years': 0.25,                          # length between end of training and start of testing periods
     'train_shuffle_days': 10,                   # size of interval to shuffle time-series data for training
     'test_shuffle_days': 5,                     # size of interval to shuffle time-series data for inference
 
@@ -244,8 +243,6 @@ assert isinstance(inputs_dict['train_years'], (float, int)) and \
     int(inputs_dict['train_years']) > 0, gt0
 assert isinstance(inputs_dict['test_years'], (float, int)) and \
     int(inputs_dict['test_years']) > 0, gt0
-assert isinstance(inputs_dict['gap_years'], (float, int)) and \
-    int(inputs_dict['gap_years']) >= 0, gte0
 assert isinstance(inputs_dict['train_shuffle_days'], (int)) and \
     int(inputs_dict['train_shuffle_days']) >= 1, gte1
 assert isinstance(inputs_dict['test_shuffle_days'], (int)) and \

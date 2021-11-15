@@ -35,21 +35,28 @@ def market_env(gym_envs: dict, inputs: dict):
     """
     train_length = int(252 * (inputs['train_years']))
     test_length = int(252 * (inputs['test_years']))
-    learn_length = int(252 * (inputs['train_years'] + inputs['test_years'] + inputs['gap_years']))
+    learn_length = int(252 * (inputs['train_years'] + inputs['test_years']))
 
     if inputs['ENV_KEY'] <= 60:
+        assert os.path.isfile('./docs/market_data/stooq_snp.npy'), 'stooq_snp.npy not generated'
         market_data = np.load('./docs/market_data/stooq_snp.npy')
     elif inputs['ENV_KEY'] <= 63:
+        assert os.path.isfile('./docs/market_data/stooq_usei.npy'), 'stooq_usei.npy not generated' 
         market_data = np.load('./docs/market_data/stooq_usei.npy')
     elif inputs['ENV_KEY'] <= 66:
+        assert os.path.isfile('./docs/market_data/stooq_minor.npy'), 'stooq_minor.npy not generated'
         market_data = np.load('./docs/market_data/stooq_minor.npy')
     elif inputs['ENV_KEY'] <= 69:
+        assert os.path.isfile('./docs/market_data/stooq_medium.npy'), 'stooq_medium.npy not generated'
         market_data = np.load('./docs/market_data/stooq_medium.npy')
     elif inputs['ENV_KEY'] <= 72:
+        assert os.path.isfile('./docs/market_data/stooq_major.npy'), 'stooq_major.npy not generated'
         market_data = np.load('./docs/market_data/stooq_major.npy')
     elif inputs['ENV_KEY'] <= 75:
+        assert os.path.isfile('./docs/market_data/stooq_dji.npy'), 'stooq_dji.npy not generated'
         market_data = np.load('./docs/market_data/stooq_dji.npy')
     elif inputs['ENV_KEY'] <= 78:
+        assert os.path.isfile('./docs/market_data/stooq_full.npy'), 'stooq_full.npy not generated'
         market_data = np.load('./docs/market_data/stooq_full.npy')
 
     time_length, n_assets = market_data.shape[0], market_data.shape[1]
@@ -59,7 +66,7 @@ def market_env(gym_envs: dict, inputs: dict):
     assert time_length >= test_length, \
         'total time {} period must be at least as large as (1 + test_days) = {}'.format(time_length, test_length)       
     assert time_length >= learn_length, \
-        'total time {} period must be at least as large as (1 + train_days + gap_days + test_days) = {}'.format(time_length, learn_length)
+        'total time {} period must be at least as large as (1 + train_days + test_days) = {}'.format(time_length, learn_length)
     
     env = eval('market_envs.Market_'+gym_envs[str(inputs['ENV_KEY'])][0][-4:]+'(n_assets, train_length)')
 
