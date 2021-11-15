@@ -20,7 +20,7 @@ from gym.utils import seeding
 import numpy as np
 from typing import List, Tuple
 
-MAX_VALUE = 1e7                                         # maximium potfolio value for normalisation
+MAX_VALUE = 1e5                                         # maximium potfolio value for normalisation
 INITIAL_VALUE = 1e4                                     # intial portfolio value
 MIN_VALUE_RATIO = 1e-2                                  # minimum portfolio value ratio (psi)
 MIN_VALUE = max(MIN_VALUE_RATIO * INITIAL_VALUE, 1)
@@ -61,7 +61,7 @@ class Market_InvA(gym.Env):
         super(Market_InvA, self).__init__()
 
         self.n_assets = n_assets
-        self.time_length = time_length - 1
+        self.time_length = time_length
 
         if n_assets == 1:
             self.risk = np.empty((3 + n_assets), dtype=np.float64)
@@ -192,7 +192,7 @@ class Market_InvB(gym.Env):
         super(Market_InvB, self).__init__()
 
         self.n_assets = n_assets
-        self.time_length = time_length - 1
+        self.time_length = time_length
 
         if n_assets == 1:
             self.risk = np.empty((4 + n_assets), dtype=np.float64)
@@ -329,7 +329,7 @@ class Market_InvC(gym.Env):
         super(Market_InvC, self).__init__()
 
         self.n_assets = n_assets
-        self.time_length = time_length - 1
+        self.time_length = time_length
 
         if n_assets == 1:
             self.risk = np.empty((5 + n_assets), dtype=np.float64)

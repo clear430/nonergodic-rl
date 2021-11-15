@@ -42,12 +42,12 @@ Stooq - Symbols and Data Availability:
     RB.F: Gasoline RBOB - NYMEX         https://stooq.com/q/d/?s=rb.f
 
     LS.F: Lumber - CME                  https://stooq.com/q/d/?s=ls.f
-    LE.F: Live Cattle- CME              https://stooq.com/q/d/?s=le.f
+    LE.F: Live Cattle - CME             https://stooq.com/q/d/?s=le.f
     KC.F: Coffee - ICE                  https://stooq.com/q/d/?s=kc.f
     OJ.F: Orange Juice - ICE            https://stooq.com/q/d/?s=oj.f
 
     ^ = index value
-    .C = Cash
+    .C = cash
     .F = front month futures
 """
 

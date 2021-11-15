@@ -213,8 +213,8 @@ def shadow_equiv(mean: np.ndarray, alpha: np.ndarray, min: np.ndarray,
 def shuffle_data(prices: np.ndarray, interval_days: int) -> np.ndarray:
     """
     Split data into identical subset intervals and randomly shuffle data within each interval.
-    Purpose is to generate a faily random (non-parametric) bootsrap (or seed) for known 
-    historical data while preserving overall long-term trends and stucture.
+    Purpose is to generate a fairly random (non-parametric) bootstrap (or seed) for known 
+    historical data while preserving overall long-term trends and structure.
 
     Parameters:
         prices: array of all historical assets prices across a shared time period
@@ -273,7 +273,7 @@ def train_test_split(prices: np.ndarray, train_years: float, test_years: float, 
 
 def time_slice(prices: np.ndarray, extract_years: float) -> np.ndarray:
     """
-    Extract sequential slice of time series preserveing the non-i.i.d. nature of the data
+    Extract sequential slice of time series preserving the non-i.i.d. nature of the data
     keeping heteroscedasticity and serial correlation relatively unchanged compared to random sampling.
 
     Parameters:
@@ -287,7 +287,7 @@ def time_slice(prices: np.ndarray, extract_years: float) -> np.ndarray:
 
     max_train = prices.shape[0] - (1 + extract_days)
 
-    start = np.random.randint(extract_days - 1, max_train)
+    start = np.random.randint(0, max_train)
     end = start + extract_days + 1
 
     market_extract = prices[start:end]
