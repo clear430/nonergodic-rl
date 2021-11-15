@@ -21,8 +21,8 @@ tex/
 # historical market indicators and prices
 docs/raw_data
 
-# real market environments
-utils/extract_xlsx.py
+# more advanced real-world market environments
+market/
 
 # prototype multi-stage model
 sarea2/
