@@ -58,7 +58,7 @@ import os
 
 # common starting/endiing dates for daily data collection for all assets
 start: str = '1985-10-01'
-end: str = '2021-11-10'
+end: str = '2021-11-12'
 
 # pairs for data saving and assets to be included
 stooq: dict = {
@@ -124,6 +124,10 @@ def dataframe_to_array(market_data: pd.DataFrame, price_type: str) -> np.ndarray
 
     # remove all rows with missing values
     market = market.dropna(how='any')
+
+    # format time ordering if needed (earliest data point is at index 0)
+    if market.index[0] > market.index[-1]:
+        market = market[::-1]
 
     n_assets, n_days = market.columns.shape[0], market.index.shape[0]
 
