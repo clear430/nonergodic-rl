@@ -1,4 +1,4 @@
-# Revisiting Fundamentals of Model-Free Reinforcement Learning
+# Revisiting Model-Free Reinforcement Learning
 
 Research encompasses several overlapping areas: 
 1. Peculiarities regarding use of critic loss functions, tail exponents, and shadow means,
@@ -8,8 +8,8 @@ Research encompasses several overlapping areas:
 
 Implementation using [Python](https://www.python.org) 3.9.8 and [PyTorch](https://pytorch.org) 1.9.1 with [CUDA](https://developer.nvidia.com/cuda-zone) 11.1. 
 - Built using an AMD Ryzen 7 5800X, Nvidia RTX 3070, 64GB RAM, and a Samsung SSD 980 Pro.
-- Tested on [Pop!\_OS](https://pop.system76.com) 21.04, [Ubuntu](https://ubuntu.com) 20.04 LTS, [Arch](https://archlinux.org) 2021.10.01, and Windows 10/11 21H2.
-- Experiments performed on the [Artemis](https://sydneyuni.atlassian.net/wiki/spaces/RC/pages/1033929078/Artemis+HPC+documentation) high performance computing cluster using [CentOS](https://www.centos.org) 6.9.
+- Tested on [Pop!\_OS](https://pop.system76.com) 21.04, [Ubuntu](https://ubuntu.com) 21.10, [Arch](https://archlinux.org) 2021.11.01, and Windows 11 21H2.
+- Additive experiments performed on the [Artemis](https://sydneyuni.atlassian.net/wiki/spaces/RC/pages/1033929078/Artemis+HPC+documentation) high performance computing cluster using [CentOS](https://www.centos.org) 6.9.
 
 Research based on extending a [capstone](https://github.com/rgrewa1/capstone) project submitted in June 2021 at the [University of Sydney](https://www.sydney.edu.au), Australia.
 
@@ -32,14 +32,14 @@ Comprehensive discussion and implications of all results are described in `docs/
 
 The data regarding agent training performance (NumPy arrays), the learned models (PyTorch parameters), and optimal leverage experiments (NumPy arrays) have a total combined size of 16.7 GB. 
 
-The breakdown for additive agents, multiplicative agents, and optimal leverage experiments are 2.7 GB, 13.8 GB, and 0.2 GB respectively. All data is available upon request, please contact raja $_$ grewal1 -at- pm ‘dot’ me.
+The breakdown for additive agents, multiplicative agents, and optimal leverage experiments are 2.7 GB, 13.8 GB, and 0.2 GB respectively. All data is available upon request.
 
 ## Usage 
 Using the latest [release](https://github.com/rgrewa1/nonergodic-rl/releases) is recommended.
 
 Binary coin flip and trinary die roll experiments pertaining to empirical optimal leverages are conducted using `scripts/lev_coin.py` and `scripts/lev_dice.py` respectively with instructions contained inside the files. The data is then output in `results/multiverse/` and summary figures are placed in `docs/figs/`.
 
-Training on real financial market environments require the generation of updated historical data from [Stooq](https://stooq.com/) using `scripts/gen_market_data.py` with customisation options available within the file.
+Training on real (multiplicative) financial market environments requires the generation of historical data from [Stooq](https://stooq.com/) using `scripts/gen_market_data.py` with customisation options regarding asset selection and dates available within the file.
 
 All reinforcement learning agent training is executed using `main.py` with instructions provided within the file. Upon the completion of each experiment, relevant subdirectories within `models/` and `results/` titled by the reward dynamic (additive or multiplicative) will be created. Inside each will exist directories titled by the environment name that will contain all output data and summary plots.
 
