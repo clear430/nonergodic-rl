@@ -35,7 +35,6 @@ def market_env(gym_envs: dict, inputs: dict):
     """
     train_length = int(252 * (inputs['train_years']))
     test_length = int(252 * (inputs['test_years']))
-    learn_length = int(252 * (inputs['train_years'] + inputs['test_years']))
 
     if inputs['ENV_KEY'] <= 60:
         assert os.path.isfile('./docs/market_data/stooq_snp.npy'), 'stooq_snp.npy not generated'
@@ -65,8 +64,6 @@ def market_env(gym_envs: dict, inputs: dict):
         'total time {} period must be at least as large as (1 + train_days) = {}'.format(time_length, train_length)
     assert time_length >= test_length, \
         'total time {} period must be at least as large as (1 + test_days) = {}'.format(time_length, test_length)       
-    assert time_length >= learn_length, \
-        'total time {} period must be at least as large as (1 + train_days + test_days) = {}'.format(time_length, learn_length)
     
     env = eval('market_envs.Market_'+gym_envs[str(inputs['ENV_KEY'])][0][-4:]+'(n_assets, train_length)')
 
