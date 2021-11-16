@@ -39,9 +39,9 @@ Using the latest [release](https://github.com/rgrewa1/nonergodic-rl/releases) is
 
 Binary coin flip and trinary die roll experiments pertaining to empirical optimal leverages are conducted using `scripts/lev_coin.py` and `scripts/lev_dice.py` respectively with instructions contained inside the files. The data is then output in `results/multiverse/` and summary figures are placed in `docs/figs/`.
 
-Training on real (multiplicative) financial market environments requires the generation of historical data from [Stooq](https://stooq.com/) using `scripts/gen_market_data.py` with customisation options regarding asset selection and dates available within the file.
+Training on real (multiplicative) financial market environments requires the generation of historical data sourced from [Stooq](https://stooq.com/) using `scripts/gen_market_data.py` with customisation options regarding asset selection and dates available within the file.
 
-All reinforcement learning agent training is executed using `main.py` with instructions provided within the file. Upon the completion of each experiment, relevant subdirectories within `models/` and `results/` titled by the reward dynamic (additive or multiplicative) will be created. Inside each will exist directories titled by the environment name that will contain all output data and summary plots.
+All reinforcement learning agent training is executed using `main.py` with instructions provided within the file. Upon the completion of each experiment, relevant subdirectories within `models/` and `results/` titled by the reward dynamic (additive or multiplicative or market) will be created. Inside each will exist directories titled by the environment name that will contain all output data and summary plots.
 
 Final aggregated figures for all agent experiments that share common training parameters are generated using `scripts/gen_figures.py` and outputted in `docs/figs/`. The specific aggregation details must be input in the file.
 
