@@ -110,7 +110,16 @@ class Agent_sac():
 
         # directory to save network checkpoints
         dir = './models/'
-        dir += 'additive/' if inputs_dict['dynamics'] == 'A' else 'multiplicative/'
+        if inputs_dict['dynamics'] == 'A':
+            dir += 'additive/' 
+        elif inputs_dict['dynamics'] == 'M':
+            dir +=  'multiplicative/'
+        else:
+            dir += 'market/'
+        
+        if not os.path.exists(dir):
+            os.makedirs(dir)
+
         dir += str(inputs_dict['env_id'])
         
         if not os.path.exists(dir):

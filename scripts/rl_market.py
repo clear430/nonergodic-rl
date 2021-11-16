@@ -11,7 +11,7 @@ email:                  raja_grewal1@pm.me
 website:                https://github.com/rgrewa1
 
 Description:
-    Responsible for performing agent training in multiplicative environments.
+    Responsible for performing agent training in market environments.
 """
 
 import sys
@@ -33,9 +33,6 @@ def market_env(gym_envs: dict, inputs: dict):
     """
     Conduct experiments for multiplicative environments.
     """
-    train_length = int(252 * (inputs['train_years']))
-    test_length = int(252 * (inputs['test_years']))
-
     if inputs['ENV_KEY'] <= 60:
         assert os.path.isfile('./docs/market_data/stooq_snp.npy'), 'stooq_snp.npy not generated'
         market_data = np.load('./docs/market_data/stooq_snp.npy')
@@ -60,18 +57,26 @@ def market_env(gym_envs: dict, inputs: dict):
 
     time_length, n_assets = market_data.shape[0], market_data.shape[1]
 
+    obs_days = int(inputs['observed_days'])
+    train_length = int(252 * inputs['train_years'] + obs_days - 1)
+    test_length = int(252 * inputs['test_years'] + obs_days - 1)
+
     assert time_length >= train_length, \
         'total time {} period must be at least as large as (1 + train_days) = {}'.format(time_length, train_length)
     assert time_length >= test_length, \
-        'total time {} period must be at least as large as (1 + test_days) = {}'.format(time_length, test_length)       
-    
-    env = eval('market_envs.Market_'+gym_envs[str(inputs['ENV_KEY'])][0][-4:]+'(n_assets, train_length)')
+        'total time {} period must be at least as large as (1 + test_days) = {}'.format(time_length, test_length)
+
+    obs_days_str = '_D' + str(obs_days)
+    inputs: dict= {'env_id': gym_envs[str(inputs['ENV_KEY'])][0] + obs_days_str, **inputs}
+    if obs_days == 1:
+        env = eval('market_envs.Market_'+gym_envs[str(inputs['ENV_KEY'])][0][-4:]+'_D1'+'(n_assets, train_length, obs_days)')
+    else:
+        env = eval('market_envs.Market_'+gym_envs[str(inputs['ENV_KEY'])][0][-4:]+'_Dx'+'(n_assets, train_length, obs_days)')
 
     inputs: dict = {
-        'input_dims': env.observation_space.shape, 'num_actions': env.action_space.shape[0], 
+        'input_dims': env.observation_space.shape, 'num_actions':  env.action_space.shape[0], 
         'max_action': env.action_space.high.min(), 'min_action': env.action_space.low.max(),    # assume all actions span equal domain 
-        'env_id': gym_envs[str(inputs['ENV_KEY'])][0], 'random': gym_envs[str(inputs['ENV_KEY'])][3], 
-        'dynamics': 'M',    # gambling dynamics 'M' (multiplicative)
+        'random': gym_envs[str(inputs['ENV_KEY'])][3], 'dynamics': 'MKT',    # gambling dynamics 'MKT' (market)
         'n_trials': inputs['n_trials_mar'], 'n_cumsteps': inputs['n_cumsteps_mar'],
         'eval_freq': inputs['eval_freq_mar'], 'n_eval': inputs['n_eval_mar'], 
         'algo': 'TD3', 'loss_fn': 'MSE', 'multi_steps': 1, **inputs
@@ -107,18 +112,28 @@ def market_env(gym_envs: dict, inputs: dict):
                     while cum_steps < int(inputs['n_cumsteps']):
                         start_time = time.perf_counter()
 
-                        market_data = utils.shuffle_data(market_data, inputs['train_shuffle_days'])
-                        market_extract = utils.time_slice(market_data, inputs['train_years'])
+                        market_shuffle = utils.shuffle_data(market_data, inputs['train_shuffle_days'])
+                        market_extract = utils.time_slice(market_shuffle, train_length)
                         data_iter = 0
 
-                        state = env.reset(market_extract[data_iter])
+                        if obs_days == 1:
+                            obs_state = market_extract[data_iter]
+                        else:
+                            obs_state = market_extract[data_iter:obs_days].reshape(-1)[::-1]
+
+                        state = env.reset(obs_state)
                         done, step, score = False, 0, 0
-    
+
                         while not done:
                             data_iter += 1
                             action, _ = agent.select_next_action(state)
-                            next_state, reward, done, risk = env.step(action, market_extract[data_iter])
 
+                            if obs_days == 1:
+                                obs_state = market_extract[data_iter]
+                            else:
+                                obs_state = market_extract[data_iter:data_iter + obs_days].reshape(-1)[::-1]
+
+                            next_state, reward, done, risk = env.step(action, obs_state)
                             agent.store_transistion(state, action, reward, next_state, done)
 
                             # gradient update interval (perform backpropagation)
@@ -134,7 +149,7 @@ def market_env(gym_envs: dict, inputs: dict):
                             # conduct periodic agent evaluation episodes without learning
                             if cum_steps % int(inputs['eval_freq']) == 0:
                                 
-                                eval_episodes.eval_market(market_extract, agent, inputs, eval_log, eval_risk_log, 
+                                eval_episodes.eval_market(market_data, agent, inputs, eval_log, eval_risk_log, 
                                                           cum_steps, round, eval_run, loss, logtemp, loss_params)
 
                                 eval_run += 1
@@ -157,10 +172,10 @@ def market_env(gym_envs: dict, inputs: dict):
                             agent.save_models()
                             print('New high trailing score!')
 
-                        print('{} {}-{}-{}-{} ep/st/cst {}/{}/{} {:1.0f}/s: g_pa/V {:1.4f}%/${:1.2f}, C/Cm/Cs {:1.2f}/{:1.2f}/{:1.2f}, a/c/k/A/T {:1.2f}/{:1.2f}/{:1.2f}/{:1.2f}/{:1.2f}'
+                        print('{} {}-{}-{}-{} ep/st/cst {}/{}/{} {:1.0f}/s: g_pa/V {:1.2f}%/${:1.2f}, C/Cm/Cs {:1.2f}/{:1.2f}/{:1.2f}, a/c/k/A/T {:1.2f}/{:1.2f}/{:1.2f}/{:1.2f}/{:1.2f}'
                                 .format(datetime.now().strftime('%d %H:%M:%S'),
                                         inputs['algo'], inputs['s_dist'], inputs['loss_fn'], round+1, episode, step, cum_steps, step/time_log[-1], 
-                                        reward**252-1, risk[1], np.mean(loss[0:2]), np.mean(loss[4:6]), np.mean(loss[6:8]), 
+                                        (reward**252-1)*100, risk[1], np.mean(loss[0:2]), np.mean(loss[4:6]), np.mean(loss[6:8]), 
                                         np.mean(loss[8:10]), np.mean(loss_params[0:2]), np.mean(loss_params[2:4]), loss[8]+3, np.exp(logtemp)))
                         
                         # EPISODE PRINT STATEMENT
@@ -176,8 +191,8 @@ def market_env(gym_envs: dict, inputs: dict):
                     trial_log[round, :count, 14], trial_log[round, :count, 15:] = logtemp_log, loss_params_log
                     trial_risk_log[round, :count, :] = risk_log
 
-                    if not os.path.exists('./results/multiplicative/'+inputs['env_id']):
-                        os.makedirs('./results/multiplicative/'+inputs['env_id'])
+                    if not os.path.exists('./results/market/'+inputs['env_id']):
+                        os.makedirs('./results/market/'+inputs['env_id'])
 
                     if inputs['n_trials'] == 1:
                         plots.plot_learning_curve(inputs, trial_log[round], directory+'.png')

@@ -18,8 +18,9 @@ Instructions:
     1. Select algorithms, critic loss functions, multi-steps, and environments using available options
        and enter them into the provided four lists.
     2. Modify inputs dictionary containing training parameters and model hyperparameters if required.
-    3. Run python file and upon completion all learned parameters will be placed into ./models/env_id 
-       and data and plots regarding training into ./results/env_id directories.
+    3. Run python file and upon completion all learned parameters ./models and data/plots regarding training/evaluation
+       into ./results/ directories titled by the reward dynamic (additive or multiplicative or market). Inside each 
+       will exist directories titled by env_id will contain all output data and summary plots.
 """
 
 import time
@@ -47,7 +48,7 @@ critic_loss: List[str] = ['MSE']
 multi_steps: List[int] = [1]
 
 # environments to train agent: list [integer ENV_KEY from gym_envs]
-envs: List[int] = [61]
+envs: List[int] = [58]
 
 gym_envs: Dict[str, list] = {
     # ENV_KEY: [env_id, state_dim, action_dim, intial warm-up steps to generate random seed]
@@ -98,22 +99,36 @@ gym_envs: Dict[str, list] = {
     '56': ['Dice_SH_n1_InvC_U', 2, 3, 1e3], '57': ['Dice_SH_n1_InvC_I', 3, 4, 1e3], 
 
     # MARKET ENVIRONMENTS
-    # Stooq-based (cleaned) historical daily data from 1985-10-01 to 2021-11-10
+    # historical daily data from 1985-10-01 to 2021-11-12 (see gen_market_data.py for detailed components)
 
     # S&P500 index (^SPX)
-    '58': ['SNP_InvA', 2, 1, 1e3], '59': ['SNP_InvB', 2, 2, 1e3], '60': ['SNP_InvC', 2, 3, 1e3],
+    '58': ['SNP_InvA', 2, 1, 1e3], 
+    '59': ['SNP_InvB', 2, 2, 1e3], 
+    '60': ['SNP_InvC', 2, 3, 1e3],
     # US equity indicies (^SPX, ^DJI, ^NDX)
-    '61': ['EI_InvA', 4, 3, 1e3], '62': ['EI_InvB', 4, 4, 1e3], '63': ['EI_InvC', 4, 5, 1e3],
+    '61': ['EI_InvA', 4, 3, 1e3], 
+    '62': ['EI_InvB', 4, 4, 1e3], 
+    '63': ['EI_InvC', 4, 5, 1e3],
     # US-listed equity indicies and a few commoditites
-    '64': ['Minor_InvA', 7, 6, 1e3], '65': ['Minor_InvB', 7, 7, 1e3], '66': ['Minor_InvC', 7, 8, 1e3],
+    '64': ['Minor_InvA', 7, 6, 1e3], 
+    '65': ['Minor_InvB', 7, 7, 1e3], 
+    '66': ['Minor_InvC', 7, 8, 1e3],
     # US-listed equity indicies and several commoditites
-    '67': ['Medium_InvA', 10, 9, 1e3], '68': ['Medium_InvB', 10, 10, 1e3], '69': ['Medium_InvC', 10, 11, 1e3],
+    '67': ['Medium_InvA', 10, 9, 1e3], 
+    '68': ['Medium_InvB', 10, 10, 1e3], 
+    '69': ['Medium_InvC', 10, 11, 1e3],
     # US-listed equity indicies and many commoditites
-    '70': ['Major_InvA', 15, 14, 1e3], '71': ['Major_InvB', 15, 15, 1e3], '72': ['Major_InvC', 15, 16, 1e3],
+    '70': ['Major_InvA', 15, 14, 1e3], 
+    '71': ['Major_InvB', 15, 15, 1e3], 
+    '72': ['Major_InvC', 15, 16, 1e3],
     # US equity indicies and 26/30 Dow Jones (^DJI) components
-    '73': ['DJI_InvA', 30, 29, 1e3], '74': ['DJI_InvB', 30, 30, 1e3], '75': ['DJI_InvC', 30, 31, 1e3],
+    '73': ['DJI_InvA', 30, 29, 1e3], 
+    '74': ['DJI_InvB', 30, 30, 1e3], 
+    '75': ['DJI_InvC', 30, 31, 1e3],
     # Combined Major + DJI market
-    '76': ['Full_InvA', 41, 40, 1e3], '77': ['Full_InvB', 41, 41, 1e3], '78': ['Full_InvC', 41, 42, 1e3],
+    '76': ['Full_InvA', 41, 40, 1e3], 
+    '77': ['Full_InvB', 41, 41, 1e3], 
+    '78': ['Full_InvC', 41, 42, 1e3],
     }
 
 inputs_dict: dict = {
@@ -131,11 +146,12 @@ inputs_dict: dict = {
     'n_eval_mul': 1e3,                          # ibid.
     'max_eval_steps': 1e0,                      # maximum steps per evaluation episode
 
-    # multiplicative environment execution parameters
+    # market environment execution parameters
     'n_trials_mar': 10,                         # ibid.
     'n_cumsteps_mar': 8e4,                      # ibid.
     'eval_freq_mar': 1e3,                       # ibid.
     'n_eval_mar': 1e2,                          # ibid.
+    'observed_days': 1,                         # number of previous days agent uses for decision-making (Markov if =1)
     'train_years': 3,                           # length of sequential training periods
     'test_years': 1,                            # length of sequential testing periods
     'train_shuffle_days': 10,                   # size of interval to shuffle time-series data for training
@@ -200,7 +216,7 @@ gte0: str = 'must be greater than or equal to 0'
 gt0: str = 'must be greater than 0'
 gte1: str = 'must be greater than or equal to 1'
 
-# execution tests
+# additive environment execution tests
 assert isinstance(inputs_dict['n_trials_add'], (float, int)) and \
     int(inputs_dict['n_trials_add']) >= 1, gte1
 assert isinstance(inputs_dict['n_cumsteps_add'], (float, int)) and \
@@ -215,6 +231,8 @@ assert isinstance(inputs_dict['n_eval_add'], (float, int)) and \
     int(inputs_dict['n_eval_add']) >= 1, gte1
 assert isinstance(inputs_dict['max_eval_reward'], (float, int)) and \
     inputs_dict['max_eval_reward'] > 0, gt0
+
+# multiplicative environment execution tests
 assert isinstance(inputs_dict['n_trials_add'], (float, int)) and \
     int(inputs_dict['n_trials_add']) >= 1, gte1
 assert isinstance(inputs_dict['n_cumsteps_mul'], (float, int)) and \
@@ -229,6 +247,10 @@ assert isinstance(inputs_dict['n_eval_mul'], (float, int)) and \
     int(inputs_dict['n_eval_mul']) >= 1, gte1
 assert isinstance(inputs_dict['max_eval_steps'], (float, int)) and \
     int(inputs_dict['max_eval_steps']) >= 1, gte1
+
+# market environment execution tests
+assert isinstance(inputs_dict['n_trials_mar'], (float, int)) and \
+    int(inputs_dict['n_trials_mar']) >= 1, gte1
 assert isinstance(inputs_dict['n_cumsteps_mar'], (float, int)) and \
     set(list(str(inputs_dict['n_cumsteps_mar'])[2:])).issubset(set(['0', '.'])) and \
         int(inputs_dict['n_cumsteps_mar']) >= 1, \
@@ -237,15 +259,17 @@ assert isinstance(inputs_dict['eval_freq_mar'], (float, int)) and \
     int(inputs_dict['eval_freq_mar']) >= 1 and \
         int(inputs_dict['eval_freq_mar']) <= int(inputs_dict['n_cumsteps_mul']), \
             'must be greater than or equal to 1 and less than or equal to n_cumsteps'
+assert isinstance(inputs_dict['observed_days'], int) and \
+    int(inputs_dict['observed_days']) >= 1, gte1
 assert isinstance(inputs_dict['n_eval_mar'], (float, int)) and \
     int(inputs_dict['n_eval_mar']) >= 1, gte1
 assert isinstance(inputs_dict['train_years'], (float, int)) and \
     int(inputs_dict['train_years']) > 0, gt0
 assert isinstance(inputs_dict['test_years'], (float, int)) and \
     int(inputs_dict['test_years']) > 0, gt0
-assert isinstance(inputs_dict['train_shuffle_days'], (int)) and \
+assert isinstance(inputs_dict['train_shuffle_days'], int) and \
     int(inputs_dict['train_shuffle_days']) >= 1, gte1
-assert isinstance(inputs_dict['test_shuffle_days'], (int)) and \
+assert isinstance(inputs_dict['test_shuffle_days'], int) and \
     int(inputs_dict['test_shuffle_days']) >= 1, gte1
 
 # learning varaible tests

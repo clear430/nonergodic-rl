@@ -214,23 +214,39 @@ def eval_market(market_data: np.ndarray, agent: object, inputs: dict, eval_log: 
                     np.mean(loss[8:10]), np.mean(loss_params[0:2]), np.mean(loss_params[2:4]), loss[8]+3, np.exp(logtemp)))
                         
     n_assets = market_data.shape[1]
-    test_length = int(252 * (inputs['test_years']))
-    eval_env = eval('market_envs.Market_'+inputs['env_id'][-4:]+'(n_assets, test_length)')
+    obs_days = int(inputs['observed_days'])
+    test_length = int(252 * inputs['test_years'] + obs_days - 1)
 
+    if obs_days == 1:
+        eval_env = eval('market_envs.Market_'+inputs['env_id'][-7:]+'(n_assets, test_length, obs_days)')
+    else:
+        eval_env = eval('market_envs.Market_'+inputs['env_id'][-7:-3]+'_Dx'+'(n_assets, test_length, obs_days)')
+    
     for eval_epis in range(int(inputs['n_eval'])):
         start_time = time.perf_counter()
 
         market_data = utils.shuffle_data(market_data, inputs['test_shuffle_days'])
-        market_extract = utils.time_slice(market_data, inputs['test_years'])
+        market_extract = utils.time_slice(market_data, test_length)
         data_iter = 0
 
-        run_state = eval_env.reset(market_extract[data_iter])
+        if obs_days == 1:
+            obs_state = market_extract[data_iter]
+        else:
+            obs_state = market_extract[data_iter:obs_days].reshape(-1)[::-1]
+
+        run_state = eval_env.reset(obs_state)
         run_done, run_step, run_reward = False, 0, 0
 
         while not run_done:
             data_iter += 1
             run_action = agent.eval_next_action(run_state)
-            run_next_state, eval_reward, run_done, run_risk = eval_env.step(run_action, market_extract[data_iter])
+
+            if obs_days == 1:
+                obs_state = market_extract[data_iter]
+            else:
+                obs_state = market_extract[data_iter:data_iter + obs_days].reshape(-1)[::-1]
+
+            run_next_state, eval_reward, run_done, run_risk = eval_env.step(run_action, obs_state)
             run_reward = eval_reward
             run_state = run_next_state
             run_step += 1
@@ -259,10 +275,10 @@ def eval_market(market_data: np.ndarray, agent: object, inputs: dict, eval_log: 
     mad_step = np.mean(np.abs(step - mean_step))
     std_step = np.std(step, ddof=0)
 
-    stats = [mean_run-1, mean_step, med_run-1, med_step, mad_run, mad_step, std_run, std_step]
+    stats = [(mean_run-1)*100, mean_step, (med_run-1)*100, med_step, mad_run, mad_step, std_run, std_step]
 
     steps_sec = np.sum(eval_log[round, eval_run, :, 2]) / np.sum(eval_log[round, eval_run, :, 0])
 
-    print("{} Evaluations Summary {:1.0f}/s g_pa/st: mean {:1.4f}%/{:1.0f}, med {:1.4f}%/{:1.0f}, mad {:1.4f}%/{:1.0f}, std {:1.4f}%/{:1.0f}"
+    print("{} Evaluations Summary {:1.0f}/s g_pa/st: mean {:1.2f}%/{:1.0f}, med {:1.2f}%/{:1.0f}, mad {:1.4f}%/{:1.0f}, std {:1.4f}%/{:1.0f}"
           .format(datetime.now().strftime('%d %H:%M:%S'), steps_sec, 
                   stats[0], stats[1], stats[2], stats[3], stats[4], stats[5], stats[6], stats[7]))

@@ -33,8 +33,15 @@ def save_directory(inputs: dict, results: bool) -> str:
     step_exp = int(len(str(int(inputs['n_cumsteps']))) - 1)
     buff_exp = int(len(str(int(inputs['buffer']))) - 1)
 
+    if inputs['dynamics'] == 'A':
+        dyna = 'additive/' 
+    elif inputs['dynamics'] == 'M':
+        dyna =  'multiplicative/'
+    else:
+        dyna = 'market/'    
+
     dir = ['./results/', 
-           'additive/' if inputs['dynamics'] == 'A' else 'multiplicative/',
+           dyna,
            inputs['env_id']+'/',
            inputs['env_id']+'--',
            inputs['dynamics']+'_',
@@ -271,20 +278,18 @@ def train_test_split(prices: np.ndarray, train_years: float, test_years: float, 
 
     return train, test
 
-def time_slice(prices: np.ndarray, extract_years: float) -> np.ndarray:
+def time_slice(prices: np.ndarray, extract_days: float) -> np.ndarray:
     """
     Extract sequential slice of time series preserving the non-i.i.d. nature of the data
     keeping heteroscedasticity and serial correlation relatively unchanged compared to random sampling.
 
     Parameters:
         prices: array of all assets prices across a shared time period
-        extract_years: length of period to be extracted
+        extract_days: length of period to be extracted
 
     Returns:
         market_extract: extracted time sliced data from complete time series
     """
-    extract_days = int(252 * extract_years)
-
     max_train = prices.shape[0] - (1 + extract_days)
 
     start = np.random.randint(0, max_train)
