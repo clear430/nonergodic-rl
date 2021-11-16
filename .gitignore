@@ -18,9 +18,6 @@ docs/figs/
 paper_drafts/
 tex/
 
-# historical market indicators and prices
-docs/raw_data
-
 # more advanced real-world market environments
 market/
 
