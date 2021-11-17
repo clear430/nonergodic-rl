@@ -104,36 +104,21 @@ gym_envs: Dict[str, list] = {
     '56': ['Dice_SH_n1_InvC_U', 2, 3, 1e3], '57': ['Dice_SH_n1_InvC_I', 3, 4, 1e3], 
 
     # MARKET ENVIRONMENTS
-    # historical daily data from 1985-10-01 to 2021-11-12 (see gen_market_data.py for detailed components)
 
     # S&P500 index (^SPX)
-    '58': ['SNP_InvA', 2, 1, 1e3], 
-    '59': ['SNP_InvB', 2, 2, 1e3], 
-    '60': ['SNP_InvC', 2, 3, 1e3],
-    # US equity indicies (^SPX, ^DJI, ^NDX)
-    '61': ['EI_InvA', 4, 3, 1e3], 
-    '62': ['EI_InvB', 4, 4, 1e3], 
-    '63': ['EI_InvC', 4, 5, 1e3],
+    '58': ['SNP_InvA', 2, 1, 1e3],      '59': ['SNP_InvB', 2, 2, 1e3],      '60': ['SNP_InvC', 2, 3, 1e3],
+    # US equity indicies (^SPX, ^NDX, ^DJIA)
+    '61': ['EI_InvA', 4, 3, 1e3],       '62': ['EI_InvB', 4, 4, 1e3],       '63': ['EI_InvC', 4, 5, 1e3],
     # US-listed equity indicies and a few commoditites
-    '64': ['Minor_InvA', 7, 6, 1e3], 
-    '65': ['Minor_InvB', 7, 7, 1e3], 
-    '66': ['Minor_InvC', 7, 8, 1e3],
+    '64': ['Minor_InvA', 7, 6, 1e3],    '65': ['Minor_InvB', 7, 7, 1e3],    '66': ['Minor_InvC', 7, 8, 1e3],
     # US-listed equity indicies and several commoditites
-    '67': ['Medium_InvA', 10, 9, 1e3], 
-    '68': ['Medium_InvB', 10, 10, 1e3], 
-    '69': ['Medium_InvC', 10, 11, 1e3],
+    '67': ['Medium_InvA', 10, 9, 1e3],  '68': ['Medium_InvB', 10, 10, 1e3], '69': ['Medium_InvC', 10, 11, 1e3],
     # US-listed equity indicies and many commoditites
-    '70': ['Major_InvA', 15, 14, 1e3], 
-    '71': ['Major_InvB', 15, 15, 1e3], 
-    '72': ['Major_InvC', 15, 16, 1e3],
-    # US equity indicies and 26/30 Dow Jones (^DJI) components
-    '73': ['DJI_InvA', 30, 29, 1e3], 
-    '74': ['DJI_InvB', 30, 30, 1e3], 
-    '75': ['DJI_InvC', 30, 31, 1e3],
+    '70': ['Major_InvA', 15, 14, 1e3],  '71': ['Major_InvB', 15, 15, 1e3],  '72': ['Major_InvC', 15, 16, 1e3],
+    # US equity indicies and 26/30 Dow Jones (^DJIA) components
+    '73': ['DJI_InvA', 30, 29, 1e3],    '74': ['DJI_InvB', 30, 30, 1e3],    '75': ['DJI_InvC', 30, 31, 1e3],
     # Combined Major + DJI market
-    '76': ['Full_InvA', 41, 40, 1e3], 
-    '77': ['Full_InvB', 41, 41, 1e3], 
-    '78': ['Full_InvC', 41, 42, 1e3],
+    '76': ['Full_InvA', 41, 40, 1e3],   '77': ['Full_InvB', 41, 41, 1e3],   '78': ['Full_InvC', 41, 42, 1e3],
     }
 
 inputs_dict: dict = {
@@ -403,9 +388,13 @@ for key in inputs_dict['envs']:
         assert int(gym_envs[str(key)][3]) >= 0 and \
             int(gym_envs[str(key)][3]) <= int(inputs_dict['n_cumsteps_add']), \
                 'environment {} warm-up must be less than or equal to total training steps'.format(key)
-    else:
+    elif key <= 57:
         assert int(gym_envs[str(key)][3]) >= 0 and \
             int(gym_envs[str(key)][3]) <= int(inputs_dict['n_cumsteps_mul']), \
+                'environment {} warm-up must be less than or equal to total training steps'.format(key)
+    else:
+        assert int(gym_envs[str(key)][3]) >= 0 and \
+            int(gym_envs[str(key)][3]) <= int(inputs_dict['n_cumsteps_mar']), \
                 'environment {} warm-up must be less than or equal to total training steps'.format(key)
 
 # SAC algorithm method checks
