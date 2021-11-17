@@ -104,8 +104,9 @@ def market_env(gym_envs: dict, inputs: dict, market_data: np.ndarray, obs_days: 
                             else:
                                 obs_state = market_extract[data_iter:data_iter + obs_days].reshape(-1)[::-1]
 
-                            next_state, reward, done, risk = env.step(action, obs_state)
-                            agent.store_transistion(state, action, reward, next_state, done)
+                            next_state, reward, actual_done, risk = env.step(action, obs_state)
+                            done, train_done = actual_done[0], actual_done[1]
+                            agent.store_transistion(state, action, reward, next_state, train_done)
 
                             # gradient update interval (perform backpropagation)
                             if cum_steps %  int(inputs['grad_step'][inputs['algo']]) == 0:

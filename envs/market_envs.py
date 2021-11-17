@@ -92,7 +92,7 @@ class Market_InvA_D1(gym.Env):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
 
-    def step(self, action: np.ndarray, next_assets: np.ndarray) -> Tuple[float, bool, np.ndarray]:
+    def step(self, action: np.ndarray, next_assets: np.ndarray) -> Tuple[float, List[bool], np.ndarray]:
         """
         Take action to arrive at next state and calculate reward.
 
@@ -102,7 +102,7 @@ class Market_InvA_D1(gym.Env):
 
         Returns:
             reward: portfolio geometric mean
-            done: Boolean flag for episode termination
+            actual_done: Boolean flags for episode termination and whether genuine
             risk: collection of data retrieved from step
         """
         initial_wealth = self.wealth
@@ -139,6 +139,8 @@ class Market_InvA_D1(gym.Env):
                     or np.any(next_state > MAX_VALUE_RATIO)
                     or self.time == self.time_length)
         
+        actual_done = [done, self.time == self.time_length]
+        
         self.risk[0:4] = [reward, self.wealth, step_return, np.mean(lev)]
         
         if self.n_assets > 1:
@@ -146,7 +148,7 @@ class Market_InvA_D1(gym.Env):
 
         self.time += 1
 
-        return next_state, reward, done, self.risk
+        return next_state, reward, actual_done, self.risk
 
     def reset(self, assets: np.ndarray):
         """
@@ -224,7 +226,7 @@ class Market_InvB_D1(gym.Env):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
 
-    def step(self, action: np.ndarray, next_assets: np.ndarray) -> Tuple[float, bool, np.ndarray]:
+    def step(self, action: np.ndarray, next_assets: np.ndarray) -> Tuple[float, List[bool], np.ndarray]:
         """
         Take action to arrive at next state and calculate reward.
 
@@ -235,7 +237,7 @@ class Market_InvB_D1(gym.Env):
 
         Returns:
             reward: portfolio geometric mean
-            done: Boolean flag for episode termination
+            actual_done: Boolean flags for episode termination and whether genuine
             risk: collection of data retrieved from step
         """
         initial_wealth = self.wealth
@@ -277,6 +279,8 @@ class Market_InvB_D1(gym.Env):
                     or np.all(np.abs(lev) < MIN_WEIGHT)
                     or np.any(next_state > MAX_VALUE_RATIO)
                     or self.time == self.time_length)
+        
+        actual_done = [done, self.time == self.time_length]
 
         self.risk[0:5] = [reward, self.wealth, step_return, np.mean(lev), stop_loss]
         
@@ -285,7 +289,7 @@ class Market_InvB_D1(gym.Env):
 
         self.time += 1
 
-        return next_state, reward, done, self.risk
+        return next_state, reward, actual_done, self.risk
 
     def reset(self, assets: np.ndarray):
         """
@@ -364,7 +368,7 @@ class Market_InvC_D1(gym.Env):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
 
-    def step(self, action: np.ndarray, next_assets: np.ndarray) -> Tuple[float, bool, np.ndarray]:
+    def step(self, action: np.ndarray, next_assets: np.ndarray) -> Tuple[float, List[bool], np.ndarray]:
         """
         Take action to arrive at next state and calculate reward.
 
@@ -374,7 +378,7 @@ class Market_InvC_D1(gym.Env):
 
         Returns:
             reward: portfolio geometric mean
-            done: Boolean flag for episode termination
+            actual_done: Boolean flags for episode termination and whether genuine
             risk: collection of data retrieved from step
         """
         initial_wealth = self.wealth
@@ -424,6 +428,8 @@ class Market_InvC_D1(gym.Env):
                     or np.all(np.abs(lev) < MIN_WEIGHT)
                     or np.any(next_state > MAX_VALUE_RATIO)
                     or self.time == self.time_length)
+        
+        actual_done = [done, self.time == self.time_length]
 
         self.risk[0:6] = [reward, self.wealth, step_return, np.mean(lev), stop_loss, retention]
         
@@ -432,7 +438,7 @@ class Market_InvC_D1(gym.Env):
 
         self.time += 1
 
-        return next_state, reward, done, self.risk
+        return next_state, reward, actual_done, self.risk
 
     def reset(self, assets: np.ndarray):
         """
@@ -512,7 +518,7 @@ class Market_InvA_Dx(gym.Env):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
 
-    def step(self, action: np.ndarray, next_assets: np.ndarray) -> Tuple[float, bool, np.ndarray]:
+    def step(self, action: np.ndarray, next_assets: np.ndarray) -> Tuple[float, List[bool], np.ndarray]:
         """
         Take action to arrive at next state and calculate reward.
 
@@ -522,7 +528,7 @@ class Market_InvA_Dx(gym.Env):
 
         Returns:
             reward: portfolio geometric mean
-            done: Boolean flag for episode termination
+            actual_done: Boolean flags for episode termination and whether genuine
             risk: collection of data retrieved from step
         """
         initial_wealth = self.wealth
@@ -560,6 +566,8 @@ class Market_InvA_Dx(gym.Env):
                     or np.any(next_state > MAX_VALUE_RATIO)
                     or self.time == self.time_length)
         
+        actual_done = [done, self.time == self.time_length]
+        
         self.risk[0:4] = [reward, self.wealth, step_return, np.mean(lev)]
         
         if self.n_assets > 1:
@@ -567,7 +575,7 @@ class Market_InvA_Dx(gym.Env):
 
         self.time += 1
 
-        return next_state, reward, done, self.risk
+        return next_state, reward, actual_done, self.risk
 
     def reset(self, assets: np.ndarray):
         """
@@ -647,7 +655,7 @@ class Market_InvB_Dx(gym.Env):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
 
-    def step(self, action: np.ndarray, next_assets: np.ndarray) -> Tuple[float, bool, np.ndarray]:
+    def step(self, action: np.ndarray, next_assets: np.ndarray) -> Tuple[float, List[bool], np.ndarray]:
         """
         Take action to arrive at next state and calculate reward.
 
@@ -657,7 +665,7 @@ class Market_InvB_Dx(gym.Env):
 
         Returns:
             reward: portfolio geometric mean
-            done: Boolean flag for episode termination
+            actual_done: Boolean flags for episode termination and whether genuine
             risk: collection of data retrieved from step
         """
         initial_wealth = self.wealth
@@ -700,6 +708,8 @@ class Market_InvB_Dx(gym.Env):
                     or np.all(np.abs(lev) < MIN_WEIGHT)
                     or np.any(next_state > MAX_VALUE_RATIO)
                     or self.time == self.time_length)
+        
+        actual_done = [done, self.time == self.time_length]
 
         self.risk[0:5] = [reward, self.wealth, step_return, np.mean(lev), stop_loss]
         
@@ -708,7 +718,7 @@ class Market_InvB_Dx(gym.Env):
 
         self.time += 1
 
-        return next_state, reward, done, self.risk
+        return next_state, reward, actual_done, self.risk
 
     def reset(self, assets: np.ndarray):
         """
@@ -788,7 +798,7 @@ class Market_InvC_Dx(gym.Env):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
 
-    def step(self, action: np.ndarray, next_assets: np.ndarray) -> Tuple[float, bool, np.ndarray]:
+    def step(self, action: np.ndarray, next_assets: np.ndarray) -> Tuple[float, List[bool], np.ndarray]:
         """
         Take action to arrive at next state and calculate reward.
 
@@ -798,7 +808,7 @@ class Market_InvC_Dx(gym.Env):
 
         Returns:
             reward: portfolio geometric mean
-            done: Boolean flag for episode termination
+            actual_done: Boolean flags for episode termination and whether genuine
             risk: collection of data retrieved from step
         """
         initial_wealth = self.wealth
@@ -849,6 +859,8 @@ class Market_InvC_Dx(gym.Env):
                     or np.all(np.abs(lev) < MIN_WEIGHT)
                     or np.any(next_state > MAX_VALUE_RATIO)
                     or self.time == self.time_length)
+        
+        actual_done = [done, self.time == self.time_length]
 
         self.risk[0:6] = [reward, self.wealth, step_return, np.mean(lev), stop_loss, retention]
         
@@ -857,7 +869,7 @@ class Market_InvC_Dx(gym.Env):
 
         self.time += 1
 
-        return next_state, reward, done, self.risk
+        return next_state, reward, actual_done, self.risk
 
     def reset(self, assets: np.ndarray):
         """
