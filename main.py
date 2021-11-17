@@ -23,6 +23,8 @@ Instructions:
        will exist directories titled by env_id will contain all output data and summary plots.
 """
 
+import numpy as np
+import os
 import time
 from typing import Dict, List
 
@@ -46,6 +48,9 @@ critic_loss: List[str] = ['MSE']
 
 # bootstrapping of target critic values and discounted rewards: list [integer > 0] 
 multi_steps: List[int] = [1]
+
+# number of previous days observed for ONLY market environments (Markov if =1): list [integer > 0]
+obs_days: List[int] = [1]
 
 # environments to train agent: list [integer ENV_KEY from gym_envs]
 envs: List[int] = [58]
@@ -147,11 +152,10 @@ inputs_dict: dict = {
     'max_eval_steps': 1e0,                      # maximum steps per evaluation episode
 
     # market environment execution parameters
-    'n_trials_mar': 10,                         # ibid.
-    'n_cumsteps_mar': 8e4,                      # ibid.
+    'n_trials_mar': 2,                         # ibid.
+    'n_cumsteps_mar': 2e3,                      # ibid.
     'eval_freq_mar': 1e3,                       # ibid.
-    'n_eval_mar': 1e2,                          # ibid.
-    'observed_days': 1,                         # number of previous days agent uses for decision-making (Markov if =1)
+    'n_eval_mar': 1e1,                          # ibid.
     'train_years': 3,                           # length of sequential training periods
     'test_years': 1,                            # length of sequential testing periods
     'train_shuffle_days': 10,                   # size of interval to shuffle time-series data for training
@@ -207,6 +211,7 @@ inputs_dict: dict = {
     'algo_name': [algo.upper() for algo in algo_name],
     'critic_loss': [loss.upper() for loss in critic_loss],
     'bootstraps': multi_steps,
+    'past_days': obs_days,
     'envs': envs,
     'ENV_KEY': 0
     }
@@ -259,8 +264,6 @@ assert isinstance(inputs_dict['eval_freq_mar'], (float, int)) and \
     int(inputs_dict['eval_freq_mar']) >= 1 and \
         int(inputs_dict['eval_freq_mar']) <= int(inputs_dict['n_cumsteps_mul']), \
             'must be greater than or equal to 1 and less than or equal to n_cumsteps'
-assert isinstance(inputs_dict['observed_days'], int) and \
-    int(inputs_dict['observed_days']) >= 1, gte1
 assert isinstance(inputs_dict['n_eval_mar'], (float, int)) and \
     int(inputs_dict['n_eval_mar']) >= 1, gte1
 assert isinstance(inputs_dict['train_years'], (float, int)) and \
@@ -271,6 +274,10 @@ assert isinstance(inputs_dict['train_shuffle_days'], int) and \
     int(inputs_dict['train_shuffle_days']) >= 1, gte1
 assert isinstance(inputs_dict['test_shuffle_days'], int) and \
     int(inputs_dict['test_shuffle_days']) >= 1, gte1
+assert inputs_dict['train_shuffle_days'] <= inputs_dict['train_years'] * 252, \
+    'shuffled training days must be less than or equal to train length'
+assert inputs_dict['test_shuffle_days'] <= inputs_dict['test_years'] * 252, \
+    'shuffled testing days must be less than or equal to test length'
 
 # learning varaible tests
 assert isinstance(inputs_dict['buffer'], (float, int)) and \
@@ -376,6 +383,10 @@ assert isinstance(inputs_dict['bootstraps'], list) and \
     all(isinstance(mstep, int) for mstep in inputs_dict['bootstraps']) and \
         all(mstep >= 1 for mstep in inputs_dict['bootstraps']), \
             'multi-steps must be a list of positve integers'
+assert isinstance(inputs_dict['past_days'], list) and \
+    all(isinstance(days, int) for days in inputs_dict['past_days']) and \
+        all(days >= 1 for days in inputs_dict['past_days']), \
+            'obs_days must be a list of positve integers'
 
 keys: List[int] = [int(env) for env in gym_envs]
 assert isinstance(inputs_dict['envs'], list) and \
@@ -441,10 +452,48 @@ if __name__ == '__main__':
             
         if env_key <= 13:
             additive_env(gym_envs=gym_envs, inputs=inputs_dict)
+
         elif env_key <= 57:
             multiplicative_env(gym_envs=gym_envs, inputs=inputs_dict)
+
         else:
-            market_env(gym_envs=gym_envs, inputs=inputs_dict)
+            if inputs_dict['ENV_KEY'] <= 60:
+                assert os.path.isfile('./docs/market_data/stooq_snp.npy'), 'stooq_snp.npy not generated'
+                data = np.load('./docs/market_data/stooq_snp.npy')
+            elif inputs_dict['ENV_KEY'] <= 63:
+                assert os.path.isfile('./docs/market_data/stooq_usei.npy'), 'stooq_usei.npy not generated' 
+                data = np.load('./docs/market_data/stooq_usei.npy')
+            elif inputs_dict['ENV_KEY'] <= 66:
+                assert os.path.isfile('./docs/market_data/stooq_minor.npy'), 'stooq_minor.npy not generated'
+                data = np.load('./docs/market_data/stooq_minor.npy')
+            elif inputs_dict['ENV_KEY'] <= 69:
+                assert os.path.isfile('./docs/market_data/stooq_medium.npy'), 'stooq_medium.npy not generated'
+                data = np.load('./docs/market_data/stooq_medium.npy')
+            elif inputs_dict['ENV_KEY'] <= 72:
+                assert os.path.isfile('./docs/market_data/stooq_major.npy'), 'stooq_major.npy not generated'
+                data = np.load('./docs/market_data/stooq_major.npy')
+            elif inputs_dict['ENV_KEY'] <= 75:
+                assert os.path.isfile('./docs/market_data/stooq_dji.npy'), 'stooq_dji.npy not generated'
+                data = np.load('./docs/market_data/stooq_dji.npy')
+            elif inputs_dict['ENV_KEY'] <= 78:
+                assert os.path.isfile('./docs/market_data/stooq_full.npy'), 'stooq_full.npy not generated'
+                data = np.load('./docs/market_data/stooq_full.npy')
+
+            time_length, n_assets = data.shape[0], data.shape[1]
+
+            for days in inputs_dict['past_days']:
+                train_length = int(252 * inputs_dict['train_years'] + days - 1)
+                test_length = int(252 * inputs_dict['test_years'] + days - 1)
+
+                assert time_length >= train_length, \
+                    'day {}: total time {} period must be at least as large as (1 + train_days) = {}' \
+                    .format(days, time_length, train_length)
+                assert time_length >= test_length, \
+                    'day {}: total time {} period must be at least as large as (1 + test_days) = {}' \
+                    .format(days, time_length, test_length)
+
+            for days in inputs_dict['past_days']:
+                market_env(gym_envs=gym_envs, inputs=inputs_dict, market_data=data, obs_days=days)
 
     end_time = time.perf_counter()
     total_time = end_time-start_time

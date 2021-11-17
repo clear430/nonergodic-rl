@@ -29,42 +29,13 @@ import extras.plots_summary as plots
 import extras.eval_episodes as eval_episodes
 import extras.utils as utils
 
-def market_env(gym_envs: dict, inputs: dict):
+def market_env(gym_envs: dict, inputs: dict, market_data: np.ndarray, obs_days: int):
     """
-    Conduct experiments for multiplicative environments.
+    Conduct experiments for market environments.
     """
-    if inputs['ENV_KEY'] <= 60:
-        assert os.path.isfile('./docs/market_data/stooq_snp.npy'), 'stooq_snp.npy not generated'
-        market_data = np.load('./docs/market_data/stooq_snp.npy')
-    elif inputs['ENV_KEY'] <= 63:
-        assert os.path.isfile('./docs/market_data/stooq_usei.npy'), 'stooq_usei.npy not generated' 
-        market_data = np.load('./docs/market_data/stooq_usei.npy')
-    elif inputs['ENV_KEY'] <= 66:
-        assert os.path.isfile('./docs/market_data/stooq_minor.npy'), 'stooq_minor.npy not generated'
-        market_data = np.load('./docs/market_data/stooq_minor.npy')
-    elif inputs['ENV_KEY'] <= 69:
-        assert os.path.isfile('./docs/market_data/stooq_medium.npy'), 'stooq_medium.npy not generated'
-        market_data = np.load('./docs/market_data/stooq_medium.npy')
-    elif inputs['ENV_KEY'] <= 72:
-        assert os.path.isfile('./docs/market_data/stooq_major.npy'), 'stooq_major.npy not generated'
-        market_data = np.load('./docs/market_data/stooq_major.npy')
-    elif inputs['ENV_KEY'] <= 75:
-        assert os.path.isfile('./docs/market_data/stooq_dji.npy'), 'stooq_dji.npy not generated'
-        market_data = np.load('./docs/market_data/stooq_dji.npy')
-    elif inputs['ENV_KEY'] <= 78:
-        assert os.path.isfile('./docs/market_data/stooq_full.npy'), 'stooq_full.npy not generated'
-        market_data = np.load('./docs/market_data/stooq_full.npy')
-
     time_length, n_assets = market_data.shape[0], market_data.shape[1]
-
-    obs_days = int(inputs['observed_days'])
     train_length = int(252 * inputs['train_years'] + obs_days - 1)
     test_length = int(252 * inputs['test_years'] + obs_days - 1)
-
-    assert time_length >= train_length, \
-        'total time {} period must be at least as large as (1 + train_days) = {}'.format(time_length, train_length)
-    assert time_length >= test_length, \
-        'total time {} period must be at least as large as (1 + test_days) = {}'.format(time_length, test_length)
 
     obs_days_str = '_D' + str(obs_days)
     inputs: dict= {'env_id': gym_envs[str(inputs['ENV_KEY'])][0] + obs_days_str, **inputs}
@@ -149,7 +120,7 @@ def market_env(gym_envs: dict, inputs: dict):
                             # conduct periodic agent evaluation episodes without learning
                             if cum_steps % int(inputs['eval_freq']) == 0:
                                 
-                                eval_episodes.eval_market(market_data, agent, inputs, eval_log, eval_risk_log, 
+                                eval_episodes.eval_market(market_data, obs_days, agent, inputs, eval_log, eval_risk_log, 
                                                           cum_steps, round, eval_run, loss, logtemp, loss_params)
 
                                 eval_run += 1

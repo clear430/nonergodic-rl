@@ -188,14 +188,16 @@ def eval_multiplicative(agent: object, inputs: dict, eval_log: np.ndarray, eval_
           .format(datetime.now().strftime('%d %H:%M:%S'), steps_sec, 
                   stats[0], stats[1], stats[2], stats[3], stats[4], stats[5], stats[6], stats[7]))
 
-def eval_market(market_data: np.ndarray, agent: object, inputs: dict, eval_log: np.ndarray, eval_risk_log: np.ndarray, 
-                cum_steps: int, round: int, eval_run: int, loss: Tuple[float, float, float, float, float, float], 
-                logtemp: float, loss_params: Tuple[float, float, float, float]) -> NoReturn:
+def eval_market(market_data: np.ndarray, obs_days: int, agent: object, inputs: dict, eval_log: np.ndarray, 
+                eval_risk_log: np.ndarray, cum_steps: int, round: int, eval_run: int, 
+                loss: Tuple[float, float, float, float, float, float], logtemp: float, 
+                loss_params: Tuple[float, float, float, float]) -> NoReturn:
     """
     Evaluates agent policy on environment without learning for a fixed number of episodes.
 
     Parameters:
         market_data: extracted time sliced data from complete time series
+        obs_days: number of previous days agent uses for decision-making
         agent: RL agent algorithm
         inputs: dictionary containing all execution details
         eval_log: array of existing evalaution results
@@ -214,7 +216,6 @@ def eval_market(market_data: np.ndarray, agent: object, inputs: dict, eval_log: 
                     np.mean(loss[8:10]), np.mean(loss_params[0:2]), np.mean(loss_params[2:4]), loss[8]+3, np.exp(logtemp)))
                         
     n_assets = market_data.shape[1]
-    obs_days = int(inputs['observed_days'])
     test_length = int(252 * inputs['test_years'] + obs_days - 1)
 
     if obs_days == 1:

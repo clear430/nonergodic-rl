@@ -535,7 +535,8 @@ class Market_InvA_Dx(gym.Env):
         next_state = next_assets
 
         # one-step portfolio return
-        r = (next_state - assets[0:self.n_assets]) / assets[0:self.n_assets]
+        r = (next_state - assets) / assets
+        r = r[0:self.n_assets]
         step_return = np.sum(lev * r)
 
         self.wealth = initial_wealth * (1 + step_return)
@@ -670,7 +671,8 @@ class Market_InvB_Dx(gym.Env):
         next_state = next_assets
 
         # one-step portfolio return
-        r = (next_state - assets[0:self.n_assets]) / assets[0:self.n_assets]
+        r = (next_state - assets) / assets
+        r = r[0:self.n_assets]
         step_return = np.sum(lev * r)
 
         # amount of portoflio to bet and outcome        
@@ -811,7 +813,8 @@ class Market_InvC_Dx(gym.Env):
         next_state = next_assets
 
         # one-step portfolio return
-        r = (next_state - assets[0:self.n_assets]) / assets[0:self.n_assets]
+        r = (next_state - assets) / assets
+        r = r[0:self.n_assets]
         step_return = np.sum(lev * r)
 
         # amount of portoflio to bet and outcome
