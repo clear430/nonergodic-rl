@@ -152,10 +152,10 @@ inputs_dict: dict = {
     'max_eval_steps': 1e0,                      # maximum steps per evaluation episode
 
     # market environment execution parameters
-    'n_trials_mar': 2,                         # ibid.
-    'n_cumsteps_mar': 2e3,                      # ibid.
+    'n_trials_mar': 10,                         # ibid.
+    'n_cumsteps_mar': 8e4,                      # ibid.
     'eval_freq_mar': 1e3,                       # ibid.
-    'n_eval_mar': 1e1,                          # ibid.
+    'n_eval_mar': 1e2,                          # ibid.
     'train_years': 3,                           # length of sequential training periods
     'test_years': 1,                            # length of sequential testing periods
     'train_shuffle_days': 10,                   # size of interval to shuffle time-series data for training
