@@ -139,7 +139,7 @@ class Market_InvA_D1(gym.Env):
                     or np.any(next_state > MAX_VALUE_RATIO)
                     or self.time == self.time_length)
         
-        actual_done = [done, self.time == self.time_length]
+        actual_done = [done, done and not self.time == self.time_length]
         
         self.risk[0:4] = [reward, self.wealth, step_return, np.mean(lev)]
         
@@ -280,7 +280,7 @@ class Market_InvB_D1(gym.Env):
                     or np.any(next_state > MAX_VALUE_RATIO)
                     or self.time == self.time_length)
         
-        actual_done = [done, self.time == self.time_length]
+        actual_done = [done, done and not self.time == self.time_length]
 
         self.risk[0:5] = [reward, self.wealth, step_return, np.mean(lev), stop_loss]
         
@@ -429,7 +429,7 @@ class Market_InvC_D1(gym.Env):
                     or np.any(next_state > MAX_VALUE_RATIO)
                     or self.time == self.time_length)
         
-        actual_done = [done, self.time == self.time_length]
+        actual_done = [done, done and not self.time == self.time_length]
 
         self.risk[0:6] = [reward, self.wealth, step_return, np.mean(lev), stop_loss, retention]
         
@@ -566,7 +566,7 @@ class Market_InvA_Dx(gym.Env):
                     or np.any(next_state > MAX_VALUE_RATIO)
                     or self.time == self.time_length)
         
-        actual_done = [done, self.time == self.time_length]
+        actual_done = [done, done and not self.time == self.time_length]
         
         self.risk[0:4] = [reward, self.wealth, step_return, np.mean(lev)]
         
@@ -709,7 +709,7 @@ class Market_InvB_Dx(gym.Env):
                     or np.any(next_state > MAX_VALUE_RATIO)
                     or self.time == self.time_length)
         
-        actual_done = [done, self.time == self.time_length]
+        actual_done = [done, done and not self.time == self.time_length]
 
         self.risk[0:5] = [reward, self.wealth, step_return, np.mean(lev), stop_loss]
         
@@ -860,7 +860,7 @@ class Market_InvC_Dx(gym.Env):
                     or np.any(next_state > MAX_VALUE_RATIO)
                     or self.time == self.time_length)
         
-        actual_done = [done, self.time == self.time_length]
+        actual_done = [done, done and not self.time == self.time_length]
 
         self.risk[0:6] = [reward, self.wealth, step_return, np.mean(lev), stop_loss, retention]
         

@@ -282,6 +282,6 @@ def eval_market(market_data: np.ndarray, obs_days: int, agent: object, inputs: d
 
     steps_sec = np.sum(eval_log[round, eval_run, :, 2]) / np.sum(eval_log[round, eval_run, :, 0])
 
-    print("{} Evaluations Summary {:1.0f}/s g_pa/st: mean {:1.2f}%/{:1.0f}, med {:1.2f}%/{:1.0f}, mad {:1.4f}%/{:1.0f}, std {:1.4f}%/{:1.0f}"
+    print("{} Evaluations Summary {:1.0f}/s g_pa/st: mean {:1.2f}%/{:1.0f}, med {:1.2f}%/{:1.0f}, mad {:1.2f}%/{:1.0f}, std {:1.2f}%/{:1.0f}"
           .format(datetime.now().strftime('%d %H:%M:%S'), steps_sec, 
                   stats[0], stats[1], stats[2], stats[3], stats[4], stats[5], stats[6], stats[7]))
