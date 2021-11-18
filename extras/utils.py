@@ -11,7 +11,8 @@ website:                https://github.com/rgrewa1
 
 Description:
     Responsible for various additional tools required for file naming, directory 
-    generation, shadow means, and aggregating output training data for final figure plotting.
+    generation, shadow means, unique time series generation and aggregating 
+    output training data for final figure plotting.
 """
 
 import numpy as np
@@ -217,6 +218,27 @@ def shadow_equiv(mean: np.ndarray, alpha: np.ndarray, min: np.ndarray,
 
     return max_mul_solve
 
+def time_slice(prices: np.ndarray, extract_days: float) -> np.ndarray:
+    """
+    Extract sequential slice of time series preserving the non-i.i.d. nature of the data
+    keeping heteroscedasticity and serial correlation relatively unchanged compared to random sampling.
+
+    Parameters:
+        prices: array of all assets prices across a shared time period
+        extract_days: length of period to be extracted
+
+    Returns:
+        market_extract: extracted time sliced data from complete time series
+    """
+    max_train = prices.shape[0] - (1 + extract_days)
+
+    start = np.random.randint(0, max_train)
+    end = start + extract_days + 1
+
+    market_extract = prices[start:end]
+
+    return market_extract
+
 def shuffle_data(prices: np.ndarray, interval_days: int) -> np.ndarray:
     """
     Split data into identical subset intervals and randomly shuffle data within each interval.
@@ -228,23 +250,24 @@ def shuffle_data(prices: np.ndarray, interval_days: int) -> np.ndarray:
         interval_days: size of ordered subsets
 
     Returns:
-        prices: prices randomly shuffled within each interval
-
+        shuffled_prices: prices randomly shuffled within each interval
     """
     length = prices.shape[0]
     mod = length%interval_days
 
-    intervals = int((length - mod) / interval_days)
+    shuffled_prices = np.empty((length, prices.shape[1]))
+
+    intervals = int((length - mod) / interval_days) 
+
+    split_prices = np.split(prices[:-mod], indices_or_sections=intervals, axis=0)
 
     for x in range(intervals):
-        group = prices[x * interval_days: (x + 1) * interval_days]
-        prices[x * interval_days: (x + 1) * interval_days] = np.random.permutation(group)
+        shuffled_prices[x * interval_days: (x + 1) * interval_days] = np.random.permutation(split_prices[x])
 
     if mod != 0:
-        group = prices[intervals * interval_days:]
-        prices[intervals * interval_days:] = np.random.permutation(group)
+        shuffled_prices[intervals * interval_days:] = np.random.permutation(prices[-mod:])
 
-    return prices
+    return shuffled_prices
 
 def train_test_split(prices: np.ndarray, train_years: float, test_years: float, gap_years: float) \
         -> Tuple[np.ndarray, np.ndarray]:
@@ -277,27 +300,6 @@ def train_test_split(prices: np.ndarray, train_years: float, test_years: float, 
     train, test = prices[start_train:end_train], prices[start_test:end_test]
 
     return train, test
-
-def time_slice(prices: np.ndarray, extract_days: float) -> np.ndarray:
-    """
-    Extract sequential slice of time series preserving the non-i.i.d. nature of the data
-    keeping heteroscedasticity and serial correlation relatively unchanged compared to random sampling.
-
-    Parameters:
-        prices: array of all assets prices across a shared time period
-        extract_days: length of period to be extracted
-
-    Returns:
-        market_extract: extracted time sliced data from complete time series
-    """
-    max_train = prices.shape[0] - (1 + extract_days)
-
-    start = np.random.randint(0, max_train)
-    end = start + extract_days + 1
-
-    market_extract = prices[start:end]
-
-    return market_extract
 
 def add_loss_aggregate(env_keys: list, gym_envs: dict, inputs: dict, algos: list =['TD3'], loss: list =['MSE']) \
          -> np.ndarray:

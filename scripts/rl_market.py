@@ -83,8 +83,9 @@ def market_env(gym_envs: dict, inputs: dict, market_data: np.ndarray, obs_days: 
                     while cum_steps < int(inputs['n_cumsteps']):
                         start_time = time.perf_counter()
 
-                        market_shuffle = utils.shuffle_data(market_data, inputs['train_shuffle_days'])
-                        market_extract = utils.time_slice(market_shuffle, train_length)
+                        market_slice = utils.time_slice(market_data, train_length)
+                        market_extract = utils.shuffle_data(market_slice, inputs['train_shuffle_days'])
+
                         data_iter = 0
 
                         if obs_days == 1:
@@ -106,6 +107,7 @@ def market_env(gym_envs: dict, inputs: dict, market_data: np.ndarray, obs_days: 
 
                             next_state, reward, actual_done, risk = env.step(action, obs_state)
                             done, train_done = actual_done[0], actual_done[1]
+                            
                             agent.store_transistion(state, action, reward, next_state, train_done)
 
                             # gradient update interval (perform backpropagation)

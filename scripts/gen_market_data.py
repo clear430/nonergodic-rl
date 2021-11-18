@@ -51,9 +51,9 @@ Stooq - Symbols and Data Availability:
     .F = front month futures
 """
 
+import numpy as np
 import pandas as pd
 import pandas_datareader.data as pdr
-import numpy as np
 import os
 
 # common starting/endiing dates for daily data collection for all assets
@@ -142,7 +142,7 @@ def dataframe_to_array(market_data: pd.DataFrame, price_type: str) -> np.ndarray
 
 if __name__ == '__main__':
 
-    dir = './docs/market_data/'    # directory for saving market prices dataframes and arrays
+    dir = './docs/market_data/'    # directory for saving market prices dataframes, csvs, and arrays
 
     if not os.path.exists(dir):
         os.makedirs(dir)
@@ -157,6 +157,7 @@ if __name__ == '__main__':
         market = pd.read_pickle(dir + name + '.pkl')
 
         market.to_csv(dir + name + '.csv')
+        
         prices = dataframe_to_array(market, 'Close')
         np.save(dir + name + '.npy', prices)
 

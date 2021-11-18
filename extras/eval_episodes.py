@@ -226,8 +226,9 @@ def eval_market(market_data: np.ndarray, obs_days: int, agent: object, inputs: d
     for eval_epis in range(int(inputs['n_eval'])):
         start_time = time.perf_counter()
 
-        market_data = utils.shuffle_data(market_data, inputs['test_shuffle_days'])
-        market_extract = utils.time_slice(market_data, test_length)
+        market_slice = utils.time_slice(market_data, test_length)
+        market_extract = utils.shuffle_data(market_slice, inputs['test_shuffle_days'])
+        
         data_iter = 0
 
         if obs_days == 1:
