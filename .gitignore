@@ -15,11 +15,11 @@ results/
 .VSCodeCounter/
 artemis_hpc/
 docs/figs/
-paper_drafts/
+papers/
 tex/
 
 # more advanced real-world market environments
-market/
+market_sim/
 
 # prototype multi-stage model
 sarea2/
