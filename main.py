@@ -18,9 +18,9 @@ Instructions:
     1. Select algorithms, critic loss functions, multi-steps, and environments using available options
        and enter them into the provided four lists.
     2. Modify inputs dictionary containing training parameters and model hyperparameters if required.
-    3. Run python file and upon completion all learned parameters ./models and data/plots regarding training/evaluation
-       into ./results/ directories titled by the reward dynamic (additive or multiplicative or market). Inside each 
-       will exist directories titled by env_id will contain all output data and summary plots.
+    3. Run python file and upon completion all learned parameters will be placed ./models and data/plots regarding 
+       training/evaluation into ./results/ directories titled by the reward dynamic (additive or multiplicative 
+       or market). Inside each will exist directories titled by env_id will contain all output data and summary plots.
 """
 
 import numpy as np
@@ -138,13 +138,15 @@ inputs_dict: dict = {
 
     # market environment execution parameters
     'n_trials_mar': 10,                         # ibid.
-    'n_cumsteps_mar': 8e4,                      # ibid.
-    'eval_freq_mar': 1e3,                       # ibid.
-    'n_eval_mar': 1e2,                          # ibid.
-    'train_years': 3,                           # length of sequential training periods
-    'test_years': 1,                            # length of sequential testing periods
-    'train_shuffle_days': 10,                   # size of interval to shuffle time-series data for training
-    'test_shuffle_days': 5,                     # size of interval to shuffle time-series data for inference
+    'train_years': 4,                           # length of training periods (252 day years)
+    'n_cumsteps_mar': 8e1,                      # total training periods
+    'eval_freq_mar': 1,                         # training periods between evaluation episodes
+    'n_eval_mar': 1e1,                          # ibid.
+    'test_years': 1,                            # length of testing periods (252 day years)
+    'train_shuffle_days': 10,                   # interval size to be shuffled for training
+    'test_shuffle_days': 5,                     # interval size to be shuffled testing (inference)
+    'gap_days_min': 5,                          # minimum spacing between training/testing windows
+    'gap_days_max': 20,                         # maximum spacing between training/testing windows
 
     # learning variables
     'buffer': 1e6,                              # maximum transistions in experience replay buffer
@@ -241,18 +243,16 @@ assert isinstance(inputs_dict['max_eval_steps'], (float, int)) and \
 # market environment execution tests
 assert isinstance(inputs_dict['n_trials_mar'], (float, int)) and \
     int(inputs_dict['n_trials_mar']) >= 1, gte1
+assert isinstance(inputs_dict['train_years'], (float, int)) and \
+    int(inputs_dict['train_years']) > 0, gt0
 assert isinstance(inputs_dict['n_cumsteps_mar'], (float, int)) and \
-    set(list(str(inputs_dict['n_cumsteps_mar'])[2:])).issubset(set(['0', '.'])) and \
-        int(inputs_dict['n_cumsteps_mar']) >= 1, \
-            'must consist of only 2 leading non-zero digits and be greater than or equal to 1'
+    int(inputs_dict['n_cumsteps_mar']) >= 1, gte1
 assert isinstance(inputs_dict['eval_freq_mar'], (float, int)) and \
     int(inputs_dict['eval_freq_mar']) >= 1 and \
         int(inputs_dict['eval_freq_mar']) <= int(inputs_dict['n_cumsteps_mul']), \
             'must be greater than or equal to 1 and less than or equal to n_cumsteps'
 assert isinstance(inputs_dict['n_eval_mar'], (float, int)) and \
     int(inputs_dict['n_eval_mar']) >= 1, gte1
-assert isinstance(inputs_dict['train_years'], (float, int)) and \
-    int(inputs_dict['train_years']) > 0, gt0
 assert isinstance(inputs_dict['test_years'], (float, int)) and \
     int(inputs_dict['test_years']) > 0, gt0
 assert isinstance(inputs_dict['train_shuffle_days'], int) and \
@@ -263,6 +263,12 @@ assert inputs_dict['train_shuffle_days'] <= inputs_dict['train_years'] * 252, \
     'shuffled training days must be less than or equal to train length'
 assert inputs_dict['test_shuffle_days'] <= inputs_dict['test_years'] * 252, \
     'shuffled testing days must be less than or equal to test length'
+assert isinstance(inputs_dict['gap_days_min'], (int)) and \
+    int(inputs_dict['gap_days_min']) >= 0, gte0
+assert isinstance(inputs_dict['gap_days_max'], (int)) and \
+    int(inputs_dict['gap_days_max']) >= 0 and \
+        int(inputs_dict['gap_days_min']) <= int(inputs_dict['gap_days_max']), \
+            'must be greater than or equal to zero and gap_days_min'
 
 # learning varaible tests
 assert isinstance(inputs_dict['buffer'], (float, int)) and \
@@ -394,7 +400,7 @@ for key in inputs_dict['envs']:
                 'environment {} warm-up must be less than or equal to total training steps'.format(key)
     else:
         assert int(gym_envs[str(key)][3]) >= 0 and \
-            int(gym_envs[str(key)][3]) <= int(inputs_dict['n_cumsteps_mar']), \
+            int(gym_envs[str(key)][3]) <= int(inputs_dict['n_cumsteps_mar'] * inputs_dict['train_years'] * 252), \
                 'environment {} warm-up must be less than or equal to total training steps'.format(key)
 
 # SAC algorithm method checks
@@ -468,18 +474,18 @@ if __name__ == '__main__':
                 assert os.path.isfile('./docs/market_data/stooq_full.npy'), 'stooq_full.npy not generated'
                 data = np.load('./docs/market_data/stooq_full.npy')
 
-            time_length, n_assets = data.shape[0], data.shape[1]
+            time_length = data.shape[0]
 
             for days in inputs_dict['past_days']:
-                train_length = int(252 * inputs_dict['train_years'] + days - 1)
-                test_length = int(252 * inputs_dict['test_years'] + days - 1)
+                train_length = int(252 * inputs_dict['train_years'])
+                test_length = int(252 * inputs_dict['test_years'])
+                gap_max = int(inputs_dict['gap_days_max'])
 
-                assert time_length >= train_length, \
-                    'day {}: total time {} period must be at least as large as (1 + train_days) = {}' \
-                    .format(days, time_length, train_length)
-                assert time_length >= test_length, \
-                    'day {}: total time {} period must be at least as large as (1 + test_days) = {}' \
-                    .format(days, time_length, test_length)
+                sample_length = int(train_length + test_length + gap_max + days - 1)
+
+                assert time_length >= sample_length, \
+                    'day {}: total time {} period for {} days must be at least as large as sample length = {}' \
+                    .format(days, time_length, days, sample_length)
 
             for days in inputs_dict['past_days']:
                 market_env(gym_envs=gym_envs, inputs=inputs_dict, market_data=data, obs_days=days)

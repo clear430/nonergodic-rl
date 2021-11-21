@@ -218,7 +218,7 @@ def shadow_equiv(mean: np.ndarray, alpha: np.ndarray, min: np.ndarray,
 
     return max_mul_solve
 
-def time_slice(prices: np.ndarray, extract_days: float) -> np.ndarray:
+def time_slice(prices: np.ndarray, extract_days: int, sample_days: int) -> Tuple[np.ndarray, int]:
     """
     Extract sequential slice of time series preserving the non-i.i.d. nature of the data
     keeping heteroscedasticity and serial correlation relatively unchanged compared to random sampling.
@@ -226,18 +226,20 @@ def time_slice(prices: np.ndarray, extract_days: float) -> np.ndarray:
     Parameters:
         prices: array of all assets prices across a shared time period
         extract_days: length of period to be extracted
+        sample_days: maximum buffer of days restricting starting index
 
     Returns:
         market_extract: extracted time sliced data from complete time series
+        end_idx-1: final index of sampled training time series
     """
-    max_train = prices.shape[0] - (1 + extract_days)
+    max_train = prices.shape[0] - (1 + sample_days)
 
-    start = np.random.randint(0, max_train)
-    end = start + extract_days + 1
+    start_idx = np.random.randint(0, max_train)
+    end_idx = start_idx + extract_days + 1
 
-    market_extract = prices[start:end]
+    market_extract = prices[start_idx:end_idx]
 
-    return market_extract
+    return market_extract, end_idx-1
 
 def shuffle_data(prices: np.ndarray, interval_days: int) -> np.ndarray:
     """
@@ -254,12 +256,14 @@ def shuffle_data(prices: np.ndarray, interval_days: int) -> np.ndarray:
     """
     length = prices.shape[0]
     mod = length%interval_days
-
-    shuffled_prices = np.empty((length, prices.shape[1]))
-
     intervals = int((length - mod) / interval_days) 
 
-    split_prices = np.split(prices[:-mod], indices_or_sections=intervals, axis=0)
+    shuffled_prices = np.empty((length, prices.shape[1]))
+    
+    if mod != 0:
+        split_prices = np.split(prices[:-mod], indices_or_sections=intervals, axis=0)
+    else:
+        split_prices = np.split(prices, indices_or_sections=intervals, axis=0)
 
     for x in range(intervals):
         shuffled_prices[x * interval_days: (x + 1) * interval_days] = np.random.permutation(split_prices[x])

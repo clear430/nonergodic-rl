@@ -188,9 +188,9 @@ def eval_multiplicative(agent: object, inputs: dict, eval_log: np.ndarray, eval_
           .format(datetime.now().strftime('%d %H:%M:%S'), steps_sec, 
                   stats[0], stats[1], stats[2], stats[3], stats[4], stats[5], stats[6], stats[7]))
 
-def eval_market(market_data: np.ndarray, obs_days: int, agent: object, inputs: dict, eval_log: np.ndarray, 
-                eval_risk_log: np.ndarray, cum_steps: int, round: int, eval_run: int, 
-                loss: Tuple[float, float, float, float, float, float], logtemp: float, 
+def eval_market(market_data: np.ndarray, obs_days: int, start_idx: int, agent: object, inputs: dict, 
+                eval_log: np.ndarray, eval_risk_log: np.ndarray, cum_steps: int, round: int, 
+                eval_run: int, loss: Tuple[float, float, float, float, float, float], logtemp: float, 
                 loss_params: Tuple[float, float, float, float]) -> NoReturn:
     """
     Evaluates agent policy on environment without learning for a fixed number of episodes.
@@ -198,6 +198,7 @@ def eval_market(market_data: np.ndarray, obs_days: int, agent: object, inputs: d
     Parameters:
         market_data: extracted time sliced data from complete time series
         obs_days: number of previous days agent uses for decision-making
+        start_idx: starting index for evaluation episodes without gap 
         agent: RL agent algorithm
         inputs: dictionary containing all execution details
         eval_log: array of existing evalaution results
@@ -223,30 +224,33 @@ def eval_market(market_data: np.ndarray, obs_days: int, agent: object, inputs: d
     else:
         eval_env = eval('market_envs.Market_'+inputs['env_id'][-7:-3]+'_Dx'+'(n_assets, test_length, obs_days)')
     
+    gap = np.random.randint(int(inputs['gap_days_min']), int(inputs['gap_days_max']) + 1, size=int(inputs['n_eval']))
+    gap += start_idx
+
     for eval_epis in range(int(inputs['n_eval'])):
         start_time = time.perf_counter()
 
-        market_slice = utils.time_slice(market_data, test_length)
+        market_slice  = market_data[gap[eval_epis]:gap[eval_epis] + test_length + 1]
         market_extract = utils.shuffle_data(market_slice, inputs['test_shuffle_days'])
-        
-        data_iter = 0
+
+        time_step = 0
 
         if obs_days == 1:
-            obs_state = market_extract[data_iter]
+            obs_state = market_extract[time_step]
         else:
-            obs_state = market_extract[data_iter:obs_days].reshape(-1)[::-1]
+            obs_state = market_extract[time_step:obs_days].reshape(-1)[::-1]
 
         run_state = eval_env.reset(obs_state)
         run_done, run_step, run_reward = False, 0, 0
 
         while not run_done:
-            data_iter += 1
+            time_step += 1
             run_action = agent.eval_next_action(run_state)
 
             if obs_days == 1:
-                obs_state = market_extract[data_iter]
+                obs_state = market_extract[time_step]
             else:
-                obs_state = market_extract[data_iter:data_iter + obs_days].reshape(-1)[::-1]
+                obs_state = market_extract[time_step:time_step + obs_days].reshape(-1)[::-1]
 
             run_next_state, eval_reward, actual_done, run_risk = eval_env.step(run_action, obs_state)
             run_done = actual_done[0]
@@ -283,6 +287,6 @@ def eval_market(market_data: np.ndarray, obs_days: int, agent: object, inputs: d
 
     steps_sec = np.sum(eval_log[round, eval_run, :, 2]) / np.sum(eval_log[round, eval_run, :, 0])
 
-    print("{} Evaluations Summary {:1.0f}/s g_pa/st: mean {:1.2f}%/{:1.0f}, med {:1.2f}%/{:1.0f}, mad {:1.2f}%/{:1.0f}, std {:1.2f}%/{:1.0f}"
-          .format(datetime.now().strftime('%d %H:%M:%S'), steps_sec, 
+    print("{} Evaluation {} Summary {:1.0f}/s g_pa/st: mean {:1.2f}%/{:1.0f}, med {:1.2f}%/{:1.0f}, mad {:1.2f}%/{:1.0f}, std {:1.2f}%/{:1.0f}"
+          .format(datetime.now().strftime('%d %H:%M:%S'), eval_run+1, steps_sec, 
                   stats[0], stats[1], stats[2], stats[3], stats[4], stats[5], stats[6], stats[7]))

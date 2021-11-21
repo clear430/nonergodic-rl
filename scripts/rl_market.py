@@ -33,9 +33,12 @@ def market_env(gym_envs: dict, inputs: dict, market_data: np.ndarray, obs_days: 
     """
     Conduct experiments for market environments.
     """
-    time_length, n_assets = market_data.shape[0], market_data.shape[1]
+    n_assets = market_data.shape[1]
     train_length = int(252 * inputs['train_years'] + obs_days - 1)
     test_length = int(252 * inputs['test_years'] + obs_days - 1)
+    gap_max = int(inputs['gap_days_max'])
+
+    sample_length = int(train_length + test_length + gap_max + obs_days - 1)
 
     obs_days_str = '_D' + str(obs_days)
     inputs: dict= {'env_id': gym_envs[str(inputs['ENV_KEY'])][0] + obs_days_str, **inputs}
@@ -48,8 +51,8 @@ def market_env(gym_envs: dict, inputs: dict, market_data: np.ndarray, obs_days: 
         'input_dims': env.observation_space.shape, 'num_actions':  env.action_space.shape[0], 
         'max_action': env.action_space.high.min(), 'min_action': env.action_space.low.max(),    # assume all actions span equal domain 
         'random': gym_envs[str(inputs['ENV_KEY'])][3], 'dynamics': 'MKT',    # gambling dynamics 'MKT' (market)
-        'n_trials': inputs['n_trials_mar'], 'n_cumsteps': inputs['n_cumsteps_mar'],
-        'eval_freq': inputs['eval_freq_mar'], 'n_eval': inputs['n_eval_mar'], 
+        'n_trials': inputs['n_trials_mar'], 'n_cumsteps': int(inputs['n_cumsteps_mar'] * train_length),
+        'eval_freq': int(inputs['eval_freq_mar'] * train_length), 'n_eval': inputs['n_eval_mar'], 
         'algo': 'TD3', 'loss_fn': 'MSE', 'multi_steps': 1, **inputs
         }
 
@@ -83,27 +86,27 @@ def market_env(gym_envs: dict, inputs: dict, market_data: np.ndarray, obs_days: 
                     while cum_steps < int(inputs['n_cumsteps']):
                         start_time = time.perf_counter()
 
-                        market_slice = utils.time_slice(market_data, train_length)
+                        market_slice, end_idx = utils.time_slice(market_data, train_length, sample_length)
                         market_extract = utils.shuffle_data(market_slice, inputs['train_shuffle_days'])
 
-                        data_iter = 0
+                        time_step = 0
 
                         if obs_days == 1:
-                            obs_state = market_extract[data_iter]
+                            obs_state = market_extract[time_step]
                         else:
-                            obs_state = market_extract[data_iter:obs_days].reshape(-1)[::-1]
+                            obs_state = market_extract[time_step:obs_days].reshape(-1)[::-1]
 
                         state = env.reset(obs_state)
                         done, step, score = False, 0, 0
 
                         while not done:
-                            data_iter += 1
+                            time_step += 1
                             action, _ = agent.select_next_action(state)
 
                             if obs_days == 1:
-                                obs_state = market_extract[data_iter]
+                                obs_state = market_extract[time_step]
                             else:
-                                obs_state = market_extract[data_iter:data_iter + obs_days].reshape(-1)[::-1]
+                                obs_state = market_extract[time_step:time_step + obs_days].reshape(-1)[::-1]
 
                             next_state, reward, actual_done, risk = env.step(action, obs_state)
                             done, train_done = actual_done[0], actual_done[1]
@@ -122,9 +125,9 @@ def market_env(gym_envs: dict, inputs: dict, market_data: np.ndarray, obs_days: 
 
                             # conduct periodic agent evaluation episodes without learning
                             if cum_steps % int(inputs['eval_freq']) == 0:
-                                
-                                eval_episodes.eval_market(market_data, obs_days, agent, inputs, eval_log, eval_risk_log, 
-                                                          cum_steps, round, eval_run, loss, logtemp, loss_params)
+                                eval_episodes.eval_market(market_data, obs_days, end_idx, agent, inputs, 
+                                                          eval_log, eval_risk_log, cum_steps, round, eval_run, 
+                                                          loss, logtemp, loss_params)
 
                                 eval_run += 1
 
