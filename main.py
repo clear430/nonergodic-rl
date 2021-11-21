@@ -18,9 +18,10 @@ Instructions:
     1. Select algorithms, critic loss functions, multi-steps, and environments using available options
        and enter them into the provided four lists.
     2. Modify inputs dictionary containing training parameters and model hyperparameters if required.
-    3. Run python file and upon completion all learned parameters will be placed ./models and data/plots regarding 
-       training/evaluation into ./results/ directories titled by the reward dynamic (additive or multiplicative 
-       or market). Inside each will exist directories titled by env_id will contain all output data and summary plots.
+    3. Run python file and upon completion, all learned PyTorch parameters will be placed ./models, and 
+       data/plots regarding training into ./results/ directories titled. These will be organised by the reward dynamic 
+       (additive or multiplicative or market). Then inside each will exist directories titled by full env_id
+       containing all output data and summary plots.
 """
 
 import numpy as np
@@ -403,6 +404,44 @@ for key in inputs_dict['envs']:
             int(gym_envs[str(key)][3]) <= int(inputs_dict['n_cumsteps_mar'] * inputs_dict['train_years'] * 252), \
                 'environment {} warm-up must be less than or equal to total training steps'.format(key)
 
+# market environment data checks
+if any(key in inputs_dict['envs'] >= 58):
+    for key in inputs_dict['envs']:
+        if inputs_dict['ENV_KEY'] <= 60:
+            assert os.path.isfile('./docs/market_data/stooq_snp.npy'), 'stooq_snp.npy not generated'
+            data = np.load('./docs/market_data/stooq_snp.npy')
+        elif inputs_dict['ENV_KEY'] <= 63:
+            assert os.path.isfile('./docs/market_data/stooq_usei.npy'), 'stooq_usei.npy not generated' 
+            data = np.load('./docs/market_data/stooq_usei.npy')
+        elif inputs_dict['ENV_KEY'] <= 66:
+            assert os.path.isfile('./docs/market_data/stooq_minor.npy'), 'stooq_minor.npy not generated'
+            data = np.load('./docs/market_data/stooq_minor.npy')
+        elif inputs_dict['ENV_KEY'] <= 69:
+            assert os.path.isfile('./docs/market_data/stooq_medium.npy'), 'stooq_medium.npy not generated'
+            data = np.load('./docs/market_data/stooq_medium.npy')
+        elif inputs_dict['ENV_KEY'] <= 72:
+            assert os.path.isfile('./docs/market_data/stooq_major.npy'), 'stooq_major.npy not generated'
+            data = np.load('./docs/market_data/stooq_major.npy')
+        elif inputs_dict['ENV_KEY'] <= 75:
+            assert os.path.isfile('./docs/market_data/stooq_dji.npy'), 'stooq_dji.npy not generated'
+            data = np.load('./docs/market_data/stooq_dji.npy')
+        elif inputs_dict['ENV_KEY'] <= 78:
+            assert os.path.isfile('./docs/market_data/stooq_full.npy'), 'stooq_full.npy not generated'
+            data = np.load('./docs/market_data/stooq_full.npy')
+
+        time_length = data.shape[0]
+
+        for days in inputs_dict['past_days']:
+            train_length = int(252 * inputs_dict['train_years'])
+            test_length = int(252 * inputs_dict['test_years'])
+            gap_max = int(inputs_dict['gap_days_max'])
+
+            sample_length = int(train_length + test_length + gap_max + days - 1)
+
+            assert time_length >= sample_length, \
+                'ENV_KEY {} for {} days: total time {} period for {} days must be at least as large as sample length = {}' \
+                .format(key, days, time_length, days, sample_length)
+
 # SAC algorithm method checks
 assert hasattr(Agent_sac, 'select_next_action'), 'missing SAC agent action selection'
 assert hasattr(Agent_sac, 'eval_next_action'), 'missing SAC agent evaluation action selection'
@@ -452,41 +491,6 @@ if __name__ == '__main__':
             multiplicative_env(gym_envs=gym_envs, inputs=inputs_dict)
 
         else:
-            if inputs_dict['ENV_KEY'] <= 60:
-                assert os.path.isfile('./docs/market_data/stooq_snp.npy'), 'stooq_snp.npy not generated'
-                data = np.load('./docs/market_data/stooq_snp.npy')
-            elif inputs_dict['ENV_KEY'] <= 63:
-                assert os.path.isfile('./docs/market_data/stooq_usei.npy'), 'stooq_usei.npy not generated' 
-                data = np.load('./docs/market_data/stooq_usei.npy')
-            elif inputs_dict['ENV_KEY'] <= 66:
-                assert os.path.isfile('./docs/market_data/stooq_minor.npy'), 'stooq_minor.npy not generated'
-                data = np.load('./docs/market_data/stooq_minor.npy')
-            elif inputs_dict['ENV_KEY'] <= 69:
-                assert os.path.isfile('./docs/market_data/stooq_medium.npy'), 'stooq_medium.npy not generated'
-                data = np.load('./docs/market_data/stooq_medium.npy')
-            elif inputs_dict['ENV_KEY'] <= 72:
-                assert os.path.isfile('./docs/market_data/stooq_major.npy'), 'stooq_major.npy not generated'
-                data = np.load('./docs/market_data/stooq_major.npy')
-            elif inputs_dict['ENV_KEY'] <= 75:
-                assert os.path.isfile('./docs/market_data/stooq_dji.npy'), 'stooq_dji.npy not generated'
-                data = np.load('./docs/market_data/stooq_dji.npy')
-            elif inputs_dict['ENV_KEY'] <= 78:
-                assert os.path.isfile('./docs/market_data/stooq_full.npy'), 'stooq_full.npy not generated'
-                data = np.load('./docs/market_data/stooq_full.npy')
-
-            time_length = data.shape[0]
-
-            for days in inputs_dict['past_days']:
-                train_length = int(252 * inputs_dict['train_years'])
-                test_length = int(252 * inputs_dict['test_years'])
-                gap_max = int(inputs_dict['gap_days_max'])
-
-                sample_length = int(train_length + test_length + gap_max + days - 1)
-
-                assert time_length >= sample_length, \
-                    'day {}: total time {} period for {} days must be at least as large as sample length = {}' \
-                    .format(days, time_length, days, sample_length)
-
             for days in inputs_dict['past_days']:
                 market_env(gym_envs=gym_envs, inputs=inputs_dict, market_data=data, obs_days=days)
 
