@@ -405,7 +405,7 @@ for key in inputs_dict['envs']:
                 'environment {} warm-up must be less than or equal to total training steps'.format(key)
 
 # market environment data checks
-if any(key in inputs_dict['envs'] >= 58):
+if any(key >= 58 for key in inputs_dict['envs']):
     for key in inputs_dict['envs']:
         if inputs_dict['ENV_KEY'] <= 60:
             assert os.path.isfile('./docs/market_data/stooq_snp.npy'), 'stooq_snp.npy not generated'
