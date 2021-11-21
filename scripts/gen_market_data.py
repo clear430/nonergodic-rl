@@ -17,7 +17,10 @@ Description:
 
     Historical data for major indices, commodities, and currencies is obtained from 
     Stooq at https://stooq.com/. Note not every symbol can be utilised, all must be
-    individually checked to determine feasibility. 
+    individually checked to determine feasibility.
+
+    Occasionally will receive "SymbolWarning: Failed to read symbol" from Stooq API, 
+    running the script again usually fixes this.
 
 Instructions:
     1. Select appropriate start and end date for data for all assets with daily data 
@@ -29,7 +32,7 @@ Instructions:
 
 Stooq - Symbols and Data Availability:
     ^SPX: S&P 500                       https://stooq.com/q/d/?s=^spx
-    ^DJI: Dow Jones Industrial 30 Cash  https://stooq.com/q/d/?s=^dji
+    ^DJI: Dow Jones Industrial 30       https://stooq.com/q/d/?s=^dji
     ^NDX: Nasdaq 100                    https://stooq.com/q/d/?s=^ndx
 
     GC.F: Gold - COMEX                  https://stooq.com/q/d/?s=gc.f
@@ -58,7 +61,7 @@ import os
 
 # common starting/endiing dates for daily data collection for all assets
 start: str = '1985-10-01'
-end: str = '2021-11-12'
+end: str = '2021-11-19'
 
 # pairs for data saving and assets to be included
 stooq: dict = {
