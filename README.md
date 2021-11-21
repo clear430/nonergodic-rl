@@ -6,7 +6,7 @@ Research encompasses several overlapping areas:
 3. Learning in multiplicative (non-ergodic) domains, maximising the time-average growth rate, and
 4. Designing energy efficient multi-stage actors for operation in extremely remote environments.
 
-Implementation using [Python](https://www.python.org) 3.9.8 and [PyTorch](https://pytorch.org) 1.9.1 with [CUDA](https://developer.nvidia.com/cuda-zone) 11.1. 
+Implementation using [Python](https://www.python.org) 3.9.9 and [PyTorch](https://pytorch.org) 1.9.1 with [CUDA](https://developer.nvidia.com/cuda-zone) 11.1. 
 - Built using an AMD Ryzen 7 5800X, Nvidia RTX 3070, 64GB RAM, and a Samsung SSD 980 Pro.
 - Tested on [Pop!\_OS](https://pop.system76.com) 21.04, [Ubuntu](https://ubuntu.com) 21.10, [Arch](https://archlinux.org) 2021.11.01, and Windows 11 21H2.
 - Additive experiments performed on the [Artemis](https://sydneyuni.atlassian.net/wiki/spaces/RC/pages/1033929078/Artemis+HPC+documentation) high performance computing cluster using [CentOS](https://www.centos.org) 6.9.
@@ -75,7 +75,7 @@ There are also a few additional prerequisites for installing certain packages:
 * `gym`: The interface compiler [SWIG](http://www.swig.org/) to connect C/C++ programs with scripting languages is required.
 * `mpi4py`: The presence of a Message Passing Interface (MPI) library for Linux or [Microsoft MPI](https://www.microsoft.com/en-us/download/details.aspx?id=57467) for Windows is required. This package can be entirely ignored if there is no intention of training the agent on the (additive) [DeepMimic](https://arxiv.org/pdf/1804.02717.pdf) environments ported to [PyBullet](https://pybullet.org/wordpress/).
 * `pybullet`: A C++ compiler is required such as the [GNU C++ Compiler](https://gcc.gnu.org/) for Linux or [Microsoft Visual C++](https://visualstudio.microsoft.com/) for Windows. On Windows, install Visual Studio Community and in the Visual Studio Installer select the “Desktop development with C++” workload with both optional features “MSVC v143 - VS 2022 C++ x64/x86 build tools” and the “Windows 10 SDK”. Alternatively, this package can also be ignored if there is no intention of performing (additive) experiments using any [PyBullet](https://pybullet.org/wordpress/) environment.
-* `torch`: PyTorch previous versions should be installed with the appropriate compute platform following using the official [instructions](https://pytorch.org/get-started/locally/). Choice of CUDA version depends on Nvidia GPU compatibility while the use of CPU is discouraged due to significantly reduced backpropagation speed.
+* `torch`: Previous PyTorch versions should be installed with the appropriate compute platform following using the official [instructions](https://pytorch.org/get-started/locally/). Choice of CUDA version depends on Nvidia GPU compatibility while the use of CPU is discouraged due to significantly reduced backpropagation speed.
 
 ## References
 * Reinforcement learning ([Szepesvári 2009](https://sites.ualberta.ca/~szepesva/papers/RLAlgsInMDPs.pdf), [Sutton and Bartow 2018](http://incompleteideas.net/book/RLbook2020.pdf))
@@ -88,6 +88,7 @@ There are also a few additional prerequisites for installing certain packages:
 * Primer on statistical mechanics, ensemble averages, and entropy ([Landau and Lifshitz 1969](https://archive.org/details/ost-physics-landaulifshitz-statisticalphysics))
 * Multiplicative dynamics ([Bernoulli 1738](http://risk.garven.com/wp-content/uploads/2013/09/St.-Petersburg-Paradox-Paper.pdf), [Kelly 1956](https://cpb-us-w2.wpmucdn.com/u.osu.edu/dist/7/36891/files/2017/07/Kelly1956-1uwz47o.pdf), [Peters 2011a](https://www.tandfonline.com/doi/pdf/10.1080/14697688.2010.513338?needAccess=true), [Peters 2011b](https://royalsocietypublishing.org/doi/pdf/10.1098/rsta.2011.0065), [Peters 2011c](https://arxiv.org/pdf/1110.1578.pdf), [Peters and Gell-Mann 2016](https://aip.scitation.org/doi/pdf/10.1063/1.4940236), [Peters 2019](https://www.nature.com/articles/s41567-019-0732-0.pdf), [Peters et al. 2020](https://arxiv.org/ftp/arxiv/papers/2005/2005.00056.pdf), [Meder et al. 2020](https://arxiv.org/ftp/arxiv/papers/1906/1906.04652.pdf), [Peters and Adamou 2021](https://arxiv.org/pdf/1801.03680.pdf), [Spitznagel 2021](https://www.wiley.com/en-us/Safe+Haven%3A+Investing+for+Financial+Storms-p-9781119401797))
 * Power consumption of neural networks ([Han et al. 2015](https://proceedings.neurips.cc/paper/2015/file/ae0eb3eed39d2bcef4622b2499a05fe6-Paper.pdf), [García-Martín et al. 2019](https://www.sciencedirect.com/science/article/pii/S0743731518308773))
+* Modelling time series ([Cerqueira et al. 2017](https://ieeexplore.ieee.org/document/8259815), [de Prado 2018](https://www.wiley.com/en-us/Advances+in+Financial+Machine+Learning-p-9781119482086), [Cerqueira, Torgo and Mozetič 2020](https://link.springer.com/content/pdf/10.1007/s10994-020-05910-7.pdf))
 
 ## Acknowledgements
 The [Sydney Informatics Hub](https://www.sydney.edu.au/research/facilities/sydney-informatics-hub.html) and the University of Sydney’s high performance computing cluster, Artemis, for providing the computing resources that have contributed to the results reported herein.
