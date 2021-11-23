@@ -42,7 +42,7 @@ critic_loss: List[str] = ['MSE']
 # bootstrapping of target critic values and discounted rewards: list [integer > 0] 
 multi_steps: List[int] = [1]
 
-# number of previous days observed for ONLY market environments (Markov if =1): list [integer > 0]
+# number of previous observed days observed for ONLY market environments (Markov if =1): list [integer > 0]
 obs_days: List[int] = [1]
 
 # environments to train agent: list [integer ENV_KEY from gym_envs]
@@ -136,10 +136,10 @@ inputs_dict: dict = {
     'eval_freq_mar': 1,                         # training periods between evaluation episodes
     'n_eval_mar': 1e1,                          # ibid.
     'test_years': 1,                            # length of testing periods (252 day years)
-    'train_shuffle_days': 10,                   # interval size to be shuffled for training
-    'test_shuffle_days': 5,                     # interval size to be shuffled testing (inference)
-    'gap_days_min': 5,                          # minimum spacing between training/testing windows
-    'gap_days_max': 20,                         # maximum spacing between training/testing windows
+    'train_shuffle_days': 10,                   # interval size (>=1) to be shuffled for training
+    'test_shuffle_days': 5,                     # interval size (>=1) to be shuffled testing (inference)
+    'gap_days_min': 5,                          # minimum spacing (>=0) between training/testing windows
+    'gap_days_max': 20,                         # maximum spacing (>=0) between training/testing windows
 
     # learning variables
     'buffer': 1e6,                              # maximum transistions in experience replay buffer
