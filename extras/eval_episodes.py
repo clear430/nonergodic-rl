@@ -217,7 +217,7 @@ def eval_market(market_data: np.ndarray, obs_days: int, eval_start_idx: int, age
                     np.mean(loss[8:10]), np.mean(loss_params[0:2]), np.mean(loss_params[2:4]), loss[8]+3, np.exp(logtemp)))
                         
     n_assets = market_data.shape[1]
-    test_length = int(252 * inputs['test_years'] + obs_days - 1)
+    test_length = int(inputs['test_days'] + obs_days - 1)
 
     if obs_days == 1:
         eval_env = eval('market_envs.Market_'+inputs['env_id'][-7:]+'(n_assets, test_length, obs_days)')
@@ -271,8 +271,7 @@ def eval_market(market_data: np.ndarray, obs_days: int, eval_start_idx: int, age
         eval_log[round, eval_run, eval_epis, 19] = cum_steps
         eval_risk_log[round, eval_run, eval_epis, :] = run_risk
     
-    run = eval_log[round, eval_run, :, 1]
-    run = run**252    # convert to annualised
+    run = eval_log[round, eval_run, :, 1]**252    # convert to annualised (252 day year)
     mean_run = np.mean(run)
     med_run = np.median(run)
     mad_run = np.mean(np.abs(run - mean_run))

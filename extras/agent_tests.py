@@ -82,23 +82,27 @@ def algo_tests(inputs_dict: dict) -> NoReturn:
     # market environment execution tests
     assert isinstance(inputs_dict['n_trials_mar'], (float, int)), tfi
     assert int(inputs_dict['n_trials_mar']) >= 1, gte1
-    assert isinstance(inputs_dict['train_years'], (float, int)), tfi
-    assert int(inputs_dict['train_years']) > 0, gt0
     assert isinstance(inputs_dict['n_cumsteps_mar'], (float, int)), tfi
+    assert set(list(str(inputs_dict['n_cumsteps_mar'])[2:])).issubset(set(['0', '.'])), \
+        'must consist of only 2 leading non-zero digits'
     assert int(inputs_dict['n_cumsteps_mar']) >= 1, gte1
     assert isinstance(inputs_dict['eval_freq_mar'], (float, int)), tfi
-    assert int(inputs_dict['eval_freq_mar']) >= 1 
+    assert int(inputs_dict['eval_freq_mar']) >= 1
+    assert int(inputs_dict['eval_freq_mar']) <= int(inputs_dict['n_cumsteps_mar']), \
+        'must be less than or equal to n_cumsteps_mar'
     assert isinstance(inputs_dict['n_eval_mar'], (float, int)), tfi
     assert int(inputs_dict['n_eval_mar']) >= 1, gte1
-    assert isinstance(inputs_dict['test_years'], (float, int)), tfi
-    assert int(inputs_dict['test_years']) > 0, gt0
+    assert isinstance(inputs_dict['train_days'], (float, int)), tfi
+    assert int(inputs_dict['train_days']) > 0, gt0
+    assert isinstance(inputs_dict['test_days'], (float, int)), tfi
+    assert int(inputs_dict['test_days']) > 0, gt0
     assert isinstance(inputs_dict['train_shuffle_days'], int), ti
     assert int(inputs_dict['train_shuffle_days']) >= 1, gte1
     assert isinstance(inputs_dict['test_shuffle_days'], int), ti
     assert int(inputs_dict['test_shuffle_days']) >= 1, gte1
-    assert inputs_dict['train_shuffle_days'] <= int(inputs_dict['train_years'] * 252), \
+    assert inputs_dict['train_shuffle_days'] <= int(inputs_dict['train_days']), \
         'must be less than or equal to train_years'
-    assert inputs_dict['test_shuffle_days'] <= int(inputs_dict['test_years'] * 252), \
+    assert inputs_dict['test_shuffle_days'] <= int(inputs_dict['test_days']), \
         'must be less than or equal to test_years'
     assert isinstance(inputs_dict['gap_days_min'], (int)), ti
     assert int(inputs_dict['gap_days_min']) >= 0, gte0
@@ -116,7 +120,7 @@ def algo_tests(inputs_dict: dict) -> NoReturn:
         'must be greater than or equal to n_cumsteps_add'
     assert inputs_dict['buffer'] >= inputs_dict['n_cumsteps_mul'], \
         'must be greater than or equal to n_cumsteps_mul'
-    assert inputs_dict['buffer'] >= int(inputs_dict['n_cumsteps_mar'] * inputs_dict['train_years'] * 252), \
+    assert inputs_dict['buffer'] >= int(inputs_dict['n_cumsteps_mar']), \
         'must be greater than or equal training steps'
     assert isinstance(inputs_dict['buffer_gpu'], bool), \
         'must be either True (1) or False (0)'
@@ -258,7 +262,7 @@ def env_tests(gym_envs: Dict[str, list], inputs_dict: dict) -> NoReturn:
 
         else:
             assert int(gym_envs[str(key)][3]) >= 0, gte0
-            assert int(gym_envs[str(key)][3]) <= int(inputs_dict['n_cumsteps_mar'] * inputs_dict['train_years'] * 252), \
+            assert int(gym_envs[str(key)][3]) <= int(inputs_dict['n_cumsteps_mar']), \
                 'environment {} warm-up must be less than or equal to total training steps'.format(key)
 
     # market environment data checks
@@ -304,8 +308,8 @@ def env_tests(gym_envs: Dict[str, list], inputs_dict: dict) -> NoReturn:
                 time_length = data.shape[0]
 
                 for days in inputs_dict['past_days']:
-                    train_length = int(252 * inputs_dict['train_years'])
-                    test_length = int(252 * inputs_dict['test_years'])
+                    train_length = int(inputs_dict['train_days'])
+                    test_length = int(inputs_dict['test_days'])
                     gap_max = int(inputs_dict['gap_days_max'])
 
                     sample_length = int(train_length + test_length + gap_max + days - 1)

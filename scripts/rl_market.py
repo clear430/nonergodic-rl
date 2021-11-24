@@ -34,8 +34,8 @@ def market_env(gym_envs: dict, inputs: dict, market_data: np.ndarray, obs_days: 
     Conduct experiments for market environments.
     """
     n_assets = market_data.shape[1]
-    train_length = int(252 * inputs['train_years'] + obs_days - 1)
-    test_length = int(252 * inputs['test_years'] + obs_days - 1)
+    train_length = int(inputs['train_days'] + obs_days - 1)
+    test_length = int(inputs['test_days'] + obs_days - 1)
     gap_max = int(inputs['gap_days_max'])
 
     sample_length = int(train_length + test_length + gap_max + obs_days - 1)
@@ -51,7 +51,7 @@ def market_env(gym_envs: dict, inputs: dict, market_data: np.ndarray, obs_days: 
         'input_dims': env.observation_space.shape, 'num_actions':  env.action_space.shape[0], 
         'max_action': env.action_space.high.min(), 'min_action': env.action_space.low.max(),    # assume all actions span equal domain 
         'random': gym_envs[str(inputs['ENV_KEY'])][3], 'dynamics': 'MKT',    # gambling dynamics 'MKT' (market)
-        'n_trials': inputs['n_trials_mar'], 'n_cumsteps': int(inputs['n_cumsteps_mar'] * train_length),
+        'n_trials': inputs['n_trials_mar'], 'n_cumsteps': int(inputs['n_cumsteps_mar']),
         'eval_freq': inputs['eval_freq_mar'], 'n_eval': inputs['n_eval_mar'], 
         'algo': 'TD3', 'loss_fn': 'MSE', 'multi_steps': 1, **inputs
         }

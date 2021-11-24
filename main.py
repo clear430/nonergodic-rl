@@ -131,11 +131,11 @@ inputs_dict: dict = {
 
     # market environment execution parameters
     'n_trials_mar': 10,                         # ibid.
-    'train_years': 4,                           # length of training periods (252 day years)
-    'n_cumsteps_mar': 8e1,                      # total number of training periods
+    'n_cumsteps_mar': 8e4,                      # ibid.
     'eval_freq_mar': 1e3,                       # ibid.
     'n_eval_mar': 1e1,                          # ibid.
-    'test_years': 1,                            # length of testing periods (252 day years)
+    'train_days': 1e3,                          # length of each training period (steps)
+    'test_days': 252,                           # length of each evaluation period (252 day years)
     'train_shuffle_days': 10,                   # interval size (>=1) to be shuffled for training
     'test_shuffle_days': 5,                     # interval size (>=1) to be shuffled testing (inference)
     'gap_days_min': 5,                          # minimum spacing (>=0) between training/testing windows
