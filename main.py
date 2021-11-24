@@ -28,10 +28,10 @@ import numpy as np
 import time
 from typing import Dict, List
 
+from extras.agent_tests import algo_tests, env_tests, method_checks
 from scripts.rl_additive import additive_env
 from scripts.rl_market import market_env
 from scripts.rl_multiplicative import multiplicative_env
-from scripts.rl_tests import algo_tests, env_tests, method_checks
 
 # model-free off-policy agents: list ['SAC', 'TD3']
 algo_name: List[str] = ['TD3']
@@ -132,8 +132,8 @@ inputs_dict: dict = {
     # market environment execution parameters
     'n_trials_mar': 10,                         # ibid.
     'train_years': 4,                           # length of training periods (252 day years)
-    'n_cumsteps_mar': 8e1,                      # total training periods
-    'eval_freq_mar': 1,                         # training periods between evaluation episodes
+    'n_cumsteps_mar': 8e1,                      # total number of training periods
+    'eval_freq_mar': 1e3,                       # ibid.
     'n_eval_mar': 1e1,                          # ibid.
     'test_years': 1,                            # length of testing periods (252 day years)
     'train_shuffle_days': 10,                   # interval size (>=1) to be shuffled for training

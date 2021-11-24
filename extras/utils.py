@@ -230,7 +230,7 @@ def time_slice(prices: np.ndarray, extract_days: int, sample_days: int) -> Tuple
 
     Returns:
         market_extract: extracted time sliced data from complete time series
-        end_idx-1: final index of sampled training time series
+        start_idx: first index of sampled training time series
     """
     max_train = prices.shape[0] - (1 + sample_days)
 
@@ -239,7 +239,7 @@ def time_slice(prices: np.ndarray, extract_days: int, sample_days: int) -> Tuple
 
     market_extract = prices[start_idx:end_idx]
 
-    return market_extract, end_idx-1
+    return market_extract, start_idx
 
 def shuffle_data(prices: np.ndarray, interval_days: int) -> np.ndarray:
     """

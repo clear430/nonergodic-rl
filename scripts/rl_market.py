@@ -52,7 +52,7 @@ def market_env(gym_envs: dict, inputs: dict, market_data: np.ndarray, obs_days: 
         'max_action': env.action_space.high.min(), 'min_action': env.action_space.low.max(),    # assume all actions span equal domain 
         'random': gym_envs[str(inputs['ENV_KEY'])][3], 'dynamics': 'MKT',    # gambling dynamics 'MKT' (market)
         'n_trials': inputs['n_trials_mar'], 'n_cumsteps': int(inputs['n_cumsteps_mar'] * train_length),
-        'eval_freq': int(inputs['eval_freq_mar'] * train_length), 'n_eval': inputs['n_eval_mar'], 
+        'eval_freq': inputs['eval_freq_mar'], 'n_eval': inputs['n_eval_mar'], 
         'algo': 'TD3', 'loss_fn': 'MSE', 'multi_steps': 1, **inputs
         }
 
@@ -86,7 +86,7 @@ def market_env(gym_envs: dict, inputs: dict, market_data: np.ndarray, obs_days: 
                     while cum_steps < int(inputs['n_cumsteps']):
                         start_time = time.perf_counter()
 
-                        market_slice, end_idx = utils.time_slice(market_data, train_length, sample_length)
+                        market_slice, start_idx = utils.time_slice(market_data, train_length, sample_length)
                         market_extract = utils.shuffle_data(market_slice, inputs['train_shuffle_days'])
 
                         time_step = 0
@@ -125,7 +125,9 @@ def market_env(gym_envs: dict, inputs: dict, market_data: np.ndarray, obs_days: 
 
                             # conduct periodic agent evaluation episodes without learning
                             if cum_steps % int(inputs['eval_freq']) == 0:
-                                eval_episodes.eval_market(market_data, obs_days, end_idx, agent, inputs, 
+
+                                eval_start_idx = start_idx + step
+                                eval_episodes.eval_market(market_data, obs_days, eval_start_idx, agent, inputs, 
                                                           eval_log, eval_risk_log, cum_steps, round, eval_run, 
                                                           loss, logtemp, loss_params)
 

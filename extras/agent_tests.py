@@ -88,8 +88,6 @@ def algo_tests(inputs_dict: dict) -> NoReturn:
     assert int(inputs_dict['n_cumsteps_mar']) >= 1, gte1
     assert isinstance(inputs_dict['eval_freq_mar'], (float, int)), tfi
     assert int(inputs_dict['eval_freq_mar']) >= 1 
-    assert int(inputs_dict['eval_freq_mar']) <= int(inputs_dict['n_cumsteps_mul']), \
-        'must be less than or equal to n_cumsteps_mar'
     assert isinstance(inputs_dict['n_eval_mar'], (float, int)), tfi
     assert int(inputs_dict['n_eval_mar']) >= 1, gte1
     assert isinstance(inputs_dict['test_years'], (float, int)), tfi

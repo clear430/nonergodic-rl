@@ -188,7 +188,7 @@ def eval_multiplicative(agent: object, inputs: dict, eval_log: np.ndarray, eval_
           .format(datetime.now().strftime('%d %H:%M:%S'), steps_sec, 
                   stats[0], stats[1], stats[2], stats[3], stats[4], stats[5], stats[6], stats[7]))
 
-def eval_market(market_data: np.ndarray, obs_days: int, start_idx: int, agent: object, inputs: dict, 
+def eval_market(market_data: np.ndarray, obs_days: int, eval_start_idx: int, agent: object, inputs: dict, 
                 eval_log: np.ndarray, eval_risk_log: np.ndarray, cum_steps: int, round: int, 
                 eval_run: int, loss: Tuple[float, float, float, float, float, float], logtemp: float, 
                 loss_params: Tuple[float, float, float, float]) -> NoReturn:
@@ -198,7 +198,7 @@ def eval_market(market_data: np.ndarray, obs_days: int, start_idx: int, agent: o
     Parameters:
         market_data: extracted time sliced data from complete time series
         obs_days: number of previous days agent uses for decision-making
-        start_idx: starting index for evaluation episodes without gap 
+        eval_start_idx: starting index for evaluation episodes without gap 
         agent: RL agent algorithm
         inputs: dictionary containing all execution details
         eval_log: array of existing evalaution results
@@ -210,9 +210,9 @@ def eval_market(market_data: np.ndarray, obs_days: int, start_idx: int, agent: o
         logtemp: log entropy adjustment factor (temperature)
         loss_params: values of Cauchy scale parameters and kernel sizes for critics
     """
-    print('{} {}-{}-{}-{} {} Evaluations at cst {}: C/Cm/Cs {:1.2f}/{:1.2f}/{:1.2f}, a/c/k/A/T {:1.2f}/{:1.2f}/{:1.2f}/{:1.2f}/{:1.2f}'
+    print('{} {} Evaluations at cst {}: C/Cm/Cs {:1.2f}/{:1.2f}/{:1.2f}, a/c/k/A/T {:1.2f}/{:1.2f}/{:1.2f}/{:1.2f}/{:1.2f}'
             .format(datetime.now().strftime('%d %H:%M:%S'), 
-                    inputs['algo'], inputs['s_dist'], inputs['loss_fn'], round+1, int(inputs['n_eval']), cum_steps,
+                    int(inputs['n_eval']), cum_steps,
                     np.mean(loss[0:2]), np.mean(loss[4:6]), np.mean(loss[6:8]), 
                     np.mean(loss[8:10]), np.mean(loss_params[0:2]), np.mean(loss_params[2:4]), loss[8]+3, np.exp(logtemp)))
                         
@@ -225,12 +225,13 @@ def eval_market(market_data: np.ndarray, obs_days: int, start_idx: int, agent: o
         eval_env = eval('market_envs.Market_'+inputs['env_id'][-7:-3]+'_Dx'+'(n_assets, test_length, obs_days)')
     
     gap = np.random.randint(int(inputs['gap_days_min']), int(inputs['gap_days_max']) + 1, size=int(inputs['n_eval']))
-    gap += start_idx
+    gap += eval_start_idx
 
     for eval_epis in range(int(inputs['n_eval'])):
         start_time = time.perf_counter()
 
-        market_slice  = market_data[gap[eval_epis]:gap[eval_epis] + test_length + 1]
+        eval_gap = gap[eval_epis]
+        market_slice  = market_data[eval_gap:eval_gap + test_length + 1]
         market_extract = utils.shuffle_data(market_slice, inputs['test_shuffle_days'])
 
         time_step = 0
@@ -287,6 +288,6 @@ def eval_market(market_data: np.ndarray, obs_days: int, start_idx: int, agent: o
 
     steps_sec = np.sum(eval_log[round, eval_run, :, 2]) / np.sum(eval_log[round, eval_run, :, 0])
 
-    print("{} Evaluation {} Summary {:1.0f}/s g_pa/st: mean {:1.2f}%/{:1.0f}, med {:1.2f}%/{:1.0f}, mad {:1.2f}%/{:1.0f}, std {:1.2f}%/{:1.0f}"
-          .format(datetime.now().strftime('%d %H:%M:%S'), eval_run+1, steps_sec, 
+    print("{} Evaluation Summary {:1.0f}/s g_pa/st: mean {:1.2f}%/{:1.0f}, med {:1.2f}%/{:1.0f}, mad {:1.2f}%/{:1.0f}, std {:1.2f}%/{:1.0f}"
+          .format(datetime.now().strftime('%d %H:%M:%S'), steps_sec, 
                   stats[0], stats[1], stats[2], stats[3], stats[4], stats[5], stats[6], stats[7]))
