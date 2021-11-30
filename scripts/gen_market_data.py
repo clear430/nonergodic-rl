@@ -61,7 +61,7 @@ import os
 
 # common starting/endiing dates for daily data collection for all assets
 start: str = '1985-10-01'
-end: str = '2021-11-19'
+end: str = '2021-11-26'
 
 # pairs for data saving and assets to be included
 stooq: dict = {
