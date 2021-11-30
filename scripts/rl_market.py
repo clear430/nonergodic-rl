@@ -56,6 +56,8 @@ def market_env(gym_envs: dict, inputs: dict, market_data: np.ndarray, obs_days: 
         'algo': 'TD3', 'loss_fn': 'MSE', 'multi_steps': 1, **inputs
         }
 
+    risk_dim = utils.market_log_dim(inputs, n_assets)
+    
     for algo in inputs['algo_name']:
         for loss_fn in inputs['critic_loss']:
             for mstep in inputs['bootstraps']:
@@ -66,7 +68,6 @@ def market_env(gym_envs: dict, inputs: dict, market_data: np.ndarray, obs_days: 
                 eval_log = np.zeros((inputs['n_trials'], int(inputs['n_cumsteps'] / inputs['eval_freq']), int(inputs['n_eval']), 20))
                 directory = utils.save_directory(inputs, results=True)
 
-                risk_dim = utils.market_log_dim(inputs, n_assets)
                 trial_risk_log = np.zeros((inputs['n_trials'], int(inputs['n_cumsteps']), risk_dim))
                 eval_risk_log = np.zeros((inputs['n_trials'], int(inputs['n_cumsteps'] / inputs['eval_freq']), int(inputs['n_eval']), risk_dim))
 
@@ -108,10 +109,10 @@ def market_env(gym_envs: dict, inputs: dict, market_data: np.ndarray, obs_days: 
                             else:
                                 obs_state = market_extract[time_step:time_step + obs_days].reshape(-1)[::-1]
 
-                            next_state, reward, actual_done, risk = env.step(action, obs_state)
-                            done, train_done = actual_done[0], actual_done[1]
+                            next_state, reward, env_done, risk = env.step(action, obs_state)
+                            done, learn_done = env_done[0], env_done[1]
                             
-                            agent.store_transistion(state, action, reward, next_state, train_done)
+                            agent.store_transistion(state, action, reward, next_state, learn_done)
 
                             # gradient update interval (perform backpropagation)
                             if cum_steps %  int(inputs['grad_step'][inputs['algo']]) == 0:

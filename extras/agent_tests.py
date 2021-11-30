@@ -219,6 +219,10 @@ def algo_tests(inputs_dict: dict) -> NoReturn:
     assert all(isinstance(mstep, int) for mstep in inputs_dict['bootstraps']), ti
     assert all(mstep >= 1 for mstep in inputs_dict['bootstraps']), \
         'multi-steps must be a list of positive integers'
+    assert isinstance(inputs_dict['n_gambles'], list), tl
+    assert all(isinstance(gambles, int) for gambles in inputs_dict['n_gambles']), ti
+    assert all(gambles >= 1 for gambles in inputs_dict['n_gambles']), \
+        'number of gambles must be a list of positive integers'
     assert isinstance(inputs_dict['past_days'], list), tl
     assert all(isinstance(days, int) for days in inputs_dict['past_days']), ti
     assert all(days >= 1 for days in inputs_dict['past_days']), \
@@ -244,7 +248,7 @@ def env_tests(gym_envs: Dict[str, list], inputs_dict: dict) -> NoReturn:
         assert isinstance(gym_envs[str(key)], list), tl
         assert isinstance(gym_envs[str(key)][0], str), ts
         assert all(isinstance(x, (float, int))for x in gym_envs[str(key)][1:]), \
-            'environment {} details must be a list of the form [string, real, real, real]'.format(key)
+            'environment {} details must be a list of the form [string, int>0, int>0, real>0]'.format(key)
         assert int(gym_envs[str(key)][1]) >= 1, \
             'environment {} must have at least one state'.format(key)
         assert int(gym_envs[str(key)][2]) >= 1, \
@@ -252,55 +256,55 @@ def env_tests(gym_envs: Dict[str, list], inputs_dict: dict) -> NoReturn:
 
         if key <= 13:
             assert int(gym_envs[str(key)][3]) >= 0, gte0
-            assert int(gym_envs[str(key)][3]) <= int(inputs_dict['n_cumsteps_add']), \
-                'environment {} warm-up must be less than or equal to total training steps'.format(key)
+            assert int(gym_envs[str(key)][3]) < int(inputs_dict['n_cumsteps_add']), \
+                'environment {} warm-up must be less than total training steps'.format(key)
 
-        elif key <= 57:
+        elif key <= 29:
             assert int(gym_envs[str(key)][3]) >= 0, gte0
-            assert int(gym_envs[str(key)][3]) <= int(inputs_dict['n_cumsteps_mul']), \
-                'environment {} warm-up must be less than or equal to total training steps'.format(key)
+            assert int(gym_envs[str(key)][3]) < int(inputs_dict['n_cumsteps_mul']), \
+                'environment {} warm-up must be less than total training steps'.format(key)
 
         else:
             assert int(gym_envs[str(key)][3]) >= 0, gte0
-            assert int(gym_envs[str(key)][3]) <= int(inputs_dict['n_cumsteps_mar']), \
-                'environment {} warm-up must be less than or equal to total training steps'.format(key)
+            assert int(gym_envs[str(key)][3]) < int(inputs_dict['n_cumsteps_mar']), \
+                'environment {} warm-up must be less than total training steps'.format(key)
 
     # market environment data checks
-    if any(key > 57 for key in inputs_dict['envs']):
+    if any(key > 29 for key in inputs_dict['envs']):
         for key in inputs_dict['envs']:
-            if key > 57:
+            if key > 29:
 
-                if inputs_dict['ENV_KEY'] <= 60:
+                if inputs_dict['ENV_KEY'] <= 32:
                     assert os.path.isfile('./docs/market_data/stooq_snp.npy'), \
                         'stooq_snp.npy not generated or found in ./docs/market_data/'
                     data = np.load('./docs/market_data/stooq_snp.npy')
 
-                elif key <= 63:
+                elif key <= 35:
                     assert os.path.isfile('./docs/market_data/stooq_usei.npy'), \
                         'stooq_usei.npy not generated or found in ./docs/market_data/'
                     data = np.load('./docs/market_data/stooq_usei.npy')
 
-                elif key <= 66:
+                elif key <= 38:
                     assert os.path.isfile('./docs/market_data/stooq_minor.npy'), \
                         'stooq_minor.npy not generated or found in ./docs/market_data/'
                     data = np.load('./docs/market_data/stooq_minor.npy')
 
-                elif key <= 69:
+                elif key <= 41:
                     assert os.path.isfile('./docs/market_data/stooq_medium.npy'), \
                         'stooq_medium.npy not generated or found in ./docs/market_data/'
                     data = np.load('./docs/market_data/stooq_medium.npy')
 
-                elif key <= 72:
+                elif key <= 44:
                     assert os.path.isfile('./docs/market_data/stooq_major.npy'), \
                         'stooq_major.npy not generated or found in ./docs/market_data/'
                     data = np.load('./docs/market_data/stooq_major.npy')
 
-                elif key <= 75:
+                elif key <= 47:
                     assert os.path.isfile('./docs/market_data/stooq_dji.npy'), \
                         'stooq_dji.npy not generated or found in ./docs/market_data/'
                     data = np.load('./docs/market_data/stooq_dji.npy')
 
-                elif key <= 78:
+                elif key <= 50:
                     assert os.path.isfile('./docs/market_data/stooq_full.npy'), \
                         'stooq_full.npy not generated or found in ./docs/market_data/'
                     data = np.load('./docs/market_data/stooq_full.npy')

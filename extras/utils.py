@@ -18,7 +18,7 @@ Description:
 import numpy as np
 import scipy.optimize as op
 import scipy.special as sp
-from typing import Tuple
+from typing import List, Tuple
 
 def save_directory(inputs: dict, results: bool) -> str:
     """
@@ -92,13 +92,14 @@ def plot_subtitles(inputs: dict):
     
     return sub
 
-def multi_log_dim(inputs: dict) -> int:
+def multi_log_dim(inputs: dict, n_gambles: int) -> int:
     """
     Generates risk-related parameter log dimension for multiplicative experiments 
     with dimensions dependent on the environment characteristics.
 
     Parameters
         inputs: dictionary containg all execution details
+        n_gambles: number of simultaneous identical gambles
         
     Returns:
         dim: dimensions for log array
@@ -107,17 +108,15 @@ def multi_log_dim(inputs: dict) -> int:
     
     dim = 4
     
+    if n_gambles > 1:
+        dim += n_gambles    
+
     if '_InvB' in env:
         dim += 1
     if '_InvC' in env:
         dim += 2
-        
-    if '_n2_' in env:
-        dim += 2
-    if '_n10_' in env:
-        dim += 10
-        
-    if '_SH_' in env:
+               
+    if '_SH' in env:
         dim = 4 + 2 + 1
 
     return dim
@@ -166,6 +165,72 @@ def get_exponent(array: np.ndarray) -> int:
         exp = int(len(str(int(max_step))) - 1)
 
     return exp
+
+def multi_dones(wealth: float, MIN_VALUE: float, reward: float, MIN_REWARD: float, 
+                step_return: float, MIN_RETURN: float, lev: np.ndarray, MIN_WEIGHT: float,
+                next_state: np.ndarray, MAX_VALUE_RATIO: float) \
+        -> List[bool]:
+    """
+    Agent done flags for multiplicative environments controlling episode termination and 
+    Q-value estimation for learning (i.e. whether genuine).
+
+    Parameters:
+        wealth: portfolio value
+        reward: time-average growth rate
+        step_return: single step return
+        lev: asset leverages
+        next_state: normalised state values
+
+    Returns:
+        done: episode termination
+        learn_done: agent learning flag
+    """
+    done_wealth = wealth == MIN_VALUE
+    done_reward = reward < MIN_REWARD
+    done_return = step_return < MIN_RETURN
+    done_lev = np.all(np.abs(lev)) < MIN_WEIGHT
+    done_state = np.any(next_state > MAX_VALUE_RATIO)
+
+    done = bool(done_wealth or done_reward or done_return or
+                done_lev or done_state)
+
+    learn_done = done and not done_state
+
+    return [done, learn_done]
+
+def market_dones(time: int, TIME_LENGTH: int, wealth: float, MIN_VALUE: float, 
+                 reward: float, MIN_REWARD: float, step_return: float, MIN_RETURN: float, 
+                 lev: np.ndarray, MIN_WEIGHT: float, next_state: np.ndarray, MAX_VALUE_RATIO: float) \
+        -> List[bool]:
+    """
+    Agent done flags for multiplicative environments controlling episode termination and 
+    Q-value estimation for learning (i.e. whether genuine).
+
+    Parameters:
+        time: episode time step
+        wealth: portfolio value
+        reward: time-average growth rate
+        step_return: single step return
+        lev: asset leverages
+        next_state: normalised state values
+
+    Returns:
+        done: episode termination
+        learn_done: agent learning flag
+    """
+    done_time = time == TIME_LENGTH
+    done_wealth = wealth == MIN_VALUE
+    done_reward = reward < MIN_REWARD
+    done_return = step_return < MIN_RETURN
+    done_lev = np.all(np.abs(lev)) < MIN_WEIGHT
+    done_state = np.any(next_state > MAX_VALUE_RATIO)
+
+    done = bool(done_time or done_wealth or done_reward or 
+                done_return or done_lev or done_state)
+
+    learn_done = done and not (done_time or done_state)
+
+    return [done, learn_done]
 
 def shadow_means(alpha: np.ndarray, min: np.ndarray, max: np.ndarray, 
                  min_mul: float, max_mul: float) \

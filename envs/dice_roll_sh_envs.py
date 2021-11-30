@@ -15,11 +15,16 @@ Description:
     https://www.wiley.com/en-us/Safe+Haven%3A+Investing+for+Financial+Storms-p-9781119401797.
 """
 
+import sys
+sys.path.append("./")
+
 import gym
 from gym import spaces
 from gym.utils import seeding
 import numpy as np
 from typing import List, Tuple
+
+from extras.utils import multi_dones
 
 MAX_VALUE = 1e18                                        # maximium potfolio value for normalisation
 INITIAL_PRICE = 1e3                                     # intial price of all assets
@@ -54,123 +59,7 @@ else:
 
 SH_LEV_FACTOR = 1 / np.abs(SH_UP_R)
 
-class Dice_SH_n1_U(gym.Env):
-    """
-    OpenAI gym environment for determining the optimal leverage at each time step 
-    for the dice roll gamble without safe haven.
-
-    Methods:
-        seed(seed):
-            Manually set seed for reproducibility.
-
-        step(actions):
-            Obtain next environment state from taking a given set of actions.
-
-        reset():
-            Reset enivronment to inital default state.
-    """
-
-    def __init__(self):
-        """
-        Intialise class varaibles by creating state-action space and reward range.
-        """
-        super(Dice_SH_n1_U, self).__init__()
-
-        self.reward_range = (MIN_REWARD, np.inf)
-
-        #  state space: [cumulative reward, asset 0]
-        self.observation_space = spaces.Box(low=0, high=MAX_VALUE_RATIO, 
-                                            shape=(2,), dtype=np.float64)
-
-        # action space: [leverage 0]
-        self.action_space = spaces.Box(low=-MAX_ABS_ACTION, high=MAX_ABS_ACTION, 
-                                       shape=(1,), dtype=np.float64)
-
-        self.seed()
-        self.reset()
-
-    def seed(self, seed=None) -> List[int]:
-        """
-        Fix randomisation seed.
-
-        Parameters:
-            seed: unique seed for NumPy.
-        """
-        self.np_random, seed = seeding.np_random(seed)
-        return [seed]
-
-    def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, np.ndarray]:
-        """
-        Take action to arrive at next state and calculate reward.
-
-        Parameters:
-            action: array of actions to be taken determined by actor network
-
-        Returns:
-            next_state: state arrived at from taking action
-            reward: portfolio geometric mean
-            done: Boolean flag for episode termination
-            risk: collection of data retrieved from step
-        """
-        initial_wealth = self.wealth
-        initial_asset0 = self.asset0
-        
-        # obtain leverage from neural network
-        lev = action[0]
-        
-        # sample returns
-        r = np.random.choice(3, p=[UP_PROB, DOWN_PROB, MID_PROB], size=1)
-        r = np.where(r==0, UP_R, r)
-        r = np.where(r==1, DOWN_R, r)
-        r = np.where(r==2, MID_R, r)[0]
-
-        # one-step portfolio return
-        step_return = lev * r
-        
-        # obtain next state
-        self.asset0 = initial_asset0 * (1 + r)
-
-        self.wealth = initial_wealth * (1 + step_return)
-        
-        next_state = np.array([self.wealth, self.asset0], dtype=np.float64)
-        next_state /= MAX_VALUE
-
-        # calculate the step reward as 1 + time-average growth rate
-        self.wealth = np.maximum(self.wealth, MIN_VALUE)
-        growth = self.wealth / INITIAL_VALUE
-
-        reward = np.exp(np.log(growth) / self.time)
-
-        # episode termination criteria
-        done = bool(self.wealth == MIN_VALUE
-                    or reward < MIN_REWARD
-                    or step_return < MIN_RETURN
-                    or np.abs(lev) < MIN_WEIGHT
-                    or np.any(next_state > MAX_VALUE_RATIO))
-
-        risk = np.array([reward, self.wealth, step_return, lev, np.nan, np.nan, np.nan], dtype=np.float64)
-
-        self.time += 1
-
-        return next_state, reward, done, risk
-
-    def reset(self):
-        """
-        Reset the environment for a new agent episode.
-
-        Parameters:
-            state: default intial state
-        """
-        self.time = 1
-        self.wealth = INITIAL_VALUE
-        self.asset0 = INITIAL_PRICE
-
-        state = np.array([self.wealth, self.asset0], dtype=np.float64)
-        state /= MAX_VALUE
-
-        return state
-
-class Dice_SH_n1_I(gym.Env):
+class Dice_SH(gym.Env):
     """
     OpenAI gym environment for determining the optimal leverage at each time step 
     for the dice roll gamble with safe haven.
@@ -193,7 +82,7 @@ class Dice_SH_n1_I(gym.Env):
         """
         Intialise class varaibles by creating state-action space and reward range.
         """
-        super(Dice_SH_n1_I, self).__init__()
+        super(Dice_SH, self).__init__()
 
         self.reward_range = (MIN_REWARD, np.inf)
 
@@ -218,7 +107,7 @@ class Dice_SH_n1_I(gym.Env):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
 
-    def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, np.ndarray]:
+    def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, List[bool], np.ndarray]:
         """
         Take action to arrive at next state and calculate reward.
 
@@ -228,8 +117,8 @@ class Dice_SH_n1_I(gym.Env):
         Returns:
             next_state: state arrived at from taking action
             reward: portfolio geometric mean
-            done: Boolean flag for episode termination
-            risk: collection of data retrieved from step
+            done: Boolean flags for episode termination and whether genuine
+            risk: collection of additional data retrieved from each step
         """
         initial_wealth = self.wealth
         initial_asset0 = self.asset0
@@ -255,7 +144,6 @@ class Dice_SH_n1_I(gym.Env):
 
         # obtain next state
         self.asset0 = initial_asset0 * (1 + r)
-
         self.wealth = initial_wealth * (1 + step_return)
         
         next_state = np.array([self.wealth, self.asset0], dtype=np.float64)
@@ -268,11 +156,8 @@ class Dice_SH_n1_I(gym.Env):
         reward = np.exp(np.log(growth) / self.time)
 
         # episode termination criteria
-        done = bool(self.wealth == MIN_VALUE
-                    or reward < MIN_REWARD
-                    or step_return < MIN_RETURN
-                    or np.abs(lev) < MIN_WEIGHT
-                    or np.any(next_state > MAX_VALUE_RATIO))
+        done = multi_dones(self.wealth, MIN_VALUE, reward, MIN_REWARD, step_return, MIN_RETURN, 
+                           lev, MIN_WEIGHT, next_state, MAX_VALUE_RATIO)
 
         risk = np.array([reward, self.wealth, step_return, lev, np.nan, np.nan, 1-lev], dtype=np.float64)
 
@@ -295,124 +180,7 @@ class Dice_SH_n1_I(gym.Env):
         state /= MAX_VALUE
 
         return state
-
-class Dice_SH_n1_InvA_U(gym.Env):
-    """
-    OpenAI gym environment for determining the optimal leverage at each time step 
-    for the dice roll gamble without safe haven.
-
-    Methods:
-        seed(seed):
-            Manually set seed for reproducibility.
-
-        step(actions):
-            Obtain next environment state from taking a given set of actions.
-
-        reset():
-            Reset enivronment to inital default state.
-    """
-
-    def __init__(self):
-        """
-        Intialise class varaibles by creating state-action space and reward range.
-        """
-        super(Dice_SH_n1_InvA_U, self).__init__()
-
-        self.reward_range = (MIN_REWARD, np.inf)
-
-        #  state space: [cumulative reward, asset 0]
-        self.observation_space = spaces.Box(low=0, high=MAX_VALUE_RATIO, 
-                                            shape=(2,), dtype=np.float64)
-
-        # action space: [leverage 0]
-        self.action_space = spaces.Box(low=-MAX_ABS_ACTION, high=MAX_ABS_ACTION, 
-                                       shape=(1,), dtype=np.float64)
-
-        self.seed()
-        self.reset()
-
-    def seed(self, seed=None) -> List[int]:
-        """
-        Fix randomisation seed.
-
-        Parameters:
-            seed: unique seed for NumPy.
-        """
-        self.np_random, seed = seeding.np_random(seed)
-        return [seed]
-
-    def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, np.ndarray]:
-        """
-        Take action to arrive at next state and calculate reward.
-
-        Parameters:
-            action: array of actions to be taken determined by actor network
-
-        Returns:
-            next_state: state arrived at from taking action
-            reward: portfolio geometric mean
-            done: Boolean flag for episode termination
-            risk: collection of data retrieved from step
-        """
-        initial_wealth = self.wealth
-        initial_asset0 = self.asset0
-        
-        # obtain leverage from neural network
-        lev = action[0]
-        
-        # sample returns
-        r = np.random.choice(3, p=[UP_PROB, DOWN_PROB, MID_PROB], size=1)
-        r = np.where(r==0, UP_R, r)
-        r = np.where(r==1, DOWN_R, r)
-        r = np.where(r==2, MID_R, r)[0]
-
-        # one-step portfolio return
-        step_return = lev * r
-        
-        # obtain next state
-        self.asset0 = initial_asset0 * (1 + r)
-
-        self.wealth = initial_wealth * (1 + step_return)
-        
-        next_state = np.array([self.wealth, self.asset0], dtype=np.float64)
-        next_state /= MAX_VALUE
-
-        # calculate the step reward as 1 + time-average growth rate
-        self.wealth = np.maximum(self.wealth, MIN_VALUE)
-        growth = self.wealth / INITIAL_VALUE
-
-        reward = np.exp(np.log(growth) / self.time)
-
-        # episode termination criteria
-        done = bool(self.wealth == MIN_VALUE
-                    or reward < MIN_REWARD
-                    or step_return < MIN_RETURN
-                    or np.abs(lev) < MIN_WEIGHT
-                    or np.any(next_state > MAX_VALUE_RATIO))
-
-        risk = np.array([reward, self.wealth, step_return, lev, np.nan, np.nan, np.nan], dtype=np.float64)
-
-        self.time += 1
-
-        return next_state, reward, done, risk
-
-    def reset(self):
-        """
-        Reset the environment for a new agent episode.
-
-        Parameters:
-            state: default intial state
-        """
-        self.time = 1
-        self.wealth = INITIAL_VALUE
-        self.asset0 = INITIAL_PRICE
-
-        state = np.array([self.wealth, self.asset0], dtype=np.float64)
-        state /= MAX_VALUE
-
-        return state
-
-class Dice_SH_n1_InvA_I(gym.Env):
+class Dice_SH_InvA(gym.Env):
     """
     OpenAI gym environment for determining the optimal leverage at each time step 
     for the dice roll gamble with safe haven.
@@ -432,7 +200,7 @@ class Dice_SH_n1_InvA_I(gym.Env):
         """
         Intialise class varaibles by creating state-action space and reward range.
         """
-        super(Dice_SH_n1_InvA_I, self).__init__()
+        super(Dice_SH_InvA, self).__init__()
 
         self.reward_range = (MIN_REWARD, np.inf)
 
@@ -467,7 +235,7 @@ class Dice_SH_n1_InvA_I(gym.Env):
         Returns:
             next_state: state arrived at from taking action
             reward: portfolio geometric mean
-            done: Boolean flag for episode termination
+            done: Boolean flags for episode termination and whether genuine
             risk: collection of data retrieved from step
         """
         initial_wealth = self.wealth
@@ -510,11 +278,8 @@ class Dice_SH_n1_InvA_I(gym.Env):
         reward = np.exp(np.log(growth) / self.time)
 
         # episode termination criteria
-        done = bool(self.wealth == MIN_VALUE
-                    or reward < MIN_REWARD
-                    or step_return < MIN_RETURN
-                    or np.abs(lev) < MIN_WEIGHT
-                    or np.any(next_state > MAX_VALUE_RATIO))
+        done = multi_dones(self.wealth, MIN_VALUE, reward, MIN_REWARD, step_return, MIN_RETURN, 
+                           lev, MIN_WEIGHT, next_state, MAX_VALUE_RATIO)
 
         risk = np.array([reward, self.wealth, step_return, lev, np.nan, np.nan, lev_sh], dtype=np.float64)
 
@@ -539,129 +304,7 @@ class Dice_SH_n1_InvA_I(gym.Env):
 
         return state
 
-class Dice_SH_n1_InvB_U(gym.Env):
-    """
-    OpenAI gym environment for determining the optimal [leverage, stop-loss] at each 
-    time step for the dice roll gamble without safe haven.
-
-    Methods:
-        seed(seed):
-            Manually set seed for reproducibility.
-
-        step(actions):
-            Obtain next environment state from taking a given set of actions.
-
-        reset():
-            Reset enivronment to inital default state.
-    """
-
-    def __init__(self):
-        """
-        Intialise class varaibles by creating state-action space and reward range.
-        """
-        super(Dice_SH_n1_InvB_U, self).__init__()
-
-        self.reward_range = (MIN_REWARD, np.inf)
-
-        # state space: [cumulative reward, asset 0]
-        self.observation_space = spaces.Box(low=0, high=MAX_VALUE_RATIO, 
-                                            shape=(2,), dtype=np.float64)
-
-        # action space: [leverage 0, stop-loss]
-        self.action_space = spaces.Box(low=-MAX_ABS_ACTION, high=MAX_ABS_ACTION, 
-                                       shape=(2,), dtype=np.float64)
-
-        self.seed()
-        self.reset()
-
-    def seed(self, seed=None) -> List[int]:
-        """
-        Fix randomisation seed.
-
-        Parameters:
-            seed: unique seed for NumPy.
-        """
-        self.np_random, seed = seeding.np_random(seed)
-        return [seed]
-
-    def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, np.ndarray]:
-        """
-        Take action to arrive at next state and calculate reward.
-
-        Parameters:
-            action: array of actions to be taken determined by actor network
-
-        Returns:
-            next_state: state arrived at from taking action
-            reward: portfolio geometric mean
-            done: Boolean flag for episode termination
-            risk: collection of data retrieved from step
-        """
-        initial_wealth = self.wealth
-        initial_asset0 = self.asset0
-        
-        # obtain leverages and stop-loss from neural network
-        stop_loss = (action[0] + 1) / 2
-        lev = action[1] * LEV_FACTOR
-        
-        # sample returns
-        r = np.random.choice(3, p=[UP_PROB, DOWN_PROB, MID_PROB], size=1)
-        r = np.where(r==0, UP_R, r)
-        r = np.where(r==1, DOWN_R, r)
-        r = np.where(r==2, MID_R, r)[0]
-
-        # one-step portfolio return
-        step_return = lev * r
-        
-        # amount of portoflio to bet and outcome
-        min_wealth = INITIAL_VALUE * stop_loss
-        active = initial_wealth - min_wealth
-        change = active * (1 + step_return)
-
-        # obtain next state
-        self.asset0 = initial_asset0 * (1 + r)
-
-        self.wealth = min_wealth + change
-        
-        next_state = np.array([self.wealth, self.asset0], dtype=np.float64)
-        next_state /= MAX_VALUE
-
-        # calculate the step reward as 1 + time-average growth rate
-        self.wealth = np.maximum(self.wealth, min_wealth)
-        growth = self.wealth / INITIAL_VALUE
-
-        reward = np.exp(np.log(growth) / self.time)
-
-        # episode termination criteria
-        done = bool(self.wealth == min_wealth
-                    or reward < MIN_REWARD
-                    or step_return < MIN_RETURN
-                    or np.abs(lev) < MIN_WEIGHT
-                    or np.any(next_state > MAX_VALUE_RATIO))
-
-        risk = np.array([reward, self.wealth, step_return, lev, stop_loss, np.nan, np.nan], dtype=np.float64)
-
-        self.time += 1
-
-        return next_state, reward, done, risk
-
-    def reset(self):
-        """
-        Reset the environment for a new agent episode.
-
-        Parameters:
-            state: default intial state
-        """
-        self.time = 1
-        self.wealth = INITIAL_VALUE
-        self.asset0 = INITIAL_PRICE
-
-        state = np.array([self.wealth, self.asset0], dtype=np.float64)
-        state /= MAX_VALUE
-
-        return state
-
-class Dice_SH_n1_InvB_I(gym.Env):
+class Dice_SH_InvB(gym.Env):
     """
     OpenAI gym environment for determining the optimal [leverage, stop-loss] at each 
     time step for the dice roll gamble with safe haven.
@@ -681,7 +324,7 @@ class Dice_SH_n1_InvB_I(gym.Env):
         """
         Intialise class varaibles by creating state-action space and reward range.
         """
-        super(Dice_SH_n1_InvB_I, self).__init__()
+        super(Dice_SH_InvB, self).__init__()
 
         self.reward_range = (MIN_REWARD, np.inf)
 
@@ -716,7 +359,7 @@ class Dice_SH_n1_InvB_I(gym.Env):
         Returns:
             next_state: state arrived at from taking action
             reward: portfolio geometric mean
-            done: Boolean flag for episode termination
+            done: Boolean flags for episode termination and whether genuine
             risk: collection of data retrieved from step
         """
         initial_wealth = self.wealth
@@ -765,11 +408,8 @@ class Dice_SH_n1_InvB_I(gym.Env):
         reward = np.exp(np.log(growth) / self.time)
 
         # episode termination criteria
-        done = bool(self.wealth == min_wealth
-                    or reward < MIN_REWARD
-                    or step_return < MIN_RETURN
-                    or np.abs(lev) < MIN_WEIGHT
-                    or np.any(next_state > MAX_VALUE_RATIO))
+        done = multi_dones(self.wealth, min_wealth, reward, MIN_REWARD, step_return, MIN_RETURN, 
+                           lev, MIN_WEIGHT, next_state, MAX_VALUE_RATIO)
 
         risk = np.array([reward, self.wealth, step_return, lev, stop_loss, np.nan, lev_sh], dtype=np.float64)
 
@@ -793,138 +433,8 @@ class Dice_SH_n1_InvB_I(gym.Env):
         state /= MAX_VALUE
 
         return state
-
-class Dice_SH_n1_InvC_U(gym.Env):
-    """
-    OpenAI gym environment for determining the optimal [leverage, stop-loss, 
-    retention ratio] at each time step for the dice roll gamble without safe havem.
-
-    Methods:
-        seed(seed):
-            Manually set seed for reproducibility.
-
-        step(actions):
-            Obtain next environment state from taking a given set of actions.
-
-        reset():
-            Reset enivronment to inital default state.
-    """
-
-    def __init__(self):
-        """
-        Intialise class varaibles by creating state-action space and reward range.
-        """
-        super(Dice_SH_n1_InvC_U, self).__init__()
-
-        self.reward_range = (MIN_REWARD, np.inf)
-
-        # state space: [cumulative reward, asset 0]
-        self.observation_space = spaces.Box(low=0, high=MAX_VALUE_RATIO, 
-                                            shape=(2,), dtype=np.float64)
-
-        # action space: [leverage 0, stop-loss, retention ratio]
-        self.action_space = spaces.Box(low=-MAX_ABS_ACTION, high=MAX_ABS_ACTION, 
-                                       shape=(3,), dtype=np.float64)
-
-        self.seed()
-        self.reset()
-
-    def seed(self, seed=None) -> List[int]:
-        """
-        Fix randomisation seed.
-
-        Parameters:
-            seed: unique seed for NumPy.
-        """
-        self.np_random, seed = seeding.np_random(seed)
-        return [seed]
-
-    def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, np.ndarray]:
-        """
-        Take action to arrive at next state and calculate reward.
-
-        Parameters:
-            action: array of actions to be taken determined by actor network
-
-        Returns:
-            next_state: state arrived at from taking action
-            reward: portfolio geometric mean
-            done: Boolean flag for episode termination
-            risk: collection of data retrieved from step
-        """
-        initial_wealth = self.wealth
-        initial_asset0 = self.asset0
-        
-        # obtain leverages, stop-loss, and retention ratio from neural network
-        stop_loss = (action[0] + 1) / 2
-        retention = (action[1] + 1) / 2
-        lev = action[2] * LEV_FACTOR
-        
-        # sample returns
-        r = np.random.choice(3, p=[UP_PROB, DOWN_PROB, MID_PROB], size=1)
-        r = np.where(r==0, UP_R, r)
-        r = np.where(r==1, DOWN_R, r)
-        r = np.where(r==2, MID_R, r)[0]
-
-        # one-step portfolio return
-        step_return = lev * r
-        
-        # amount of portoflio to bet and outcome
-        if initial_wealth <= INITIAL_VALUE:
-            # revert to reinvestor B risk-taking
-            min_wealth = INITIAL_VALUE * stop_loss
-            active = initial_wealth - min_wealth
-        else:
-            # bet portion of existing profit at each step
-            min_wealth = INITIAL_VALUE + (initial_wealth - INITIAL_VALUE) * retention
-            active = initial_wealth - min_wealth
-
-        change = active * (1 + step_return)
-
-        # obtain next state
-        self.asset0 = initial_asset0 * (1 + r)
-
-        self.wealth = min_wealth + change
-        
-        next_state = np.array([self.wealth, self.asset0], dtype=np.float64)
-        next_state /= MAX_VALUE
-
-        # calculate the step reward as 1 + time-average growth rate
-        self.wealth = np.maximum(self.wealth, min_wealth)
-        growth = self.wealth / INITIAL_VALUE
-
-        reward = np.exp(np.log(growth) / self.time)
-
-        # episode termination criteria
-        done = bool(self.wealth == min_wealth
-                    or reward < MIN_REWARD
-                    or step_return < MIN_RETURN
-                    or np.abs(lev) < MIN_WEIGHT
-                    or np.any(next_state > MAX_VALUE_RATIO))
-
-        risk = np.array([reward, self.wealth, step_return, lev, stop_loss, retention, np.nan], dtype=np.float64)
-
-        self.time += 1
-
-        return next_state, reward, done, risk
-
-    def reset(self):
-        """
-        Reset the environment for a new agent episode.
-
-        Parameters:
-            state: default intial state
-        """
-        self.time = 1
-        self.wealth = INITIAL_VALUE
-        self.asset0 = INITIAL_PRICE
-
-        state = np.array([self.wealth, self.asset0], dtype=np.float64)
-        state /= MAX_VALUE
-
-        return state
-
-class Dice_SH_n1_InvC_I(gym.Env):
+    
+class Dice_SH_InvC(gym.Env):
     """
     OpenAI gym environment for determining the optimal [leverage, stop-loss, 
     retention ratio] at each time step for the dice roll gamble with safe haven.
@@ -944,7 +454,7 @@ class Dice_SH_n1_InvC_I(gym.Env):
         """
         Intialise class varaibles by creating state-action space and reward range.
         """
-        super(Dice_SH_n1_InvC_I, self).__init__()
+        super(Dice_SH_InvC, self).__init__()
 
         self.reward_range = (MIN_REWARD, np.inf)
 
@@ -979,7 +489,7 @@ class Dice_SH_n1_InvC_I(gym.Env):
         Returns:
             next_state: state arrived at from taking action
             reward: portfolio geometric mean
-            done: Boolean flag for episode termination
+            done: Boolean flags for episode termination and whether genuine
             risk: collection of data retrieved from step
         """
         initial_wealth = self.wealth
@@ -1036,11 +546,8 @@ class Dice_SH_n1_InvC_I(gym.Env):
         reward = np.exp(np.log(growth) / self.time)
 
         # episode termination criteria
-        done = bool(self.wealth == min_wealth
-                    or reward < MIN_REWARD
-                    or step_return < MIN_RETURN
-                    or np.abs(lev) < MIN_WEIGHT
-                    or np.any(next_state > MAX_VALUE_RATIO))
+        done = multi_dones(self.wealth, min_wealth, reward, MIN_REWARD, step_return, MIN_RETURN, 
+                           lev, MIN_WEIGHT, next_state, MAX_VALUE_RATIO)
 
         risk = np.array([reward, self.wealth, step_return, lev, stop_loss, retention, lev_sh], dtype=np.float64)
 

@@ -14,11 +14,16 @@ Description:
     simulated real market environments for all three investor categories.
 """
 
+import sys
+sys.path.append("./")
+
 import gym
 from gym import spaces
 from gym.utils import seeding
 import numpy as np
 from typing import List, Tuple
+
+from extras.utils import market_dones
 
 MAX_VALUE = 1e6                                         # maximium potfolio value for normalisation
 INITIAL_VALUE = 1e4                                     # intial portfolio value
@@ -71,11 +76,11 @@ class Market_InvA_D1(gym.Env):
 
         self.reward_range = (MIN_REWARD, np.inf)
 
-        # state space: [cumulative reward, asset 0-(n-1)]
+        # state space: [cumulative reward, asset prices]
         self.observation_space = spaces.Box(low=0, high=MAX_VALUE_RATIO, 
                                             shape=(1 + n_assets,), dtype=np.float64)
 
-        # action space: [leverage 0-(n-1)]
+        # action space: [leverages]
         self.action_space = spaces.Box(low=-MAX_ABS_ACTION, high=MAX_ABS_ACTION, 
                                        shape=(n_assets,), dtype=np.float64)
 
@@ -104,13 +109,13 @@ class Market_InvA_D1(gym.Env):
         Returns:
             next_state: state arrived at from taking action
             reward: portfolio geometric mean
-            actual_done: Boolean flags for episode termination and whether genuine
+            done: Boolean flags for episode termination and whether genuine
             risk: collection of data retrieved from step
         """
         initial_wealth = self.wealth
         assets = self.assets
 
-        # obtain leverages from neural network
+        # obtain actions from neural network
         lev = action * LEV_FACTOR
 
         # receive next set of prices
@@ -120,6 +125,7 @@ class Market_InvA_D1(gym.Env):
         r = next_state / assets - 1
         step_return = np.sum(lev * r)
 
+        # obtain next state
         self.wealth = initial_wealth * (1 + step_return)
         self.assets = next_assets
 
@@ -134,14 +140,9 @@ class Market_InvA_D1(gym.Env):
         reward = np.exp(np.log(growth) / self.time)
         
         # episode termination criteria
-        done = bool(self.time == self.time_length 
-                    or self.wealth == MIN_VALUE
-                    or reward < MIN_REWARD
-                    or step_return < MIN_RETURN
-                    or np.all(np.abs(lev) < MIN_WEIGHT)
-                    or np.any(next_state > MAX_VALUE_RATIO))
-        
-        actual_done = [done, done and not self.time == self.time_length]
+        done = market_dones(self.time, self.time_length, self.wealth, MIN_VALUE, 
+                            reward, MIN_REWARD, step_return, MIN_RETURN, 
+                            lev, MIN_WEIGHT, next_state, MAX_VALUE_RATIO)
         
         self.risk[0:4] = [reward, self.wealth, step_return, np.mean(lev)]
         
@@ -150,7 +151,7 @@ class Market_InvA_D1(gym.Env):
 
         self.time += 1
 
-        return next_state, reward, actual_done, self.risk
+        return next_state, reward, done, self.risk
 
     def reset(self, assets: np.ndarray):
         """
@@ -207,11 +208,11 @@ class Market_InvB_D1(gym.Env):
 
         self.reward_range = (MIN_REWARD, np.inf)
 
-        # state space: [cumulative reward, asset 0-(n-1)]
+        # state space: [cumulative reward, asset prices]
         self.observation_space = spaces.Box(low=0, high=MAX_VALUE_RATIO, 
                                             shape=(1 + n_assets,), dtype=np.float64)
 
-        # action space: [leverage 0-(n-1), stop-loss]
+        # action space: [leverages, stop-loss]
         self.action_space = spaces.Box(low=-MAX_ABS_ACTION, high=MAX_ABS_ACTION, 
                                        shape=(1 + n_assets,), dtype=np.float64)
 
@@ -240,13 +241,13 @@ class Market_InvB_D1(gym.Env):
         Returns:
             next_state: state arrived at from taking action
             reward: portfolio geometric mean
-            actual_done: Boolean flags for episode termination and whether genuine
+            done: Boolean flags for episode termination and whether genuine
             risk: collection of data retrieved from step
         """
         initial_wealth = self.wealth
         assets = self.assets
 
-        # obtain leverages from neural network
+        # obtain actions from neural network
         stop_loss = (action[0] + 1) / 2
         lev = action[1:] * LEV_FACTOR
 
@@ -257,11 +258,12 @@ class Market_InvB_D1(gym.Env):
         r = next_state / assets - 1
         step_return = np.sum(lev * r)
 
-        # amount of portoflio to bet and outcome        
+        # amount of portoflio to bet and outcome
         min_wealth = INITIAL_VALUE * stop_loss
         active = initial_wealth - min_wealth
         change = active * (1 + step_return)
 
+        # obtain next state
         self.wealth = min_wealth + change
         self.assets = next_assets
 
@@ -270,20 +272,15 @@ class Market_InvB_D1(gym.Env):
         next_state /= MAX_VALUE
 
         # calculate the step reward as 1 + time-average growth rate
-        self.wealth = np.maximum(self.wealth, MIN_VALUE)
+        self.wealth = np.maximum(self.wealth, min_wealth)
         growth = self.wealth / INITIAL_VALUE
 
         reward = np.exp(np.log(growth) / self.time)
         
         # episode termination criteria
-        done = bool(self.time == self.time_length 
-                    or self.wealth == MIN_VALUE
-                    or reward < MIN_REWARD
-                    or step_return < MIN_RETURN
-                    or np.all(np.abs(lev) < MIN_WEIGHT)
-                    or np.any(next_state > MAX_VALUE_RATIO))
-        
-        actual_done = [done, done and not self.time == self.time_length]
+        done = market_dones(self.time, self.time_length, self.wealth, min_wealth, 
+                            reward, MIN_REWARD, step_return, MIN_RETURN, 
+                            lev, MIN_WEIGHT, next_state, MAX_VALUE_RATIO)
 
         self.risk[0:5] = [reward, self.wealth, step_return, np.mean(lev), stop_loss]
         
@@ -292,7 +289,7 @@ class Market_InvB_D1(gym.Env):
 
         self.time += 1
 
-        return next_state, reward, actual_done, self.risk
+        return next_state, reward, done, self.risk
 
     def reset(self, assets: np.ndarray):
         """
@@ -350,11 +347,11 @@ class Market_InvC_D1(gym.Env):
 
         self.reward_range = (MIN_REWARD, np.inf)
 
-        # state space: [cumulative reward, asset 0-(n-1)]
+        # state space: [cumulative reward, asset prices]
         self.observation_space = spaces.Box(low=0, high=MAX_VALUE_RATIO, 
                                             shape=(1 + n_assets,), dtype=np.float64)
 
-        # action space: [leverage 0-(n-1), stop-loss, retention ratio]
+        # action space: [leverages, stop-loss, retention ratio]
         self.action_space = spaces.Box(low=-MAX_ABS_ACTION, high=MAX_ABS_ACTION, 
                                        shape=(2 + n_assets,), dtype=np.float64)
 
@@ -383,13 +380,13 @@ class Market_InvC_D1(gym.Env):
         Returns:
             next_state: state arrived at from taking action
             reward: portfolio geometric mean
-            actual_done: Boolean flags for episode termination and whether genuine
+            done: Boolean flags for episode termination and whether genuine
             risk: collection of data retrieved from step
         """
         initial_wealth = self.wealth
         assets = self.assets
 
-        # obtain leverages from neural network
+        # obtain actions from neural network
         stop_loss = (action[0] + 1) / 2
         retention = (action[1] + 1) / 2
         lev = action[2:] * LEV_FACTOR
@@ -413,6 +410,7 @@ class Market_InvC_D1(gym.Env):
 
         change = active * (1 + step_return)
 
+        # obtain next state
         self.wealth = min_wealth + change
         self.assets = next_assets
 
@@ -421,20 +419,15 @@ class Market_InvC_D1(gym.Env):
         next_state /= MAX_VALUE
 
         # calculate the step reward as 1 + time-average growth rate
-        self.wealth = np.maximum(self.wealth, MIN_VALUE)
+        self.wealth = np.maximum(self.wealth, min_wealth)
         growth = self.wealth / INITIAL_VALUE
 
         reward = np.exp(np.log(growth) / self.time)
         
         # episode termination criteria
-        done = bool(self.time == self.time_length 
-                    or self.wealth == MIN_VALUE
-                    or reward < MIN_REWARD
-                    or step_return < MIN_RETURN
-                    or np.all(np.abs(lev) < MIN_WEIGHT)
-                    or np.any(next_state > MAX_VALUE_RATIO))
-        
-        actual_done = [done, done and not self.time == self.time_length]
+        done = market_dones(self.time, self.time_length, self.wealth, min_wealth, 
+                            reward, MIN_REWARD, step_return, MIN_RETURN, 
+                            lev, MIN_WEIGHT, next_state, MAX_VALUE_RATIO)
 
         self.risk[0:6] = [reward, self.wealth, step_return, np.mean(lev), stop_loss, retention]
         
@@ -443,7 +436,7 @@ class Market_InvC_D1(gym.Env):
 
         self.time += 1
 
-        return next_state, reward, actual_done, self.risk
+        return next_state, reward, done, self.risk
 
     def reset(self, assets: np.ndarray):
         """
@@ -487,7 +480,7 @@ class Market_InvA_Dx(gym.Env):
         Parameters:
             n_assets: number of assets
             time_length: maximum training time before termination
-            obs_days: number of previous sequential days observed (unused)
+            obs_days: number of previous sequential days observed
         """
         super(Market_InvA_Dx, self).__init__()
 
@@ -502,11 +495,11 @@ class Market_InvA_Dx(gym.Env):
 
         self.reward_range = (MIN_REWARD, np.inf)
 
-        # state space: [cumulative reward, asset 0-(n-1)]
+        # state space: [cumulative reward, asset prices]
         self.observation_space = spaces.Box(low=0, high=MAX_VALUE_RATIO, 
                                             shape=(1 + obs_days * n_assets,), dtype=np.float64)
 
-        # action space: [leverage 0-(n-1)]
+        # action space: [leverages]
         self.action_space = spaces.Box(low=-MAX_ABS_ACTION, high=MAX_ABS_ACTION, 
                                        shape=(n_assets,), dtype=np.float64)
 
@@ -535,13 +528,13 @@ class Market_InvA_Dx(gym.Env):
         Returns:
             next_state: state arrived at from taking action
             reward: portfolio geometric mean
-            actual_done: Boolean flags for episode termination and whether genuine
+            done: Boolean flags for episode termination and whether genuine
             risk: collection of data retrieved from step
         """
         initial_wealth = self.wealth
         assets = self.assets
 
-        # obtain leverages from neural network
+        # obtain actions from neural network
         lev = action * LEV_FACTOR
 
         # receive next set of prices
@@ -551,6 +544,7 @@ class Market_InvA_Dx(gym.Env):
         r = (next_state / assets - 1)[0:self.n_assets]
         step_return = np.sum(lev * r)
 
+        # obtain next state
         self.wealth = initial_wealth * (1 + step_return)
         self.assets = next_assets
 
@@ -565,14 +559,9 @@ class Market_InvA_Dx(gym.Env):
         reward = np.exp(np.log(growth) / self.time)
         
         # episode termination criteria
-        done = bool(self.time == self.time_length 
-                    or self.wealth == MIN_VALUE
-                    or reward < MIN_REWARD
-                    or step_return < MIN_RETURN
-                    or np.all(np.abs(lev) < MIN_WEIGHT)
-                    or np.any(next_state > MAX_VALUE_RATIO))
-        
-        actual_done = [done, done and not self.time == self.time_length]
+        done = market_dones(self.time, self.time_length, self.wealth, MIN_VALUE, 
+                            reward, MIN_REWARD, step_return, MIN_RETURN, 
+                            lev, MIN_WEIGHT, next_state, MAX_VALUE_RATIO)
         
         self.risk[0:4] = [reward, self.wealth, step_return, np.mean(lev)]
         
@@ -581,7 +570,7 @@ class Market_InvA_Dx(gym.Env):
 
         self.time += 1
 
-        return next_state, reward, actual_done, self.risk
+        return next_state, reward, done, self.risk
 
     def reset(self, assets: np.ndarray):
         """
@@ -640,11 +629,11 @@ class Market_InvB_Dx(gym.Env):
 
         self.reward_range = (MIN_REWARD, np.inf)
 
-        # state space: [cumulative reward, asset 0-(n-1)]
+        # state space: [cumulative reward, asset prices]
         self.observation_space = spaces.Box(low=0, high=MAX_VALUE_RATIO, 
                                             shape=(1 + obs_days * n_assets,), dtype=np.float64)
 
-        # action space: [leverage 0-(n-1), stop-loss]
+        # action space: [leverages, stop-loss]
         self.action_space = spaces.Box(low=-MAX_ABS_ACTION, high=MAX_ABS_ACTION, 
                                        shape=(1 + n_assets,), dtype=np.float64)
 
@@ -673,13 +662,13 @@ class Market_InvB_Dx(gym.Env):
         Returns:
             next_state: state arrived at from taking action
             reward: portfolio geometric mean
-            actual_done: Boolean flags for episode termination and whether genuine
+            done: Boolean flags for episode termination and whether genuine
             risk: collection of data retrieved from step
         """
         initial_wealth = self.wealth
         assets = self.assets
 
-        # obtain leverages from neural network
+        # obtain actions from neural network
         stop_loss = (action[0] + 1) / 2
         lev = action[1:] * LEV_FACTOR
 
@@ -695,6 +684,7 @@ class Market_InvB_Dx(gym.Env):
         active = initial_wealth - min_wealth
         change = active * (1 + step_return)
 
+        # obtain next state
         self.wealth = min_wealth + change
         self.assets = next_assets
 
@@ -703,20 +693,15 @@ class Market_InvB_Dx(gym.Env):
         next_state /= MAX_VALUE
 
         # calculate the step reward as 1 + time-average growth rate
-        self.wealth = np.maximum(self.wealth, MIN_VALUE)
+        self.wealth = np.maximum(self.wealth, min_wealth)
         growth = self.wealth / INITIAL_VALUE
 
         reward = np.exp(np.log(growth) / self.time)
         
         # episode termination criteria
-        done = bool(self.time == self.time_length 
-                    or self.wealth == MIN_VALUE
-                    or reward < MIN_REWARD
-                    or step_return < MIN_RETURN
-                    or np.all(np.abs(lev) < MIN_WEIGHT)
-                    or np.any(next_state > MAX_VALUE_RATIO))
-        
-        actual_done = [done, done and not self.time == self.time_length]
+        done = market_dones(self.time, self.time_length, self.wealth, min_wealth, 
+                            reward, MIN_REWARD, step_return, MIN_RETURN, 
+                            lev, MIN_WEIGHT, next_state, MAX_VALUE_RATIO)
 
         self.risk[0:5] = [reward, self.wealth, step_return, np.mean(lev), stop_loss]
         
@@ -725,7 +710,7 @@ class Market_InvB_Dx(gym.Env):
 
         self.time += 1
 
-        return next_state, reward, actual_done, self.risk
+        return next_state, reward, done, self.risk
 
     def reset(self, assets: np.ndarray):
         """
@@ -784,11 +769,11 @@ class Market_InvC_Dx(gym.Env):
 
         self.reward_range = (MIN_REWARD, np.inf)
 
-        # state space: [cumulative reward, asset 0-(n-1)]
+        # state space: [cumulative reward, asset prices]
         self.observation_space = spaces.Box(low=0, high=MAX_VALUE_RATIO, 
                                             shape=(1 + obs_days * n_assets,), dtype=np.float64)
 
-        # action space: [leverage 0-(n-1), stop-loss, retention ratio]
+        # action space: [leverages, stop-loss, retention ratio]
         self.action_space = spaces.Box(low=-MAX_ABS_ACTION, high=MAX_ABS_ACTION, 
                                        shape=(2 + n_assets,), dtype=np.float64)
 
@@ -817,13 +802,13 @@ class Market_InvC_Dx(gym.Env):
         Returns:
             next_state: state arrived at from taking action
             reward: portfolio geometric mean
-            actual_done: Boolean flags for episode termination and whether genuine
+            done: Boolean flags for episode termination and whether genuine
             risk: collection of data retrieved from step
         """
         initial_wealth = self.wealth
         assets = self.assets
 
-        # obtain leverages from neural network
+        # obtain actions from neural network
         stop_loss = (action[0] + 1) / 2
         retention = (action[1] + 1) / 2
         lev = action[2:] * LEV_FACTOR
@@ -847,6 +832,7 @@ class Market_InvC_Dx(gym.Env):
 
         change = active * (1 + step_return)
 
+        # obtain next state
         self.wealth = min_wealth + change
         self.assets = next_assets
 
@@ -855,20 +841,15 @@ class Market_InvC_Dx(gym.Env):
         next_state /= MAX_VALUE
 
         # calculate the step reward as 1 + time-average growth rate
-        self.wealth = np.maximum(self.wealth, MIN_VALUE)
+        self.wealth = np.maximum(self.wealth, min_wealth)
         growth = self.wealth / INITIAL_VALUE
 
         reward = np.exp(np.log(growth) / self.time)
         
         # episode termination criteria
-        done = bool(self.time == self.time_length 
-                    or self.wealth == MIN_VALUE
-                    or reward < MIN_REWARD
-                    or step_return < MIN_RETURN
-                    or np.all(np.abs(lev) < MIN_WEIGHT)
-                    or np.any(next_state > MAX_VALUE_RATIO))
-        
-        actual_done = [done, done and not self.time == self.time_length]
+        done = market_dones(self.time, self.time_length, self.wealth, min_wealth, 
+                            reward, MIN_REWARD, step_return, MIN_RETURN, 
+                            lev, MIN_WEIGHT, next_state, MAX_VALUE_RATIO)
 
         self.risk[0:6] = [reward, self.wealth, step_return, np.mean(lev), stop_loss, retention]
         
@@ -877,7 +858,7 @@ class Market_InvC_Dx(gym.Env):
 
         self.time += 1
 
-        return next_state, reward, actual_done, self.risk
+        return next_state, reward, done, self.risk
 
     def reset(self, assets: np.ndarray):
         """

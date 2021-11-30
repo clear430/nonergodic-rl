@@ -16,7 +16,7 @@ Description:
 
 Instructions:
     1. Select algorithms, critic loss functions, multi-steps, and environments using available options
-       and enter them into the provided four lists.
+       and enter them into the provided four lists (all must be non-empty).
     2. Modify inputs dictionary containing training parameters and model hyperparameters if required.
     3. Run python file and upon completion, all learned PyTorch parameters will be placed ./models, and 
        data/plots regarding training into ./results/ directories titled. These will be organised by the reward dynamic 
@@ -42,17 +42,19 @@ critic_loss: List[str] = ['MSE']
 # bootstrapping of target critic values and discounted rewards: list [integer > 0] 
 multi_steps: List[int] = [1]
 
-# number of previous observed days observed for ONLY market environments (Markov if =1): list [integer > 0]
+# number of simultaneous gambles ONLY for multiplicative environments: list [integer > 0]
+num_gambles: List[int] = [1]
+
+# number of previous observed days observed ONLY for market environments (Markov if =1): list [integer > 0]
 obs_days: List[int] = [1]
 
 # environments to train agent: list [integer ENV_KEY from gym_envs]
-envs: List[int] = [58]
+envs: List[int] = [33]
 
 gym_envs: Dict[str, list] = {
     # ENV_KEY: [env_id, state_dim, action_dim, intial warm-up steps to generate random seed]
 
     # ADDITIVE ENVIRONMENTS
-
     # OpenAI Box2D continuous control tasks
     '0': ['LunarLanderContinuous-v2', 8, 2, 1e3], 
     '1': ['BipedalWalker-v3', 24, 4, 1e3],
@@ -73,45 +75,36 @@ gym_envs: Dict[str, list] = {
     '13': ['HumanoidDeepMimicBackflipBulletEnv-v1', 197, 36, 1e4],
 
     # MULTIPLICATVE ENVIRONMENTS
-
-    # assets following the equally likely +50%/-40% gamble
-    '14': ['Coin_n1_InvA', 2, 1, 1e3], '15': ['Coin_n2_InvA', 3, 2, 1e3], '16': ['Coin_n10_InvA', 11, 10, 1e3],
-    '17': ['Coin_n1_InvB', 2, 2, 1e3], '18': ['Coin_n2_InvB', 3, 3, 1e3], '19': ['Coin_n10_InvB', 11, 11, 1e3],
-    '20': ['Coin_n1_InvC', 2, 3, 1e3], '21': ['Coin_n2_InvC', 3, 4, 1e3], '22': ['Coin_n10_InvC', 11, 12, 1e3],
+    # assets following the coin flip
+    '14': ['Coin_InvA', 2, 1, 1e3],     '15': ['Coin_InvB', 2, 2, 1e3],     '16': ['Coin_InvC', 2, 3, 1e3],
     # assets following the dice roll
-    '23': ['Dice_n1_InvA', 2, 1, 1e3], '24': ['Dice_n2_InvA', 3, 2, 1e3], '25': ['Dice_n10_InvA', 11, 10, 1e3],
-    '26': ['Dice_n1_InvB', 2, 2, 1e3], '27': ['Dice_n2_InvB', 3, 3, 1e3], '28': ['Dice_n10_InvB', 11, 11, 1e3],
-    '29': ['Dice_n1_InvC', 2, 3, 1e3], '30': ['Dice_n2_InvC', 3, 4, 1e3], '31': ['Dice_n10_InvC', 11, 12, 1e3],
+    '17': ['Dice_InvA', 2, 1, 1e3],     '18': ['Dice_InvB', 2, 2, 1e3],     '19': ['Dice_InvC', 2, 3, 1e3],
     # assets following GBM
-    '32': ['GBM_n1_InvA', 2, 1, 1e3], '33': ['GBM_n2_InvA', 3, 2, 1e3], '34': ['GBM_n10_InvA', 11, 10, 1e3],
-    '35': ['GBM_n1_InvB', 2, 2, 1e3], '36': ['GBM_n2_InvB', 3, 3, 1e3], '37': ['GBM_n10_InvB', 11, 11, 1e3],
-    '38': ['GBM_n1_InvC', 2, 3, 1e3], '39': ['GBM_n2_InvC', 3, 4, 1e3], '40': ['GBM_n10_InvC', 11, 12, 1e3],
+    '20': ['GBM_InvA', 2, 1, 1e3],      '21': ['GBM_InvB', 2, 2, 1e3],      '22': ['GBM_InvC', 2, 3, 1e3],
     # assets following GBM with discrete compounding
-    '41': ['GBM_D_n1_InvA', 2, 1, 1e3], '42': ['GBM_D_n2_InvA', 3, 2, 1e3], '43': ['GBM_D_n10_InvA', 11, 10, 1e3],
-    '44': ['GBM_D_n1_InvB', 2, 2, 1e3], '45': ['GBM_D_n2_InvB', 3, 3, 1e3], '46': ['GBM_D_n10_InvB', 11, 11, 1e3],
-    '47': ['GBM_D_n1_InvC', 2, 3, 1e3], '48': ['GBM_D_n2_InvC', 3, 4, 1e3], '49': ['GBM_D_n10_InvC', 11, 12, 1e3],
-    # assets following dice roll without (U) and with insurance (I) safe haven
-    '50': ['Dice_SH_n1_U', 2, 1, 1e3], '51': ['Dice_SH_n1_I', 2, 1, 1e3], 
-    '52': ['Dice_SH_n1_InvA_U', 2, 1, 1e3], '53': ['Dice_SH_n1_InvA_I', 3, 2, 1e3],
-    '54': ['Dice_SH_n1_InvB_U', 2, 2, 1e3], '55': ['Dice_SH_n1_InvB_I', 3, 3, 1e3],  
-    '56': ['Dice_SH_n1_InvC_U', 2, 3, 1e3], '57': ['Dice_SH_n1_InvC_I', 3, 4, 1e3], 
+    '23': ['GBM_D_InvA', 2, 1, 1e3],    '24': ['GBM_D_InvB', 2, 2, 1e3],    '25': ['GBM_D_InvC', 2, 3, 1e3],
+
+    # INSURANCE SAFE HAVEN ENVIRONMENTS
+    # single asest cost-effective risk mitigation
+    '26': ['Dice_SH', 2, 1, 1e3], 
+    # single asset following the dice roll with insurance safe haven
+    '27': ['Dice_SH_InvA', 3, 2, 1e3],  '28': ['Dice_SH_InvB', 3, 3, 1e3],  '29': ['Dice_SH_InvC', 3, 4, 1e3], 
 
     # MARKET ENVIRONMENTS
-
     # S&P500 index (^SPX)
-    '58': ['SNP_InvA', 2, 1, 1e3],      '59': ['SNP_InvB', 2, 2, 1e3],      '60': ['SNP_InvC', 2, 3, 1e3],
+    '30': ['SNP_InvA', 2, 1, 1e3],      '31': ['SNP_InvB', 2, 2, 1e3],      '32': ['SNP_InvC', 2, 3, 1e3],
     # US equity indicies (^SPX, ^NDX, ^DJIA)
-    '61': ['EI_InvA', 4, 3, 1e3],       '62': ['EI_InvB', 4, 4, 1e3],       '63': ['EI_InvC', 4, 5, 1e3],
+    '33': ['EI_InvA', 4, 3, 1e3],       '34': ['EI_InvB', 4, 4, 1e3],       '35': ['EI_InvC', 4, 5, 1e3],
     # US-listed equity indicies and a few commoditites
-    '64': ['Minor_InvA', 7, 6, 1e3],    '65': ['Minor_InvB', 7, 7, 1e3],    '66': ['Minor_InvC', 7, 8, 1e3],
+    '36': ['Minor_InvA', 7, 6, 1e3],    '37': ['Minor_InvB', 7, 7, 1e3],    '38': ['Minor_InvC', 7, 8, 1e3],
     # US-listed equity indicies and several commoditites
-    '67': ['Medium_InvA', 10, 9, 1e3],  '68': ['Medium_InvB', 10, 10, 1e3], '69': ['Medium_InvC', 10, 11, 1e3],
+    '39': ['Medium_InvA', 10, 9, 1e3],  '40': ['Medium_InvB', 10, 10, 1e3], '41': ['Medium_InvC', 10, 11, 1e3],
     # US-listed equity indicies and many commoditites
-    '70': ['Major_InvA', 15, 14, 1e3],  '71': ['Major_InvB', 15, 15, 1e3],  '72': ['Major_InvC', 15, 16, 1e3],
-    # US equity indicies and 26/30 Dow Jones (^DJIA) components
-    '73': ['DJI_InvA', 30, 29, 1e3],    '74': ['DJI_InvB', 30, 30, 1e3],    '75': ['DJI_InvC', 30, 31, 1e3],
-    # Combined Major + DJI market
-    '76': ['Full_InvA', 41, 40, 1e3],   '77': ['Full_InvB', 41, 41, 1e3],   '78': ['Full_InvC', 41, 42, 1e3],
+    '41': ['Major_InvA', 15, 14, 1e3],  '43': ['Major_InvB', 15, 15, 1e3],  '44': ['Major_InvC', 15, 16, 1e3],
+    # US-listed equity indicies and 26/30 Dow Jones (^DJIA) components
+    '44': ['DJI_InvA', 30, 29, 1e3],    '46': ['DJI_InvB', 30, 30, 1e3],    '47': ['DJI_InvC', 30, 31, 1e3],
+    # Combined Major and 26/30 Dow Jones (^DJIA) components
+    '47': ['Full_InvA', 41, 40, 1e3],   '49': ['Full_InvB', 41, 41, 1e3],   '50': ['Full_InvC', 41, 42, 1e3],
     }
 
 inputs_dict: dict = {
@@ -191,6 +184,7 @@ inputs_dict: dict = {
     'algo_name': [algo.upper() for algo in algo_name],
     'critic_loss': [loss.upper() for loss in critic_loss],
     'bootstraps': multi_steps,
+    'n_gambles': num_gambles,
     'past_days': obs_days,
     'envs': envs,
     'ENV_KEY': 0
@@ -211,23 +205,27 @@ if __name__ == '__main__':
         if env_key <= 13:
             additive_env(gym_envs=gym_envs, inputs=inputs_dict)
 
-        elif env_key <= 57:
-            multiplicative_env(gym_envs=gym_envs, inputs=inputs_dict)
+        elif env_key <= 25:
+            for gambles in inputs_dict['n_gambles']:
+                multiplicative_env(gym_envs=gym_envs, inputs=inputs_dict, n_gambles=gambles)
+
+        elif env_key <= 29:
+            multiplicative_env(gym_envs=gym_envs, inputs=inputs_dict, n_gambles=1)
 
         else:
-            if env_key <= 60:
+            if env_key <= 32:
                 data = np.load('./docs/market_data/stooq_snp.npy')
-            elif env_key <= 63:
+            elif env_key <= 35:
                 data = np.load('./docs/market_data/stooq_usei.npy')
-            elif env_key <= 66:
+            elif env_key <= 38:
                 data = np.load('./docs/market_data/stooq_minor.npy')
-            elif env_key <= 69:
+            elif env_key <= 41:
                 data = np.load('./docs/market_data/stooq_medium.npy')
-            elif env_key <= 72:
+            elif env_key <= 44:
                 data = np.load('./docs/market_data/stooq_major.npy')
-            elif env_key <= 75:
+            elif env_key <= 47:
                 data = np.load('./docs/market_data/stooq_dji.npy')
-            elif env_key <= 78:
+            elif env_key <= 50:
                 data = np.load('./docs/market_data/stooq_full.npy')
 
             for days in inputs_dict['past_days']:

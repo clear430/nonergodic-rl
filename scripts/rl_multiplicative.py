@@ -33,31 +33,35 @@ import extras.plots_summary as plots
 import extras.eval_episodes as eval_episodes
 import extras.utils as utils
 
-def multiplicative_env(gym_envs: dict, inputs: dict):
+def multiplicative_env(gym_envs: dict, inputs: dict, n_gambles: int):
     """
     Conduct experiments for multiplicative environments.
     """
-    if inputs['ENV_KEY'] <= 22:
-        env = eval('coin_flip_envs.'+gym_envs[str(inputs['ENV_KEY'])][0]+'()')
-    elif inputs['ENV_KEY'] <= 31:
-        env = eval('dice_roll_envs.'+gym_envs[str(inputs['ENV_KEY'])][0]+'()')
-    elif inputs['ENV_KEY'] <= 40:
-        env = eval('gbm_envs.'+gym_envs[str(inputs['ENV_KEY'])][0]+'()')
-    elif inputs['ENV_KEY'] <= 49:
-        env = eval('gbm_d_envs.'+gym_envs[str(inputs['ENV_KEY'])][0]+'()')
-    elif inputs['ENV_KEY'] <= 57:
+    n_gambles_str = '_n' + str(n_gambles)
+    inputs: dict= {'env_id': gym_envs[str(inputs['ENV_KEY'])][0] + n_gambles_str, **inputs}
+
+    if inputs['ENV_KEY'] <= 16:
+        env = eval('coin_flip_envs.'+gym_envs[str(inputs['ENV_KEY'])][0]+'(n_gambles)')
+    elif inputs['ENV_KEY'] <= 19:
+        env = eval('dice_roll_envs.'+gym_envs[str(inputs['ENV_KEY'])][0]+'(n_gambles)')
+    elif inputs['ENV_KEY'] <= 22:
+        env = eval('gbm_envs.'+gym_envs[str(inputs['ENV_KEY'])][0]+'(n_gambles)')
+    elif inputs['ENV_KEY'] <= 25:
+        env = eval('gbm_d_envs.'+gym_envs[str(inputs['ENV_KEY'])][0]+'(n_gambles)')
+    elif inputs['ENV_KEY'] <= 29:
         env = eval('dice_roll_sh_envs.'+gym_envs[str(inputs['ENV_KEY'])][0]+'()')
 
     inputs: dict = {
         'input_dims': env.observation_space.shape, 'num_actions': env.action_space.shape[0], 
         'max_action': env.action_space.high.min(), 'min_action': env.action_space.low.max(),    # assume all actions span equal domain 
-        'env_id': gym_envs[str(inputs['ENV_KEY'])][0], 'random': gym_envs[str(inputs['ENV_KEY'])][3], 
-        'dynamics': 'M',    # gambling dynamics 'M' (multiplicative)
+        'random': gym_envs[str(inputs['ENV_KEY'])][3], 'dynamics': 'M',    # gambling dynamics 'M' (multiplicative)
         'n_trials': inputs['n_trials_mul'], 'n_cumsteps': inputs['n_cumsteps_mul'],
         'eval_freq': inputs['eval_freq_mul'], 'n_eval': inputs['n_eval_mul'], 
         'algo': 'TD3', 'loss_fn': 'MSE', 'multi_steps': 1, **inputs
         }
 
+    risk_dim = utils.multi_log_dim(inputs, n_gambles)
+    
     for algo in inputs['algo_name']:
         for loss_fn in inputs['critic_loss']:
             for mstep in inputs['bootstraps']:
@@ -67,8 +71,7 @@ def multiplicative_env(gym_envs: dict, inputs: dict):
                 trial_log = np.zeros((inputs['n_trials'], int(inputs['n_cumsteps']), 19))
                 eval_log = np.zeros((inputs['n_trials'], int(inputs['n_cumsteps'] / inputs['eval_freq']), int(inputs['n_eval']), 20))
                 directory = utils.save_directory(inputs, results=True)
-
-                risk_dim = utils.multi_log_dim(inputs)
+ 
                 trial_risk_log = np.zeros((inputs['n_trials'], int(inputs['n_cumsteps']), risk_dim))
                 eval_risk_log = np.zeros((inputs['n_trials'], int(inputs['n_cumsteps'] / inputs['eval_freq']), int(inputs['n_eval']), risk_dim))
 
@@ -91,9 +94,13 @@ def multiplicative_env(gym_envs: dict, inputs: dict):
                         done, step, score = False, 0, 0
 
                         while not done:
+
                             action, _ = agent.select_next_action(state)
-                            next_state, reward, done, risk = env.step(action)
-                            agent.store_transistion(state, action, reward, next_state, done)
+
+                            next_state, reward, env_done, risk = env.step(action)
+                            done, learn_done = env_done[0], env_done[1]
+                            
+                            agent.store_transistion(state, action, reward, next_state, learn_done)
 
                             # gradient update interval (perform backpropagation)
                             if cum_steps %  int(inputs['grad_step'][inputs['algo']]) == 0:
@@ -107,7 +114,7 @@ def multiplicative_env(gym_envs: dict, inputs: dict):
 
                             # conduct periodic agent evaluation episodes without learning
                             if cum_steps % int(inputs['eval_freq']) == 0:
-                                eval_episodes.eval_multiplicative(agent, inputs, eval_log, eval_risk_log, cum_steps, 
+                                eval_episodes.eval_multiplicative(n_gambles, agent, inputs, eval_log, eval_risk_log, cum_steps, 
                                                                   round, eval_run, loss, logtemp, loss_params)
                                 eval_run += 1
 

@@ -107,13 +107,14 @@ def eval_additive(agent: object, inputs: dict, eval_log: np.ndarray, cum_steps: 
           .format(datetime.now().strftime('%d %H:%M:%S'), steps_sec, 
                   stats[0], stats[1], stats[2], stats[3], stats[4], stats[5], stats[6], stats[7]))
 
-def eval_multiplicative(agent: object, inputs: dict, eval_log: np.ndarray, eval_risk_log: np.ndarray, cum_steps: int,
+def eval_multiplicative(n_gambles: int, agent: object, inputs: dict, eval_log: np.ndarray, eval_risk_log: np.ndarray, cum_steps: int,
                         round: int, eval_run: int, loss: Tuple[float, float, float, float, float, float], 
                         logtemp: float, loss_params: Tuple[float, float, float, float]) -> NoReturn:
     """
     Evaluates agent policy on environment without learning for a fixed number of episodes.
 
     Parameters:
+        n_gambles: number of simultaneous identical gambles
         agent: RL agent algorithm
         inputs: dictionary containing all execution details
         eval_log: array of existing evalaution results
@@ -131,16 +132,17 @@ def eval_multiplicative(agent: object, inputs: dict, eval_log: np.ndarray, eval_
                     np.mean(loss[0:2]), np.mean(loss[4:6]), np.mean(loss[6:8]), 
                     np.mean(loss[8:10]), np.mean(loss_params[0:2]), np.mean(loss_params[2:4]), loss[8]+3, np.exp(logtemp)))
 
-    if inputs['ENV_KEY'] <= 22:
-        eval_env = eval('coin_flip_envs.'+inputs['env_id']+'()')
-    elif inputs['ENV_KEY'] <= 31:
-        eval_env = eval('dice_roll_envs.'+inputs['env_id']+'()')
-    elif inputs['ENV_KEY'] <= 40:
-        eval_env = eval('gbm_envs.'+inputs['env_id']+'()')
-    elif inputs['ENV_KEY'] <= 49:
-        eval_env = eval('gbm_d_envs.'+inputs['env_id']+'()')
+
+    if inputs['ENV_KEY'] <= 16:
+        eval_env = eval('coin_flip_envs.'+inputs['env_id'][:9]+'(n_gambles)')
+    elif inputs['ENV_KEY'] <= 19:
+        eval_env = eval('dice_roll_envs.'+inputs['env_id'][:9]+'(n_gambles)')
+    elif inputs['ENV_KEY'] <= 22:
+        eval_env = eval('gbm_envs.'+inputs['env_id'][:8]+'(n_gambles)')
+    elif inputs['ENV_KEY'] <= 25:
+        eval_env = eval('gbm_d_envs.'+inputs['env_id'][:10]+'(n_gambles)')
     else:
-        eval_env = eval('dice_roll_sh_envs.'+inputs['env_id']+'()')
+        eval_env = eval('dice_roll_sh_envs.'+inputs['env_id'][:-3]+'()')
 
     for eval_epis in range(int(inputs['n_eval'])):
         start_time = time.perf_counter()
