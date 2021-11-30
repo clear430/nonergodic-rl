@@ -259,7 +259,7 @@ def env_tests(gym_envs: Dict[str, list], inputs_dict: dict) -> NoReturn:
             assert int(gym_envs[str(key)][3]) < int(inputs_dict['n_cumsteps_add']), \
                 'environment {} warm-up must be less than total training steps'.format(key)
 
-        elif key <= 29:
+        elif key <= 30:
             assert int(gym_envs[str(key)][3]) >= 0, gte0
             assert int(gym_envs[str(key)][3]) < int(inputs_dict['n_cumsteps_mul']), \
                 'environment {} warm-up must be less than total training steps'.format(key)
@@ -270,41 +270,41 @@ def env_tests(gym_envs: Dict[str, list], inputs_dict: dict) -> NoReturn:
                 'environment {} warm-up must be less than total training steps'.format(key)
 
     # market environment data checks
-    if any(key > 29 for key in inputs_dict['envs']):
+    if any(key > 30 for key in inputs_dict['envs']):
         for key in inputs_dict['envs']:
-            if key > 29:
+            if key > 30:
 
-                if inputs_dict['ENV_KEY'] <= 32:
+                if inputs_dict['ENV_KEY'] <= 33:
                     assert os.path.isfile('./docs/market_data/stooq_snp.npy'), \
                         'stooq_snp.npy not generated or found in ./docs/market_data/'
                     data = np.load('./docs/market_data/stooq_snp.npy')
 
-                elif key <= 35:
+                elif key <= 36:
                     assert os.path.isfile('./docs/market_data/stooq_usei.npy'), \
                         'stooq_usei.npy not generated or found in ./docs/market_data/'
                     data = np.load('./docs/market_data/stooq_usei.npy')
 
-                elif key <= 38:
+                elif key <= 39:
                     assert os.path.isfile('./docs/market_data/stooq_minor.npy'), \
                         'stooq_minor.npy not generated or found in ./docs/market_data/'
                     data = np.load('./docs/market_data/stooq_minor.npy')
 
-                elif key <= 41:
+                elif key <= 42:
                     assert os.path.isfile('./docs/market_data/stooq_medium.npy'), \
                         'stooq_medium.npy not generated or found in ./docs/market_data/'
                     data = np.load('./docs/market_data/stooq_medium.npy')
 
-                elif key <= 44:
+                elif key <= 45:
                     assert os.path.isfile('./docs/market_data/stooq_major.npy'), \
                         'stooq_major.npy not generated or found in ./docs/market_data/'
                     data = np.load('./docs/market_data/stooq_major.npy')
 
-                elif key <= 47:
+                elif key <= 48:
                     assert os.path.isfile('./docs/market_data/stooq_dji.npy'), \
                         'stooq_dji.npy not generated or found in ./docs/market_data/'
                     data = np.load('./docs/market_data/stooq_dji.npy')
 
-                elif key <= 50:
+                elif key <= 51:
                     assert os.path.isfile('./docs/market_data/stooq_full.npy'), \
                         'stooq_full.npy not generated or found in ./docs/market_data/'
                     data = np.load('./docs/market_data/stooq_full.npy')

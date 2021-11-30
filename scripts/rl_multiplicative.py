@@ -54,7 +54,7 @@ def multiplicative_env(gym_envs: dict, inputs: dict, n_gambles: int) -> NoReturn
         env = eval('gbm_envs.'+gym_envs[str(inputs['ENV_KEY'])][0]+'(n_gambles)')
     elif inputs['ENV_KEY'] <= 25:
         env = eval('gbm_d_envs.'+gym_envs[str(inputs['ENV_KEY'])][0]+'(n_gambles)')
-    elif inputs['ENV_KEY'] <= 29:
+    elif inputs['ENV_KEY'] <= 30:
         env = eval('dice_roll_sh_envs.'+gym_envs[str(inputs['ENV_KEY'])][0]+'()')
 
     inputs: dict = {

@@ -59,7 +59,120 @@ else:
 
 SH_LEV_FACTOR = 1 / np.abs(SH_UP_R)
 
-class Dice_SH(gym.Env):
+class Dice_SH_U(gym.Env):
+    """
+    OpenAI gym environment for determining the optimal leverage at each time step 
+    for the dice roll gamble without safe haven.
+
+    Methods:
+        seed(seed):
+            Manually set seed for reproducibility.
+
+        step(actions):
+            Obtain next environment state from taking a given set of actions.
+
+        reset():
+            Reset enivronment to inital default state.
+    """
+
+    def __init__(self):
+        """
+        Intialise class varaibles by creating state-action space and reward range.
+        """
+        super(Dice_SH_U, self).__init__()
+
+        self.reward_range = (MIN_REWARD, np.inf)
+
+        #  state space: [cumulative reward, asset 0]
+        self.observation_space = spaces.Box(low=0, high=MAX_VALUE_RATIO, 
+                                            shape=(2,), dtype=np.float64)
+
+        # action space: [leverage 0]
+        self.action_space = spaces.Box(low=-MAX_ABS_ACTION, high=MAX_ABS_ACTION, 
+                                       shape=(1,), dtype=np.float64)
+
+        self.seed()
+        self.reset()
+
+    def seed(self, seed=None) -> List[int]:
+        """
+        Fix randomisation seed.
+
+        Parameters:
+            seed: unique seed for NumPy.
+        """
+        self.np_random, seed = seeding.np_random(seed)
+        return [seed]
+
+    def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, List[bool], np.ndarray]:
+        """
+        Take action to arrive at next state and calculate reward.
+
+        Parameters:
+            action: array of actions to be taken determined by actor network
+
+        Returns:
+            next_state: state arrived at from taking action
+            reward: portfolio geometric mean
+            done: Boolean flags for episode termination and whether genuine
+            risk: collection of additional data retrieved from each step
+        """
+        initial_wealth = self.wealth
+        initial_asset0 = self.asset0
+        
+        # obtain leverage from neural network
+        lev = (action[0] + 1) / 2
+        
+        # sample returns
+        r = np.random.choice(3, p=[UP_PROB, DOWN_PROB, MID_PROB], size=1)
+        r = np.where(r==0, UP_R, r)
+        r = np.where(r==1, DOWN_R, r)
+        r = np.where(r==2, MID_R, r)[0]
+
+        # one-step portfolio return
+        step_return = lev * r
+        
+        # obtain next state
+        self.asset0 = initial_asset0 * (1 + r)
+
+        self.wealth = initial_wealth * (1 + step_return)
+        
+        next_state = np.array([self.wealth, self.asset0], dtype=np.float64)
+        next_state /= MAX_VALUE
+
+        # calculate the step reward as 1 + time-average growth rate
+        self.wealth = np.maximum(self.wealth, MIN_VALUE)
+        growth = self.wealth / INITIAL_VALUE
+
+        reward = np.exp(np.log(growth) / self.time)
+
+        # episode termination criteria
+        done = multi_dones(self.wealth, MIN_VALUE, reward, MIN_REWARD, step_return, MIN_RETURN, 
+                           lev, MIN_WEIGHT, next_state, MAX_VALUE_RATIO)
+
+        risk = np.array([reward, self.wealth, step_return, lev, np.nan, np.nan, np.nan], dtype=np.float64)
+
+        self.time += 1
+
+        return next_state, reward, done, risk
+
+    def reset(self):
+        """
+        Reset the environment for a new agent episode.
+
+        Parameters:
+            state: default intial state
+        """
+        self.time = 1
+        self.wealth = INITIAL_VALUE
+        self.asset0 = INITIAL_PRICE
+
+        state = np.array([self.wealth, self.asset0], dtype=np.float64)
+        state /= MAX_VALUE
+
+        return state
+
+class Dice_SH_I(gym.Env):
     """
     OpenAI gym environment for determining the optimal leverage at each time step 
     for the dice roll gamble with safe haven.
@@ -82,7 +195,7 @@ class Dice_SH(gym.Env):
         """
         Intialise class varaibles by creating state-action space and reward range.
         """
-        super(Dice_SH, self).__init__()
+        super(Dice_SH_I, self).__init__()
 
         self.reward_range = (MIN_REWARD, np.inf)
 

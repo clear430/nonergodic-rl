@@ -49,7 +49,7 @@ num_gambles: List[int] = [1]
 obs_days: List[int] = [1]
 
 # environments to train agent: list [integer ENV_KEY from gym_envs]
-envs: List[int] = [33]
+envs: List[int] = [34]
 
 gym_envs: Dict[str, list] = {
     # ENV_KEY: [env_id, state_dim, action_dim, intial warm-up steps to generate random seed]
@@ -85,26 +85,26 @@ gym_envs: Dict[str, list] = {
     '23': ['GBM_D_InvA', 2, 1, 1e3],    '24': ['GBM_D_InvB', 2, 2, 1e3],    '25': ['GBM_D_InvC', 2, 3, 1e3],
 
     # INSURANCE SAFE HAVEN ENVIRONMENTS
-    # single asest cost-effective risk mitigation
-    '26': ['Dice_SH', 2, 1, 1e3], 
+    # single asset cost-effective risk mitigation with uninsured (U) and insured (I)
+    '26': ['Dice_SH_U', 2, 1, 1e3],     '27': ['Dice_SH_I', 2, 1, 1e3], 
     # single asset following the dice roll with insurance safe haven
-    '27': ['Dice_SH_InvA', 3, 2, 1e3],  '28': ['Dice_SH_InvB', 3, 3, 1e3],  '29': ['Dice_SH_InvC', 3, 4, 1e3], 
+    '28': ['Dice_SH_InvA', 3, 2, 1e3],  '29': ['Dice_SH_InvB', 3, 3, 1e3],  '30': ['Dice_SH_InvC', 3, 4, 1e3], 
 
     # MARKET ENVIRONMENTS
     # S&P500 index (^SPX)
-    '30': ['SNP_InvA', 2, 1, 1e3],      '31': ['SNP_InvB', 2, 2, 1e3],      '32': ['SNP_InvC', 2, 3, 1e3],
+    '31': ['SNP_InvA', 2, 1, 1e3],      '32': ['SNP_InvB', 2, 2, 1e3],      '33': ['SNP_InvC', 2, 3, 1e3],
     # US equity indicies (^SPX, ^NDX, ^DJIA)
-    '33': ['EI_InvA', 4, 3, 1e3],       '34': ['EI_InvB', 4, 4, 1e3],       '35': ['EI_InvC', 4, 5, 1e3],
+    '34': ['EI_InvA', 4, 3, 1e3],       '35': ['EI_InvB', 4, 4, 1e3],       '36': ['EI_InvC', 4, 5, 1e3],
     # US-listed equity indicies and a few commoditites
-    '36': ['Minor_InvA', 7, 6, 1e3],    '37': ['Minor_InvB', 7, 7, 1e3],    '38': ['Minor_InvC', 7, 8, 1e3],
+    '37': ['Minor_InvA', 7, 6, 1e3],    '38': ['Minor_InvB', 7, 7, 1e3],    '39': ['Minor_InvC', 7, 8, 1e3],
     # US-listed equity indicies and several commoditites
-    '39': ['Medium_InvA', 10, 9, 1e3],  '40': ['Medium_InvB', 10, 10, 1e3], '41': ['Medium_InvC', 10, 11, 1e3],
+    '40': ['Medium_InvA', 10, 9, 1e3],  '41': ['Medium_InvB', 10, 10, 1e3], '42': ['Medium_InvC', 10, 11, 1e3],
     # US-listed equity indicies and many commoditites
-    '41': ['Major_InvA', 15, 14, 1e3],  '43': ['Major_InvB', 15, 15, 1e3],  '44': ['Major_InvC', 15, 16, 1e3],
+    '43': ['Major_InvA', 15, 14, 1e3],  '44': ['Major_InvB', 15, 15, 1e3],  '45': ['Major_InvC', 15, 16, 1e3],
     # US-listed equity indicies and 26/30 Dow Jones (^DJIA) components
-    '44': ['DJI_InvA', 30, 29, 1e3],    '46': ['DJI_InvB', 30, 30, 1e3],    '47': ['DJI_InvC', 30, 31, 1e3],
+    '46': ['DJI_InvA', 30, 29, 1e3],    '47': ['DJI_InvB', 30, 30, 1e3],    '48': ['DJI_InvC', 30, 31, 1e3],
     # Combined Major and 26/30 Dow Jones (^DJIA) components
-    '47': ['Full_InvA', 41, 40, 1e3],   '49': ['Full_InvB', 41, 41, 1e3],   '50': ['Full_InvC', 41, 42, 1e3],
+    '49': ['Full_InvA', 41, 40, 1e3],   '50': ['Full_InvB', 41, 41, 1e3],   '51': ['Full_InvC', 41, 42, 1e3],
     }
 
 inputs_dict: dict = {
@@ -209,23 +209,23 @@ if __name__ == '__main__':
             for gambles in inputs_dict['n_gambles']:
                 multiplicative_env(gym_envs=gym_envs, inputs=inputs_dict, n_gambles=gambles)
 
-        elif env_key <= 29:
+        elif env_key <= 30:
             multiplicative_env(gym_envs=gym_envs, inputs=inputs_dict, n_gambles=1)
 
         else:
-            if env_key <= 32:
+            if env_key <= 31:
                 data = np.load('./docs/market_data/stooq_snp.npy')
-            elif env_key <= 35:
+            elif env_key <= 34:
                 data = np.load('./docs/market_data/stooq_usei.npy')
-            elif env_key <= 38:
+            elif env_key <= 37:
                 data = np.load('./docs/market_data/stooq_minor.npy')
-            elif env_key <= 41:
+            elif env_key <= 40:
                 data = np.load('./docs/market_data/stooq_medium.npy')
-            elif env_key <= 44:
+            elif env_key <= 43:
                 data = np.load('./docs/market_data/stooq_major.npy')
-            elif env_key <= 47:
+            elif env_key <= 46:
                 data = np.load('./docs/market_data/stooq_dji.npy')
-            elif env_key <= 50:
+            elif env_key <= 51:
                 data = np.load('./docs/market_data/stooq_full.npy')
 
             for days in inputs_dict['past_days']:
