@@ -163,7 +163,7 @@ def market_env(gym_envs: dict, inputs: dict, market_data: np.ndarray, obs_days: 
                             agent.save_models()
                             print('New high trailing score!')
 
-                        print('{} {}-{}-{}-{} ep/st/cst {}/{}/{} {:1.0f}/s: g_pa/V {:1.2f}%/${:1.2f}, C/Cm/Cs {:1.2f}/{:1.2f}/{:1.2f}, a/c/k/A/T {:1.2f}/{:1.2f}/{:1.2f}/{:1.2f}/{:1.2f}'
+                        print('{} {}-{}-{}-{} ep/st/cst {}/{}/{} {:1.0f}/s: g_pa/V {:1.1f}%/${:1.1f}, C/Cm/Cs {:1.2f}/{:1.2f}/{:1.2f}, a/c/k/A/T {:1.2f}/{:1.2f}/{:1.2f}/{:1.2f}/{:1.2f}'
                                 .format(datetime.now().strftime('%d %H:%M:%S'),
                                         inputs['algo'], inputs['s_dist'], inputs['loss_fn'], round+1, episode, step, cum_steps, step/time_log[-1], 
                                         (reward**252-1)*100, risk[1], np.mean(loss[0:2]), np.mean(loss[4:6]), np.mean(loss[6:8]), 

@@ -132,7 +132,6 @@ def eval_multiplicative(n_gambles: int, agent: object, inputs: dict, eval_log: n
                     np.mean(loss[0:2]), np.mean(loss[4:6]), np.mean(loss[6:8]), 
                     np.mean(loss[8:10]), np.mean(loss_params[0:2]), np.mean(loss_params[2:4]), loss[8]+3, np.exp(logtemp)))
 
-
     if inputs['ENV_KEY'] <= 16:
         eval_env = eval('coin_flip_envs.'+inputs['env_id'][:9]+'(n_gambles)')
     elif inputs['ENV_KEY'] <= 19:
@@ -182,11 +181,11 @@ def eval_multiplicative(n_gambles: int, agent: object, inputs: dict, eval_log: n
     mad_step = np.mean(np.abs(step - mean_step))
     std_step = np.std(step, ddof=0)
 
-    stats = [mean_run-1, mean_step, med_run-1, med_step, mad_run, mad_step, std_run, std_step]
+    stats = [(mean_run-1)*100, mean_step, (med_run-1)*100, med_step, mad_run*100, mad_step, std_run*100, std_step]
 
     steps_sec = np.sum(eval_log[round, eval_run, :, 2]) / np.sum(eval_log[round, eval_run, :, 0])
 
-    print("{} Evaluations Summary {:1.0f}/s g/st: mean {:1.4f}%/{:1.0f}, med {:1.4f}%/{:1.0f}, mad {:1.4f}%/{:1.0f}, std {:1.4f}%/{:1.0f}"
+    print("{} Evaluations Summary {:1.0f}/s g/st: mean {:1.1f}%/{:1.0f}, med {:1.1f}%/{:1.0f}, mad {:1.1f}%/{:1.0f}, std {:1.1f}%/{:1.0f}"
           .format(datetime.now().strftime('%d %H:%M:%S'), steps_sec, 
                   stats[0], stats[1], stats[2], stats[3], stats[4], stats[5], stats[6], stats[7]))
 
@@ -289,6 +288,6 @@ def eval_market(market_data: np.ndarray, obs_days: int, eval_start_idx: int, age
 
     steps_sec = np.sum(eval_log[round, eval_run, :, 2]) / np.sum(eval_log[round, eval_run, :, 0])
 
-    print("{} Evaluation Summary {:1.0f}/s g_pa/st: mean {:1.2f}%/{:1.0f}, med {:1.2f}%/{:1.0f}, mad {:1.2f}%/{:1.0f}, std {:1.2f}%/{:1.0f}"
+    print("{} Evaluation Summary {:1.0f}/s g_pa/st: mean {:1.1f}%/{:1.0f}, med {:1.1f}%/{:1.0f}, mad {:1.1f}%/{:1.0f}, std {:1.1f}%/{:1.0f}"
           .format(datetime.now().strftime('%d %H:%M:%S'), steps_sec, 
                   stats[0], stats[1], stats[2], stats[3], stats[4], stats[5], stats[6], stats[7]))

@@ -145,10 +145,10 @@ def multiplicative_env(gym_envs: dict, inputs: dict, n_gambles: int) -> NoReturn
                             agent.save_models()
                             print('New high trailing score!')
 
-                        print('{} {}-{}-{}-{} ep/st/cst {}/{}/{} {:1.0f}/s: g/V {:1.6f}%/${:1.2f}, C/Cm/Cs {:1.2f}/{:1.2f}/{:1.2f}, a/c/k/A/T {:1.2f}/{:1.2f}/{:1.2f}/{:1.2f}/{:1.2f}'
+                        print('{} {}-{}-{}-{} ep/st/cst {}/{}/{} {:1.0f}/s: g/V {:1.1f}%/${:1.1f}, C/Cm/Cs {:1.2f}/{:1.2f}/{:1.2f}, a/c/k/A/T {:1.2f}/{:1.2f}/{:1.2f}/{:1.2f}/{:1.2f}'
                                 .format(datetime.now().strftime('%d %H:%M:%S'),
                                         inputs['algo'], inputs['s_dist'], inputs['loss_fn'], round+1, episode, step, cum_steps, step/time_log[-1], 
-                                        reward-1, risk[1], np.mean(loss[0:2]), np.mean(loss[4:6]), np.mean(loss[6:8]), 
+                                        (reward-1)*100, risk[1], np.mean(loss[0:2]), np.mean(loss[4:6]), np.mean(loss[6:8]), 
                                         np.mean(loss[8:10]), np.mean(loss_params[0:2]), np.mean(loss_params[2:4]), loss[8]+3, np.exp(logtemp)))
                                         
                         # EPISODE PRINT STATEMENT
