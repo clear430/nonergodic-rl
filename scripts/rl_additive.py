@@ -23,6 +23,7 @@ import numpy as np
 import os
 import pybullet_envs
 import time
+from typing import NoReturn
 
 from algos.algo_sac import Agent_sac
 from algos.algo_td3 import Agent_td3
@@ -30,9 +31,13 @@ import extras.eval_episodes as eval_episodes
 import extras.plots_summary as plots
 import extras.utils as utils
 
-def additive_env(gym_envs: dict, inputs: dict):
+def additive_env(gym_envs: dict, inputs: dict) -> NoReturn:
     """
     Conduct experiments for additive environments.
+
+    Parameters:
+        gym_envs: all environment details
+        inputs: all training and evaluation details 
     """
     env = gym.make(gym_envs[str(inputs['ENV_KEY'])][0])
 
@@ -66,7 +71,7 @@ def additive_env(gym_envs: dict, inputs: dict):
                     if inputs['continue'] == True:
                         inputs['initial_logtemp'] = logtemp if round > 1 else False    # load existing SAC parameter to continue learning
 
-                    agent = Agent_td3(env, inputs) if inputs['algo'] == 'TD3' else Agent_sac(env, inputs)
+                    agent = Agent_td3(inputs) if inputs['algo'] == 'TD3' else Agent_sac(inputs)
                     if inputs['continue'] == True:
                         agent.load_models() if round > 1 else False    # load existing actor-critic parameters to continue learning
 
@@ -76,7 +81,12 @@ def additive_env(gym_envs: dict, inputs: dict):
                         done, step, score = False, 0, 0
 
                         while not done:
-                            action, _ = agent.select_next_action(state)
+
+                            if step >= int(inputs['random']):
+                                action = agent.select_next_action(state)
+                            else:
+                                action = env.action_space.sample()
+
                             next_state, reward, done, info = env.step(action)
                             agent.store_transistion(state, action, reward, next_state, done)
 

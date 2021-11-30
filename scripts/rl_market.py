@@ -21,6 +21,7 @@ from datetime import datetime
 import numpy as np
 import os
 import time
+from typing import NoReturn
 
 from algos.algo_sac import Agent_sac
 from algos.algo_td3 import Agent_td3
@@ -29,9 +30,15 @@ import extras.plots_summary as plots
 import extras.eval_episodes as eval_episodes
 import extras.utils as utils
 
-def market_env(gym_envs: dict, inputs: dict, market_data: np.ndarray, obs_days: int):
+def market_env(gym_envs: dict, inputs: dict, market_data: np.ndarray, obs_days: int) -> NoReturn:
     """
     Conduct experiments for market environments.
+
+    Parameters:
+        gym_envs: all environment details
+        inputs: all training and evaluation details 
+        market_data: extracted time sliced data from complete time series
+        obs_days: number of previous days agent uses for decision-making
     """
     n_assets = market_data.shape[1]
     train_length = int(inputs['train_days'] + obs_days - 1)
@@ -80,7 +87,7 @@ def market_env(gym_envs: dict, inputs: dict, market_data: np.ndarray, obs_days: 
                     if inputs['continue'] == True:
                         inputs['initial_logtemp'] = logtemp if round > 1 else False    # load existing SAC parameter to continue learning
 
-                    agent = Agent_td3(env, inputs) if inputs['algo'] == 'TD3' else Agent_sac(env, inputs)
+                    agent = Agent_td3(inputs) if inputs['algo'] == 'TD3' else Agent_sac(inputs)
                     if inputs['continue'] == True:
                         agent.load_models() if round > 1 else False    # load existing actor-critic parameters to continue learning
 
@@ -102,7 +109,11 @@ def market_env(gym_envs: dict, inputs: dict, market_data: np.ndarray, obs_days: 
 
                         while not done:
                             time_step += 1
-                            action, _ = agent.select_next_action(state)
+
+                            if step >= int(inputs['random']):
+                                action = agent.select_next_action(state)
+                            else:
+                                action = env.action_space.sample()
 
                             if obs_days == 1:
                                 obs_state = market_extract[time_step]

@@ -65,15 +65,13 @@ class Agent_sac():
             Load actor-critic network parameters.
     """
 
-    def __init__(self, env: object, inputs_dict: dict):
+    def __init__(self, inputs_dict: dict):
         """
         Intialise actor-critic networks and experience replay buffer.
 
         Parameters:
-            env: gym environment
             inputs_dict: dictionary containing all execution details
         """
-        self.env = env
         self.input_dims = sum(inputs_dict['input_dims'])    # input dimensions tuple
         self.num_actions = int(inputs_dict['num_actions'])
         self.max_action = float(inputs_dict['max_action'])
@@ -102,7 +100,6 @@ class Agent_sac():
         self.actor_percentile = inputs_dict['actor_percentile']
         self.actor_bottom_count = int(self.actor_percentile * self.batch_size)
 
-        self.warmup = int(inputs_dict['random'])
         self.loss_type = str(inputs_dict['loss_fn'])
 
         self.time_step = 0
@@ -167,37 +164,25 @@ class Agent_sac():
         """
         self.memory.store_exp(state, action, reward, next_state, done)
 
-    def select_next_action(self, state: T.FloatTensor) -> Tuple[np.ndarray, T.FloatTensor]:
+    def select_next_action(self, state: T.FloatTensor) -> np.ndarray:
         """
-        Agent selects next action from stochastic policy, or during warmup a random action taken.
+        Agent selects next action from stochastic policy.
 
         Parameters:
             state: current environment state
 
         Return:
-            numpy_next_action: action to be taken by agent in next step for gym
             next_action: action to be taken by agent in next step
         """        
-        if self.time_step >= self.warmup:
-            # make single state a list for stochastic sampling and then select action
-            current_state = T.tensor([state], dtype=T.float).to(self.actor.device)
+        # make single state a list for stochastic sampling and then select action
+        current_state = T.tensor([state], dtype=T.float).to(self.actor.device)
 
-            if self.stoch != 'MVN':
-                next_action, _ = self.actor.stochastic_uv(current_state)
-            else:
-                next_action, _ = self.actor.stochastic_mv_gaussian(current_state)
-            
-            numpy_next_action = next_action.detach().cpu().numpy()[0]
-
-            return numpy_next_action, next_action
-        
+        if self.stoch != 'MVN':
+            next_action, _ = self.actor.stochastic_uv(current_state)
         else:
-            numpy_next_action = self.env.action_space.sample()
-            next_action = None
+            next_action, _ = self.actor.stochastic_mv_gaussian(current_state)
 
-        self.time_step += 1
-
-        return numpy_next_action, next_action
+        return next_action.detach().cpu().numpy()[0]
 
     def eval_next_action(self, state: T.FloatTensor) -> np.ndarray:
         """

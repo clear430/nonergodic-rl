@@ -21,6 +21,7 @@ from datetime import datetime
 import numpy as np
 import os
 import time
+from typing import NoReturn
 
 from algos.algo_sac import Agent_sac
 from algos.algo_td3 import Agent_td3
@@ -33,9 +34,14 @@ import extras.plots_summary as plots
 import extras.eval_episodes as eval_episodes
 import extras.utils as utils
 
-def multiplicative_env(gym_envs: dict, inputs: dict, n_gambles: int):
+def multiplicative_env(gym_envs: dict, inputs: dict, n_gambles: int) -> NoReturn:
     """
     Conduct experiments for multiplicative environments.
+
+    Parameters:
+        gym_envs: all environment details
+        inputs: all training and evaluation details 
+        n_gambles: number of simultaneous identical gambles
     """
     n_gambles_str = '_n' + str(n_gambles)
     inputs: dict= {'env_id': gym_envs[str(inputs['ENV_KEY'])][0] + n_gambles_str, **inputs}
@@ -84,7 +90,7 @@ def multiplicative_env(gym_envs: dict, inputs: dict, n_gambles: int):
                     if inputs['continue'] == True:
                         inputs['initial_logtemp'] = logtemp if round > 1 else False    # load existing SAC parameter to continue learning
 
-                    agent = Agent_td3(env, inputs) if inputs['algo'] == 'TD3' else Agent_sac(env, inputs)
+                    agent = Agent_td3(inputs) if inputs['algo'] == 'TD3' else Agent_sac(inputs)
                     if inputs['continue'] == True:
                         agent.load_models() if round > 1 else False    # load existing actor-critic parameters to continue learning
 
@@ -95,7 +101,10 @@ def multiplicative_env(gym_envs: dict, inputs: dict, n_gambles: int):
 
                         while not done:
 
-                            action, _ = agent.select_next_action(state)
+                            if step >= int(inputs['random']):
+                                action = agent.select_next_action(state)
+                            else:
+                                action = env.action_space.sample()
 
                             next_state, reward, env_done, risk = env.step(action)
                             done, learn_done = env_done[0], env_done[1]
