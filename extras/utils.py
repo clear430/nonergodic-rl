@@ -555,13 +555,14 @@ def add_summary(inputs: dict, data: np.ndarray) \
 
     return reward, loss, scale, kernel, logtemp, tail, shadow, cmax, keqv
 
-def mul_inv_aggregate(env_keys: list, gym_envs: dict, inputs: dict, safe_haven: bool =False) \
+def mul_inv_aggregate(env_keys: list, n_gambles: int, gym_envs: dict, inputs: dict, safe_haven: bool =False) \
         -> np.ndarray:
     """
     Combine environment evaluation data for investors across the same number of assets.
 
     Parameters:
         env_keys: list of environments
+        n_gambles: number of simultaneous identical gambles
         gym_envvs: dictionary of all environment details
         inputs: dictionary of multiplicative execution parameters
         safe_have: whether investor is using insurance safe haven
@@ -588,24 +589,23 @@ def mul_inv_aggregate(env_keys: list, gym_envs: dict, inputs: dict, safe_haven: 
     
     sh = 1 if safe_haven == True else 0
 
-    for k in env_keys:
-        name = [gym_envs[str(key)][0] for key in env_keys]
-        path = ['./results/multiplicative/' + n + '/' for n in name]
+    name = [gym_envs[str(key)][0] + '_n' + str(n_gambles) for key in env_keys]
+    path = ['./results/multiplicative/' + n + '/' for n in name]
 
-        eval = np.zeros((len(name), int(inputs['n_trials']), 
-                            int(inputs['n_cumsteps'] / inputs['eval_freq']), 
-                            int(inputs['n_eval']), 20 + 16 + sh))
-        num = 0
-        for env in name:
-            data_path = path[num]+env+dir
+    eval = np.zeros((len(name), int(inputs['n_trials']), 
+                        int(inputs['n_cumsteps'] / inputs['eval_freq']), 
+                        int(inputs['n_eval']), 20 + 16 + sh))
+    num = 0
+    for env in name:
+        data_path = path[num]+env+dir
 
-            file1 = np.load(data_path+'_eval.npy')
-            file2 = np.load(data_path+'_eval_risk.npy')
-            file = np.concatenate((file1, file2), axis=3)
+        file1 = np.load(data_path+'_eval.npy')
+        file2 = np.load(data_path+'_eval_risk.npy')
+        file = np.concatenate((file1, file2), axis=3)
 
-            eval[num, :, :, :, :20 + file2.shape[3]] = file
+        eval[num, :, :, :, :20 + file2.shape[3]] = file
 
-            num += 1
+        num += 1
 
     return eval
 

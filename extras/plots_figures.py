@@ -1629,7 +1629,7 @@ def plot_inv_sh_perf(inputs: dict, reward_a: np.ndarray, lev_a: np.ndarray, stop
 
     axs[1, 0].set_ylabel('Leverage')
 
-    for n in range(3):
+    for n in range(1, 3, 1):
         for i in range(0, ninv, 1):
 
             if n == 0:
@@ -1665,7 +1665,7 @@ def plot_inv_sh_perf(inputs: dict, reward_a: np.ndarray, lev_a: np.ndarray, stop
 
     axs[2, 1].set_ylabel('Stop-Loss ' + r'$\lambda$ ' + '(%)')
 
-    for n in range(3):
+    for n in range(2, 3, 1):
         for i in range(0, 2, 1):
 
             if n == 0:
@@ -1704,14 +1704,13 @@ def plot_inv_sh_perf(inputs: dict, reward_a: np.ndarray, lev_a: np.ndarray, stop
     axs[3, 2].set_ylabel('Retention ' + r'$\phi$ ' + '(%)')
     axs[1, 0].set_xlabel('Steps (1e'+str(exp)+')')
 
-
     axs[2, 0].set_axis_off()
     axs[3, 0].set_axis_off()
     axs[3, 1].set_axis_off()
 
-    # axs[2, 0].xaxis.set_ticklabels([])
-    # axs[3, 0].xaxis.set_ticklabels([])
-    # axs[3, 1].xaxis.set_ticklabels([])
+    axs[2, 0].xaxis.set_ticklabels([])
+    axs[3, 0].xaxis.set_ticklabels([])
+    axs[3, 1].xaxis.set_ticklabels([])
 
     axs[0, 0].text(0.375, 1.2, 'Inv A', size='large', transform=axs[0, 0].transAxes)
     axs[0, 1].text(0.375, 1.2, 'Inv B', size='large', transform=axs[0, 1].transAxes)
