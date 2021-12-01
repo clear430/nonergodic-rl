@@ -103,12 +103,16 @@ def additive_env(gym_envs: dict, inputs: dict) -> NoReturn:
 
                             # conduct periodic agent evaluation episodes without learning
                             if cum_steps % int(inputs['eval_freq']) == 0:
+
+                                loss[6:8] = utils.agent_shadow_mean(inputs, loss)
                                 eval_episodes.eval_additive(agent, inputs, eval_log, cum_steps, round, 
                                                             eval_run, loss, logtemp, loss_params)
                                 eval_run += 1
 
                             if cum_steps > int(inputs['n_cumsteps']-1):
                                 break
+
+                        loss[6:8] = utils.agent_shadow_mean(inputs, loss)
 
                         time_log.append(end_time - start_time)
                         score_log.append(score)

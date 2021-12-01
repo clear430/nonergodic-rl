@@ -19,7 +19,7 @@ import os
 import torch as T
 from torch.distributions.normal import Normal
 from torch.distributions.laplace import Laplace
-from typing import NoReturn, Tuple
+from typing import List, NoReturn, Tuple
 
 from algos.networks_td3 import ActorNetwork, CriticNetwork
 from extras.replay import ReplayBuffer
@@ -152,8 +152,6 @@ class Agent_td3():
             self.target_pdf = Laplace(loc=0, scale=self.target_policy_scale)
         
         self.critic_mean = str(inputs_dict['critic_mean_type'])
-        self.shadow_low_mul = inputs_dict['shadow_low_mul']
-        self.shadow_high_mul = inputs_dict['shadow_high_mul']
 
         # intialisation for tail exponent estimation
         self.zipf_x = (T.ones((self.batch_size,)) + self.batch_size).view(-1)
@@ -279,13 +277,13 @@ class Agent_td3():
 
         return batch_target
 
-    def learn(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, 
-                             np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    def learn(self) -> Tuple[List[np.ndarray], np.ndarray, List[np.ndarray]]:
         """
         Agent learning via TD3 algorithm with multi-step bootstrapping and robust critic loss.
 
         Returns:
-            loss: empirical mean / min / max /shadow mean of critic losses, critic tail exponents, mean actor loss
+            loss: empirical mean / min / max / (empty) shadow critic mean, critic tail exponents, mean actor loss
+            log_temp: unused SAC parameter
             loss_params: list of Cauchy scale parameters and CIM kernel sizes for twin critics
         """
         # return nothing till batch size less than replay buffer
@@ -315,13 +313,11 @@ class Agent_td3():
         self.critic_2.optimiser.zero_grad(set_to_none=True)
 
         q1_mean, q1_min, q1_max, \
-            q1_shadow, q1_alpha = closs.loss_function(q1, batch_target, self.shadow_low_mul, self.shadow_high_mul,
-                                                       self.zipf_x, self.zipf_x2, self.loss_type, 
-                                                       self.cauchy_scale_1, kernel_1)
+            q1_shadow, q1_alpha = closs.loss_function(q1, batch_target, self.zipf_x, self.zipf_x2, 
+                                                       self.loss_type, self.cauchy_scale_1, kernel_1)
         q2_mean, q2_min, q2_max, \
-            q2_shadow, q2_alpha = closs.loss_function(q2, batch_target, self.shadow_low_mul, self.shadow_high_mul,
-                                                      self.zipf_x, self.zipf_x2, self.loss_type, 
-                                                      self.cauchy_scale_2, kernel_2)
+            q2_shadow, q2_alpha = closs.loss_function(q2, batch_target, self.zipf_x, self.zipf_x2,
+                                                      self.loss_type, self.cauchy_scale_2, kernel_2)
 
         # ensure consistent mean selection for learning
         if self.critic_mean == 'E':
@@ -347,11 +343,10 @@ class Agent_td3():
         cpu_q1_mean, cpu_q2_mean = q1_mean.detach().cpu().numpy(), q2_mean.detach().cpu().numpy()
         cpu_q1_min, cpu_q2_min = q1_min.detach().cpu().numpy(), q2_min.detach().cpu().numpy()
         cpu_q1_max, cpu_q2_max = q1_max.detach().cpu().numpy(), q2_max.detach().cpu().numpy()
-        cpu_q1_shadow, cpu_q2_shadow = q1_shadow.detach().cpu().numpy(), q2_shadow.detach().cpu().numpy()
         cpu_q1_alpha, cpu_q2_alpha = q1_alpha.detach().cpu().numpy(), q2_alpha.detach().cpu().numpy()
 
         loss = [cpu_q1_mean, cpu_q2_mean, cpu_q1_min, cpu_q2_min, cpu_q1_max, cpu_q2_max, 
-                cpu_q1_shadow, cpu_q2_shadow, cpu_q1_alpha, cpu_q2_alpha, np.nan]
+                np.nan, np.nan, cpu_q1_alpha, cpu_q2_alpha, np.nan]
         loss_params = [self.cauchy_scale_1, self.cauchy_scale_2, kernel_1, kernel_2]
 
         if self.learn_step_cntr % self.actor_update_interval != 0:

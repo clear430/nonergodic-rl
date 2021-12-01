@@ -192,9 +192,8 @@ def huber(estimated: T.FloatTensor, target: T.FloatTensor) \
         loss (float): loss values
     """
     arg = (target - estimated)
-    loss = T.where(T.abs(arg) < 1, 0.5 * arg**2, T.abs(arg) - 0.5)
 
-    return loss
+    return T.where(T.abs(arg) < 1, 0.5 * arg**2, T.abs(arg) - 0.5)
 
 @T.jit.script
 def hill_est(values: T.FloatTensor) -> T.FloatTensor:
@@ -252,8 +251,7 @@ def zipf_plot(values: T.FloatTensor, zipf_x: T.FloatTensor, zipf_x2: T.FloatTens
 @T.jit.script
 def aggregator(values: T.FloatTensor, shadow_low_mul: float, shadow_high_mul: float, 
                zipf_x: T.FloatTensor, zipf_x2: T.FloatTensor) \
-        -> Tuple[T.FloatTensor, T.FloatTensor, T.FloatTensor, 
-                 T.FloatTensor, T.FloatTensor]:
+        -> Tuple[T.FloatTensor, T.FloatTensor, T.FloatTensor, T.FloatTensor, T.FloatTensor]:
     """
     Aggregates several mini-batch summary statistics: 'empirical' mean (strong LLN approach), min/max, 
     uses power law heuristics to estimate the shadow mean, and the tail exponent.
@@ -285,19 +283,39 @@ def aggregator(values: T.FloatTensor, shadow_low_mul: float, shadow_high_mul: fl
 
     return mean, min, max, shadow, alpha
 
-def loss_function(estimated: T.FloatTensor, target: T.FloatTensor, shadow_low_mul: float, 
-                  shadow_high_mul: float, zipf_x: T.FloatTensor, zipf_x2: T.FloatTensor, 
-                  loss_type: str, scale: float, kernel: float) \
-        -> Tuple[T.FloatTensor, T.FloatTensor, T.FloatTensor, 
-                 T.FloatTensor, T.FloatTensor]:
+@T.jit.script
+def aggregator_fast(values: T.FloatTensor, zipf_x: T.FloatTensor, zipf_x2: T.FloatTensor) \
+        -> Tuple[T.FloatTensor, T.FloatTensor, T.FloatTensor, None, T.FloatTensor]:
+    """
+    Aggregates several mini-batch summary statistics: 'empirical' mean (strong LLN approach), 
+    min/max, and the tail exponent. Shadow means calcauted when required.
+
+    Parameters:
+        values: critic loss per sample in the mini-batch without aggregation
+        zipf_x: array for Zipf plot x-axis
+        zipf_x2: sum of squared deviations form the mean for Zipf plot x-axis
+    
+    Returns:
+        mean: empirical mean
+        min: minimum critic loss
+        max: maximum critic loss
+        shadow: temporary placeholder for shadow mean
+        alpha: tail index of power law
+    """
+    mean, min, max = T.mean(values), T.min(values), T.max(values)
+    alpha = zipf_plot(values, zipf_x, zipf_x2)
+
+    return mean, min, max, None, alpha
+
+def loss_function(estimated: T.FloatTensor, target: T.FloatTensor, zipf_x: T.FloatTensor, 
+                  zipf_x2: T.FloatTensor, loss_type: str, scale: float, kernel: float) \
+        -> Tuple[T.FloatTensor, T.FloatTensor, T.FloatTensor, T.FloatTensor, T.FloatTensor]:
     """
     Gives scalar critic loss value (retaining graph) for network backpropagation.
     
     Parameters:
         estimated: current Q-values from mini-batch
         target: raget Q-values from mini-batch
-        shadow_low_mul: lower bound multiplier of sample minimum to form minimum threshold of interest
-        shadow_high_mul: upper bound multiplier of maximum to form upper limit
         zipf_x: array for Zipf plot x-axis
         zipf_x2: sum of squared deviations form the mean for Zipf plot x-axis
         loss_type: loss function title
@@ -313,49 +331,41 @@ def loss_function(estimated: T.FloatTensor, target: T.FloatTensor, shadow_low_mu
     """
     if loss_type == "MSE":
         values = mse(estimated, target, 0)
-        mean, min, max, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul,
-                                                   zipf_x, zipf_x2)
+        mean, min, max, shadow, alpha = aggregator_fast(values, zipf_x, zipf_x2)
         return mean, min, max, shadow, alpha
 
     elif loss_type == "HUB":
         values = huber(estimated, target)
-        mean, min, max, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, 
-                                                   zipf_x, zipf_x2)
+        mean, min, max, shadow, alpha = aggregator_fast(values, zipf_x, zipf_x2)
         return mean, min, max, shadow, alpha
 
     elif loss_type == "MAE":
         values = mae(estimated, target)
-        mean, min, max, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, 
-                                                   zipf_x, zipf_x2)
+        mean, min, max, shadow, alpha = aggregator_fast(values, zipf_x, zipf_x2)
         return mean, min, max, shadow, alpha
 
     elif loss_type == "HSC":
         values = hypersurface(estimated, target)
-        mean, min, max, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, 
-                                                   zipf_x, zipf_x2)
+        mean, min, max, shadow, alpha = aggregator_fast(values, zipf_x, zipf_x2)
         return mean, min, max, shadow, alpha
 
     elif loss_type == "CAU":
         values = cauchy(estimated, target, scale)
-        mean, min, max, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, 
-                                                   zipf_x, zipf_x2)
+        mean, min, max, shadow, alpha = aggregator_fast(values, zipf_x, zipf_x2)
         return mean, min, max, shadow, alpha
 
     elif loss_type == "TCAU":
         estimated, target = truncation(estimated, target)
         values = cauchy(estimated, target, scale)
-        mean, min, max, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, 
-                                                   zipf_x, zipf_x2)
+        mean, min, max, shadow, alpha = aggregator_fast(values, zipf_x, zipf_x2)
         return mean, min, max, shadow, alpha
 
     elif loss_type == "CIM":
         values = correntropy(estimated, target, kernel)
-        mean, min, max, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, 
-                                                   zipf_x, zipf_x2)
+        mean, min, max, shadow, alpha = aggregator_fast(values, zipf_x, zipf_x2)
         return mean, min, max, shadow, alpha
 
     elif loss_type[0:3] == "MSE" and type(int(loss_type[3:])) == int:
         values = mse(estimated, target, int(loss_type[3:]))
-        mean, min, max, shadow, alpha = aggregator(values, shadow_low_mul, shadow_high_mul, 
-                                                   zipf_x, zipf_x2)
+        mean, min, max, shadow, alpha = aggregator_fast(values, zipf_x, zipf_x2)
         return mean, min, max, shadow, alpha

@@ -283,6 +283,28 @@ def shadow_equiv(mean: np.ndarray, alpha: np.ndarray, min: np.ndarray,
 
     return max_mul_solve
 
+def agent_shadow_mean(inputs: dict, loss: List[np.ndarray]) -> List[np.ndarray]:
+    """
+    Calculate shadow means for both critics performed at both start of each evaluation
+    episode interval and when the training episode is terminated.
+
+    Parameters:
+        inputs: all training and evaluation details 
+        loss: empirical mean / min / max / (empty) shadow critic mean, critic tail exponents, mean actor loss
+
+    Returns:
+        shadow_means: power law heuristic estimates for the shadow means of both critics
+    """
+    low_mul, high_mul = inputs['shadow_low_mul'], inputs['shadow_high_mul']
+
+    low1, low2, high1, high2 = loss[2], loss[3], loss[4], loss[5]
+    alpha1, alpha2 = loss[8], loss[9]
+
+    shadow1 = shadow_means(alpha1, low1, high1, low_mul, high_mul)
+    shadow2 = shadow_means(alpha2, low2, high2, low_mul, high_mul)
+
+    return [shadow1, shadow2]
+
 def time_slice(prices: np.ndarray, extract_days: int, sample_days: int) -> Tuple[np.ndarray, int]:
     """
     Extract sequential slice of time series preserving the non-i.i.d. nature of the data

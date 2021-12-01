@@ -139,8 +139,8 @@ def algo_tests(inputs_dict: dict) -> NoReturn:
         'must be either True (1) or False (0)'
 
     # critic loss aggregation tests
-    assert inputs_dict['critic_mean_type'] == 'E' or 'S', \
-        'must be either "E" or "S"'
+    assert inputs_dict['critic_mean_type'] == 'E', \
+        'must be "E" ("S" not currently possible)'
     assert isinstance(inputs_dict['shadow_low_mul'], (float, int)), tfi
     assert inputs_dict['shadow_low_mul'] >= 0, gte0
     assert isinstance(inputs_dict['shadow_high_mul'], (float, int)), tfi

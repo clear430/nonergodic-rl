@@ -133,6 +133,7 @@ def market_env(gym_envs: dict, inputs: dict, market_data: np.ndarray, obs_days: 
                             # conduct periodic agent evaluation episodes without learning
                             if cum_steps % int(inputs['eval_freq']) == 0:
 
+                                loss[6:8] = utils.agent_shadow_mean(inputs, loss)
                                 eval_start_idx = start_idx + step
                                 eval_episodes.eval_market(market_data, obs_days, eval_start_idx, agent, inputs, 
                                                           eval_log, eval_risk_log, cum_steps, round, eval_run, 
@@ -141,6 +142,8 @@ def market_env(gym_envs: dict, inputs: dict, market_data: np.ndarray, obs_days: 
 
                             if cum_steps > int(inputs['n_cumsteps']-1):
                                 break
+
+                        loss[6:8] = utils.agent_shadow_mean(inputs, loss)
 
                         time_log.append(end_time - start_time)
                         score_log.append(score)
