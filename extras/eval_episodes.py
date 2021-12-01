@@ -236,11 +236,7 @@ def eval_market(market_data: np.ndarray, obs_days: int, eval_start_idx: int, age
         market_extract = utils.shuffle_data(market_slice, inputs['test_shuffle_days'])
 
         time_step = 0
-
-        if obs_days == 1:
-            obs_state = market_extract[time_step]
-        else:
-            obs_state = market_extract[time_step:obs_days].reshape(-1)[::-1]
+        obs_state = utils.observed_market_state(market_extract, time_step, obs_days)
 
         run_state = eval_env.reset(obs_state)
         run_done, run_step, run_reward = False, 0, 0
@@ -249,10 +245,7 @@ def eval_market(market_data: np.ndarray, obs_days: int, eval_start_idx: int, age
             time_step += 1
             run_action = agent.eval_next_action(run_state)
 
-            if obs_days == 1:
-                obs_state = market_extract[time_step]
-            else:
-                obs_state = market_extract[time_step:time_step + obs_days].reshape(-1)[::-1]
+            obs_state = utils.observed_market_state(market_extract, time_step, obs_days)
 
             run_next_state, eval_reward, actual_done, run_risk = eval_env.step(run_action, obs_state)
             run_done = actual_done[0]

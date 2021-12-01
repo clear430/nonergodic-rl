@@ -94,15 +94,12 @@ def market_env(gym_envs: dict, inputs: dict, market_data: np.ndarray, obs_days: 
                     while cum_steps < int(inputs['n_cumsteps']):
                         start_time = time.perf_counter()
 
+                        # randomly extract sequential time series from history and shuffle
                         market_slice, start_idx = utils.time_slice(market_data, train_length, sample_length)
                         market_extract = utils.shuffle_data(market_slice, inputs['train_shuffle_days'])
 
                         time_step = 0
-
-                        if obs_days == 1:
-                            obs_state = market_extract[time_step]
-                        else:
-                            obs_state = market_extract[time_step:obs_days].reshape(-1)[::-1]
+                        obs_state = utils.observed_market_state(market_extract, time_step, obs_days)
 
                         state = env.reset(obs_state)
                         done, step, score = False, 0, 0
@@ -113,15 +110,13 @@ def market_env(gym_envs: dict, inputs: dict, market_data: np.ndarray, obs_days: 
                             if step >= int(inputs['random']):
                                 action = agent.select_next_action(state)
                             else:
+                                # take random actions during initial warmup period to generate new seed
                                 action = env.action_space.sample()
 
-                            if obs_days == 1:
-                                obs_state = market_extract[time_step]
-                            else:
-                                obs_state = market_extract[time_step:time_step + obs_days].reshape(-1)[::-1]
+                            obs_state = utils.observed_market_state(market_extract, time_step, obs_days)
 
                             next_state, reward, env_done, risk = env.step(action, obs_state)
-                            done, learn_done = env_done[0], env_done[1]
+                            done, learn_done = env_done[0], env_done[1]    # environment done flags
                             
                             agent.store_transistion(state, action, reward, next_state, learn_done)
 
@@ -142,7 +137,6 @@ def market_env(gym_envs: dict, inputs: dict, market_data: np.ndarray, obs_days: 
                                 eval_episodes.eval_market(market_data, obs_days, eval_start_idx, agent, inputs, 
                                                           eval_log, eval_risk_log, cum_steps, round, eval_run, 
                                                           loss, logtemp, loss_params)
-
                                 eval_run += 1
 
                             if cum_steps > int(inputs['n_cumsteps']-1):
@@ -170,14 +164,16 @@ def market_env(gym_envs: dict, inputs: dict, market_data: np.ndarray, obs_days: 
                                         np.mean(loss[8:10]), np.mean(loss_params[0:2]), np.mean(loss_params[2:4]), loss[8]+3, np.exp(logtemp)))
                         
                         # EPISODE PRINT STATEMENT
-                        # rl_algorithm-sampling_distribution-loss_function-trial,  ep/st/cst = episode/steps/cumulative_steps,  /s = training_steps_per_second,
-                        # Vg/V = annualised-time-average-growth-rate/valuation,  C/Cm/Cs = avg_critic_loss/max_critic_loss/shadow_critic_loss
-                        # c/k/a/A/T = avg_Cauchy_scale/avg_CIM_kernel_size/avg_tail_exponent/avg_actor_loss/sac_entropy_temperature
+                                        # date time,
+                                        # rl_algorithm-sampling_distribution-loss_function-trial,  ep/st/cst = episode/steps/cumulative_steps,  /s = training_steps_per_second,
+                                        # Vg/V = annualised-time-average-growth-rate/valuation,  C/Cm/Cs = avg_critic_loss/max_critic_loss/shadow_critic_loss
+                                        # c/k/a/A/T = avg_Cauchy_scale/avg_CIM_kernel_size/avg_tail_exponent/avg_actor_loss/sac_entropy_temperature
 
                         episode += 1
 
                     count = len(score_log)
-                    trial_log[round, :count, 0], trial_log[round, :count, 1] =  time_log, score_log
+
+                    trial_log[round, :count, 0], trial_log[round, :count, 1] = time_log, score_log
                     trial_log[round, :count, 2], trial_log[round, :count, 3:14] = step_log, loss_log
                     trial_log[round, :count, 14], trial_log[round, :count, 15:] = logtemp_log, loss_params_log
                     trial_risk_log[round, :count, :] = risk_log
@@ -191,8 +187,7 @@ def market_env(gym_envs: dict, inputs: dict, market_data: np.ndarray, obs_days: 
                 # truncate training trial log arrays up to maximum episodes
                 count_episodes = [np.min(np.where(trial_log[trial, :, 0] == 0)) for trial in range(int(inputs['n_trials']))]
                 max_episode = np.max(count_episodes) 
-                trial_log = trial_log[:, :max_episode, :]
-                trial_risk_log = trial_risk_log[:, :max_episode, :]
+                trial_log, trial_risk_log = trial_log[:, :max_episode, :], trial_risk_log[:, :max_episode, :]
 
                 np.save(directory+'_trial.npy', trial_log)
                 np.save(directory+'_eval.npy', eval_log)

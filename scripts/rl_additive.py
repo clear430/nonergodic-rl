@@ -85,6 +85,7 @@ def additive_env(gym_envs: dict, inputs: dict) -> NoReturn:
                             if step >= int(inputs['random']):
                                 action = agent.select_next_action(state)
                             else:
+                                # take random actions during initial warmup period to generate new seed
                                 action = env.action_space.sample()
 
                             next_state, reward, done, info = env.step(action)
@@ -130,15 +131,16 @@ def additive_env(gym_envs: dict, inputs: dict) -> NoReturn:
                                 np.mean(loss[8:10]), np.mean(loss_params[0:2]), np.mean(loss_params[2:4]),  loss[8], np.exp(logtemp)))
                                 
                         # EPISODE PRINT STATEMENT
-                        # rl_algorithm-sampling_distribution-loss_function-trial,  ep/st/cst = episode/steps/cumulative_steps,  /s = training_steps_per_second,
-                        # r = episode_reward, tr = trailing_episode_reward,  C/Cm/Cs = avg_critic_loss/max_critic_loss/shadow_critic_loss
-                        # c/k/a = avg_Cauchy_scale/avg_CIM_kernel_size/avg_tail_exponent,  A/T = avg_actor_loss/sac_entropy_temperature
+                                # date time,
+                                # rl_algorithm-sampling_distribution-loss_function-trial,  ep/st/cst = episode/steps/cumulative_steps,  /s = training_steps_per_second,
+                                # r = episode_reward, tr = trailing_episode_reward,  C/Cm/Cs = avg_critic_loss/max_critic_loss/shadow_critic_loss
+                                # c/k/a = avg_Cauchy_scale/avg_CIM_kernel_size/avg_tail_exponent,  A/T = avg_actor_loss/sac_entropy_temperature
 
                         episode += 1
 
                     count = len(score_log)
                     
-                    trial_log[round, :count, 0], trial_log[round, :count, 1] =  time_log, score_log
+                    trial_log[round, :count, 0], trial_log[round, :count, 1] = time_log, score_log
                     trial_log[round, :count, 2], trial_log[round, :count, 3:14] = step_log, loss_log
                     trial_log[round, :count, 14], trial_log[round, :count, 15:] = logtemp_log, loss_params_log
 

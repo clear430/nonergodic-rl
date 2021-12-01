@@ -370,6 +370,26 @@ def train_test_split(prices: np.ndarray, train_years: float, test_years: float, 
 
     return train, test
 
+def observed_market_state(market_extract: np.ndarray, time_step: int, obs_days: int) -> np.ndarray:
+    """
+    Flattened and ordered observed historical market prices used for agent decision-making.
+
+    Parameters:
+        market_extract: shuffled time series extract of history used for training/inference
+        time_step: current time step in market_extract
+        obs_days: number of previous days agent uses for decision-making
+    
+    Return:
+        obs_state: current observed past states used for next decision
+    """
+    if obs_days == 1:
+        return market_extract[time_step]
+    
+    if time_step > 0:
+        return market_extract[time_step:time_step + obs_days].reshape(-1)[::-1]
+    else:
+        return market_extract[time_step:obs_days].reshape(-1)[::-1]   
+        
 def add_loss_aggregate(env_keys: list, gym_envs: dict, inputs: dict, algos: list =['TD3'], loss: list =['MSE']) \
          -> np.ndarray:
     """
