@@ -392,16 +392,13 @@ class GBM_InvC(gym.Env):
         step_return = np.sum(lev * r)
         step_exp_return = np.exp(step_return)
         
-        # amount of portoflio to bet and outcome
+        # bet portion of existing profit at each step
         if initial_wealth <= INITIAL_VALUE:
-            # revert to investor B risk-taking
-            min_wealth = INITIAL_VALUE * stop_loss
-            active = initial_wealth - min_wealth
+            min_wealth = INITIAL_VALUE * stop_loss     # revert to investor B
         else:
-            # bet portion of existing profit at each step
             min_wealth = INITIAL_VALUE + (initial_wealth - INITIAL_VALUE) * retention
-            active = initial_wealth - min_wealth
-
+            
+        active = initial_wealth - min_wealth
         change = active * step_exp_return
 
         # obtain next state

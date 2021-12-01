@@ -398,16 +398,13 @@ class Market_InvC_D1(gym.Env):
         r = next_state / assets - 1
         step_return = np.sum(lev * r)
 
-        # amount of portoflio to bet and outcome
+        # bet portion of existing profit at each step
         if initial_wealth <= INITIAL_VALUE:
-            # revert to investor B risk-taking
-            min_wealth = INITIAL_VALUE * stop_loss
-            active = initial_wealth - min_wealth
+            min_wealth = INITIAL_VALUE * stop_loss     # revert to investor B
         else:
-            # bet portion of existing profit at each step
             min_wealth = INITIAL_VALUE + (initial_wealth - INITIAL_VALUE) * retention
-            active = initial_wealth - min_wealth
-
+            
+        active = initial_wealth - min_wealth
         change = active * (1 + step_return)
 
         # obtain next state
@@ -820,16 +817,13 @@ class Market_InvC_Dx(gym.Env):
         r = (next_state / assets - 1)[0:self.n_assets]
         step_return = np.sum(lev * r)
 
-        # amount of portoflio to bet and outcome
+        # bet portion of existing profit at each step
         if initial_wealth <= INITIAL_VALUE:
-            # revert to investor B risk-taking
-            min_wealth = INITIAL_VALUE * stop_loss
-            active = initial_wealth - min_wealth
+            min_wealth = INITIAL_VALUE * stop_loss     # revert to investor B
         else:
-            # bet portion of existing profit at each step
             min_wealth = INITIAL_VALUE + (initial_wealth - INITIAL_VALUE) * retention
-            active = initial_wealth - min_wealth
-
+            
+        active = initial_wealth - min_wealth
         change = active * (1 + step_return)
 
         # obtain next state
