@@ -170,10 +170,11 @@ def multiplicative_env(gym_envs: dict, inputs: dict, n_gambles: int) -> NoReturn
                     if inputs['n_trials'] == 1:
                         plots.plot_learning_curve(inputs, trial_log[round], directory+'.png')
 
-                # truncate training trial log array up to maximum episodes
+                # truncate training trial log arrays up to maximum episodes
                 count_episodes = [np.min(np.where(trial_log[trial, :, 0] == 0)) for trial in range(int(inputs['n_trials']))]
                 max_episode = np.max(count_episodes) 
                 trial_log = trial_log[:, :max_episode, :]
+                trial_risk_log = trial_risk_log[:, :max_episode, :]
 
                 np.save(directory+'_trial.npy', trial_log)
                 np.save(directory+'_eval.npy', eval_log)
