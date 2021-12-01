@@ -253,7 +253,7 @@ class Dice_InvB(gym.Env):
         
         # obtain actions from neural network
         stop_loss = (action[0] + 1) / 2
-        lev = action[1:]
+        lev = action[1:] * LEV_FACTOR
         
         # sample trinary return
         r = np.random.choice(3, p=[UP_PROB, DOWN_PROB, MID_PROB], size=self.n_gambles)
@@ -388,7 +388,7 @@ class Dice_InvC(gym.Env):
         # obtain actions from neural network
         stop_loss = (action[0] + 1) / 2
         retention = (action[1] + 1) / 2
-        lev = action[2:]
+        lev = action[2:] * LEV_FACTOR
         
         # sample trinary return
         r = np.random.choice(3, p=[UP_PROB, DOWN_PROB, MID_PROB], size=self.n_gambles)

@@ -50,7 +50,6 @@ if np.abs(UP_R) > np.abs(DOWN_R):
 else:
     LEV_FACTOR = 1 / np.abs(UP_R)
 
-
 class Coin_InvA(gym.Env):
     """
     OpenAI gym environment for determining the optimal leverage at each time step 
@@ -249,7 +248,7 @@ class Coin_InvB(gym.Env):
         
         # obtain actions from neural network
         stop_loss = (action[0] + 1) / 2
-        lev = action[1:]
+        lev = action[1:] * LEV_FACTOR
         
         # sample binary return
         r = np.where(np.random.binomial(n=1, p=UP_PROB, size=self.n_gambles)==1, UP_R, DOWN_R)
@@ -381,7 +380,7 @@ class Coin_InvC(gym.Env):
         # obtain actions from neural network
         stop_loss = (action[0] + 1) / 2
         retention = (action[1] + 1) / 2
-        lev = action[2:]
+        lev = action[2:] * LEV_FACTOR
         
         # sample binary return
         r = np.where(np.random.binomial(n=1, p=UP_PROB, size=self.n_gambles)==1, UP_R, DOWN_R)
