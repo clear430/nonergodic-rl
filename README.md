@@ -6,7 +6,7 @@ Research encompasses several overlapping areas:
 3. Learning in multiplicative (non-ergodic) domains, maximising the time-average growth rate, and
 4. Designing energy efficient multi-stage actors for operation in extremely remote environments.
 
-Implementation using [Python](https://www.python.org) 3.9.9 and [PyTorch](https://pytorch.org) 1.9.1 with [CUDA](https://developer.nvidia.com/cuda-zone) 11.1. Built with an AMD Ryzen 7 5800X, Nvidia RTX 3070, 64GB RAM, and a Samsung SSD 980 Pro. Tested on the [Artemis](https://sydneyuni.atlassian.net/wiki/spaces/RC/pages/1033929078/Artemis+HPC+documentation) high performance computing cluster.
+Implementation using [Python](https://www.python.org) 3.9.9 and [PyTorch](https://pytorch.org) 1.9.1 with [CUDA](https://developer.nvidia.com/cuda-zone) 11.1.
 
 ## Key Findings
 ### Additive Experiments
@@ -70,7 +70,7 @@ There are also a few additional prerequisites for installing certain packages:
 * `gym`: The interface compiler [SWIG](http://www.swig.org/) to connect C/C++ programs with scripting languages is required.
 * `mpi4py`: The presence of a Message Passing Interface (MPI) library for Linux or [Microsoft MPI](https://www.microsoft.com/en-us/download/details.aspx?id=57467) for Windows is required. This package can be entirely ignored if there is no intention of training the agent on the (additive) [DeepMimic](https://arxiv.org/pdf/1804.02717.pdf) environments ported to [PyBullet](https://pybullet.org/wordpress/).
 * `pybullet`: A C++ compiler is required such as the [GNU C++ Compiler](https://gcc.gnu.org/) for Linux or [Microsoft Visual C++](https://visualstudio.microsoft.com/) for Windows. On Windows, install Visual Studio Community and in the Visual Studio Installer select the “Desktop development with C++” workload with both optional features “MSVC v143 - VS 2022 C++ x64/x86 build tools” and the “Windows 10 SDK”.
-* `torch`: Previous PyTorch versions should be installed with compatible compute platforms following the official [instructions](https://pytorch.org/get-started/locally/). Latest versions can lead to unsuccessful compilation and significantly reduce speed.
+* `torch`: Previous versions should be installed with compatible compute platforms following the official [instructions](https://pytorch.org/get-started/locally/). Newer versions can significantly reduce speed and lead to broken function/method calls.
 
 ## References
 * Reinforcement learning ([Szepesvári 2009](https://sites.ualberta.ca/~szepesva/papers/RLAlgsInMDPs.pdf), [Sutton and Bartow 2018](http://incompleteideas.net/book/RLbook2020.pdf))
@@ -86,7 +86,7 @@ There are also a few additional prerequisites for installing certain packages:
 * Modelling time series ([Cerqueira et al. 2017](https://ieeexplore.ieee.org/document/8259815), [de Prado 2018](https://www.wiley.com/en-us/Advances+in+Financial+Machine+Learning-p-9781119482086), [Cerqueira, Torgo and Mozetič 2020](https://link.springer.com/content/pdf/10.1007/s10994-020-05910-7.pdf))
 
 ## Acknowledgements
-The [Sydney Informatics Hub](https://www.sydney.edu.au/research/facilities/sydney-informatics-hub.html) and the University of Sydney’s high performance computing cluster, Artemis, for providing the computing resources that have contributed to the results reported herein.
+The [Sydney Informatics Hub](https://www.sydney.edu.au/research/facilities/sydney-informatics-hub.html) and the University of Sydney’s high performance computing cluster, [Artemis](https://sydneyuni.atlassian.net/wiki/spaces/RC/pages/1033929078/Artemis+HPC+documentation), for providing the computing resources that have contributed to the results reported herein.
 
 The base TD3 and SAC algorithms were implemented using guidance from: [DLR-RM/stable-baelines3](https://github.com/DLR-RM/stable-baselines3), [haarnoja/sac](https://github.com/haarnoja/sac), [openai/spinningup](https://github.com/openai/spinningup), [p-christ/Deep-Reinforcement-Learning-Algorithms-with-PyTorch](https://github.com/p-christ/Deep-Reinforcement-Learning-Algorithms-with-PyTorch), [philtabor/Actor-Critic-Methods-Paper-To-Code](https://github.com/philtabor/Actor-Critic-Methods-Paper-To-Code), [rail-berkley/softlearning](https://github.com/rail-berkeley/softlearning), [rlworkgroup/garage](https://github.com/rlworkgroup/garage), and [sfujim/TD3](https://github.com/sfujim/TD3/).
 
