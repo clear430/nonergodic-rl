@@ -395,12 +395,13 @@ def galaxy_brain_lev(ru_min: float, ru_max: float, ru_incr: float, rd_min: float
 if __name__ == '__main__': 
 
     dir = './results/multiverse/'    # directory for saving numpy arrays
+    path = './docs/figs/'            # directory to save figures
 
     if not os.path.exists(dir):
         os.makedirs(dir)
-
-    if not os.path.exists('./docs/figs'):
-        os.makedirs('./docs/figs')
+    
+    if not os.path.exists(path):
+        os.makedirs(path)
 
     # RUN EXPERIMENTS
 
@@ -439,15 +440,15 @@ if __name__ == '__main__':
 
     # LOAD EXPERIMENT DATA AND SAVE FIGURES
 
-    inv4_lev_data = np.load(dir + '/coin_inv4_lev.npy')
-    plots.plot_inv4(inv4_lev_data, 'docs/figs/coin_inv4.png')
+    inv4_lev_data = np.load(dir + 'coin_inv4_lev.npy')
+    plots.plot_inv4(inv4_lev_data, path + 'coin_inv4.png')
 
     inv3_val_data = np.load(dir + 'coin_inv3_val.npy')
-    plots.plot_inv3(inv3_val_data, 'docs/figs/coin_inv3.png')
+    plots.plot_inv3(inv3_val_data, path + 'coin_inv3.png')
 
     inv2_val_data = np.load(dir + 'coin_inv2_val.npy')
-    plots.plot_inv2(inv2_val_data, 30, 'docs/figs/coin_inv2.png')
+    plots.plot_inv2(inv2_val_data, 30, path  + 'coin_inv2.png')
 
     inv1_val_data = np.load(dir + 'coin_inv1_val.npy')
     inv1_val_data_T = np.load(dir + 'coin_inv1_val_T.npy')
-    plots.plot_inv1(inv1_val_data, inv1_val_data_T, 1e30, 'docs/figs/coin_inv1.png')
+    plots.plot_inv1(inv1_val_data, inv1_val_data_T, 1e30, path + 'coin_inv1.png')

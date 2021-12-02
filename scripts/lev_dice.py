@@ -358,12 +358,13 @@ def big_brain_lev(outcomes: T.FloatTensor, investors: T.IntTensor, horizon: T.In
 if __name__ == '__main__': 
 
     dir = './results/multiverse/'    # directory for saving numpy arrays
+    path = './docs/figs/'            # directory to save figures
 
     if not os.path.exists(dir):
         os.makedirs(dir)
     
-    if not os.path.exists('./docs/figs'):
-        os.makedirs('./docs/figs')
+    if not os.path.exists(path):
+        os.makedirs(path)
 
     # RUN EXPERIMENTS
 
@@ -400,11 +401,11 @@ if __name__ == '__main__':
     # LOAD EXPERIMENT DATA AND SAVE FIGURES
 
     inv3_val_data = np.load(dir + 'dice_inv3_val.npy')
-    plots.plot_inv3(inv3_val_data, 'docs/figs/dice_inv3.png')
+    plots.plot_inv3(inv3_val_data, path + 'dice_inv3.png')
 
     inv2_val_data = np.load(dir + 'dice_inv2_val.npy')
-    plots.plot_inv2(inv2_val_data, 90, 'docs/figs/dice_inv2.png')
+    plots.plot_inv2(inv2_val_data, 90, path  + 'dice_inv2.png')
 
     inv1_val_data = np.load(dir + 'dice_inv1_val.npy')
     inv1_val_data_T = np.load(dir + 'dice_inv1_val_T.npy')
-    plots.plot_inv1(inv1_val_data, inv1_val_data_T, 1e40, 'docs/figs/dice_inv1.png')
+    plots.plot_inv1(inv1_val_data, inv1_val_data_T, 1e40, path + 'dice_inv1.png')
