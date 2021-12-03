@@ -160,16 +160,16 @@ def market_env(gym_envs: dict, inputs: dict, market_data: np.ndarray, obs_days: 
                             agent.save_models()
                             print('New high trailing score!')
 
-                        print('{} {}-{}-{}-{} ep/st/cst {}/{}/{} {:1.0f}/s: g_pa/V {:1.1f}%/${:1.1f}, C/Cm/Cs {:1.2f}/{:1.2f}/{:1.2f}, a/c/k/A/T {:1.2f}/{:1.2f}/{:1.2f}/{:1.2f}/{:1.2f}'
+                        print('{} {}-{}-{}-{} ep/st/cst {}/{}/{} {:1.0f}/s: g_pa%/l%/V$ {:1.1f}/{:1.0f}/{:1.1f}, C/Cm/Cs {:1.2f}/{:1.2f}/{:1.2f}, a/c/k/A/T {:1.2f}/{:1.2f}/{:1.2f}/{:1.2f}/{:1.2f}'
                                 .format(datetime.now().strftime('%d %H:%M:%S'),
                                         inputs['algo'], inputs['s_dist'], inputs['loss_fn'], round+1, episode, step, cum_steps, step/time_log[-1], 
-                                        (reward**252-1)*100, risk[1], np.mean(loss[0:2]), np.mean(loss[4:6]), np.mean(loss[6:8]), 
+                                        (reward-1)*100, risk[3]*100, risk[1], np.mean(loss[0:2]), np.mean(loss[4:6]), np.mean(loss[6:8]), 
                                         np.mean(loss[8:10]), np.mean(loss_params[0:2]), np.mean(loss_params[2:4]), loss[8]+3, np.exp(logtemp)))
-                        
+
                         # EPISODE PRINT STATEMENT
                                         # date time,
                                         # rl_algorithm-sampling_distribution-loss_function-trial,  ep/st/cst = episode/steps/cumulative_steps,  /s = training_steps_per_second,
-                                        # Vg/V = annualised-time-average-growth-rate/valuation,  C/Cm/Cs = avg_critic_loss/max_critic_loss/shadow_critic_loss
+                                        # g%/l%/V$ = annualised-time-average-growth-rate/leverage/valuation,  C/Cm/Cs = avg_critic_loss/max_critic_loss/shadow_critic_loss
                                         # c/k/a/A/T = avg_Cauchy_scale/avg_CIM_kernel_size/avg_tail_exponent/avg_actor_loss/sac_entropy_temperature
 
                         episode += 1

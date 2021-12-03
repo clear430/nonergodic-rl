@@ -49,7 +49,7 @@ num_gambles: List[int] = [1]
 obs_days: List[int] = [1]
 
 # environments to train agent: list [integer ENV_KEY from gym_envs]
-envs: List[int] = [34]
+envs: List[int] = [17]
 
 gym_envs: Dict[str, list] = {
     # ENV_KEY: [env_id, state_dim, action_dim, intial warm-up steps to generate random seed]
@@ -117,7 +117,7 @@ inputs_dict: dict = {
 
     # multiplicative environment execution parameters
     'n_trials_mul': 10,                         # ibid.
-    'n_cumsteps_mul': 8e4,                      # ibid.
+    'n_cumsteps_mul': 5e4,                      # ibid.
     'eval_freq_mul': 1e3,                       # ibid.
     'n_eval_mul': 1e3,                          # ibid.
     'max_eval_steps': 1e0,                      # maximum steps per evaluation episode
@@ -141,6 +141,7 @@ inputs_dict: dict = {
     'trail': 50,                                # moving average of training episode scores used for model saving
     'cauchy_scale': 1,                          # Cauchy scale parameter initialisation value
     'actor_percentile': 1,                      # bottom percentile of actor mini-batch to be maximised (>0, <=1)
+    'td3_eval_policy_noise': 0.05,              #
     'r_abs_zero': None,                         # defined absolute zero value for rewards
     'continue': False,                          # whether to continue learning with same parameters across trials
 

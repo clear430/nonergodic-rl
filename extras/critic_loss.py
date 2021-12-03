@@ -309,7 +309,7 @@ def aggregator_fast(values: T.FloatTensor, zipf_x: T.FloatTensor, zipf_x2: T.Flo
 
 def loss_function(estimated: T.FloatTensor, target: T.FloatTensor, zipf_x: T.FloatTensor, 
                   zipf_x2: T.FloatTensor, loss_type: str, scale: float, kernel: float) \
-        -> Tuple[T.FloatTensor, T.FloatTensor, T.FloatTensor, T.FloatTensor, T.FloatTensor]:
+        -> Tuple[T.FloatTensor, T.FloatTensor, T.FloatTensor, None, T.FloatTensor]:
     """
     Gives scalar critic loss value (retaining graph) for network backpropagation.
     
@@ -326,7 +326,7 @@ def loss_function(estimated: T.FloatTensor, target: T.FloatTensor, zipf_x: T.Flo
         mean: empirical mean
         min: minimum critic loss
         max: maximum critic loss
-        shadow: shadow mean
+        shadow: temporary placeholder for shadow mean
         alpha: tail index
     """
     if loss_type == "MSE":

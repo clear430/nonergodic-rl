@@ -150,7 +150,9 @@ def eval_multiplicative(n_gambles: int, agent: object, inputs: dict, eval_log: n
 
         while not run_done:
             run_action = agent.eval_next_action(run_state)
-            run_next_state, eval_reward, run_done, run_risk = eval_env.step(run_action)
+            run_next_state, eval_reward, done_flags, run_risk = eval_env.step(run_action)
+            run_done = done_flags[0]
+
             run_reward = eval_reward
             run_state = run_next_state
             run_step += 1
@@ -181,13 +183,24 @@ def eval_multiplicative(n_gambles: int, agent: object, inputs: dict, eval_log: n
     mad_step = np.mean(np.abs(step - mean_step))
     std_step = np.std(step, ddof=0)
 
-    stats = [(mean_run-1)*100, mean_step, (med_run-1)*100, med_step, mad_run*100, mad_step, std_run*100, std_step]
+    lev = eval_risk_log[round, eval_run, :, 3]
+    mean_lev = np.mean(lev)
+    med_lev = np.median(lev)
+    mad_lev = np.mean(np.abs(lev - mean_lev))
+    std_lev = np.std(lev, ddof=0)
+
+    stats = [(mean_run-1)*100, (med_run-1)*100, mad_run*100, std_run*100,
+             mean_lev*100, med_lev*100, mad_lev*100, std_lev*100, 
+             mean_step, med_step, mad_step, std_step]
 
     steps_sec = np.sum(eval_log[round, eval_run, :, 2]) / np.sum(eval_log[round, eval_run, :, 0])
 
-    print("{} Evaluations Summary {:1.0f}/s g/st: mean {:1.1f}%/{:1.0f}, med {:1.1f}%/{:1.0f}, mad {:1.1f}%/{:1.0f}, std {:1.1f}%/{:1.0f}"
+    print("{} Evaluations Summary {:1.0f}/s mean/med/mad/std: g% {:1.1f}/{:1.1f}/{:1.0f}/{:1.0f} l% {:1.0f}/{:1.0f}/{:1.0f}/{:1.0f} st {:1.0f}/{:1.0f}/{:1.0f}/{:1.0f}"
+
           .format(datetime.now().strftime('%d %H:%M:%S'), steps_sec, 
-                  stats[0], stats[1], stats[2], stats[3], stats[4], stats[5], stats[6], stats[7]))
+                  stats[0], stats[1], stats[2], stats[3], 
+                  stats[4], stats[5], stats[6], stats[7],
+                  stats[8], stats[9], stats[10], stats[11]))
 
 def eval_market(market_data: np.ndarray, obs_days: int, eval_start_idx: int, agent: object, inputs: dict, 
                 eval_log: np.ndarray, eval_risk_log: np.ndarray, cum_steps: int, round: int, 
@@ -247,8 +260,8 @@ def eval_market(market_data: np.ndarray, obs_days: int, eval_start_idx: int, age
 
             obs_state = utils.observed_market_state(market_extract, time_step, obs_days)
 
-            run_next_state, eval_reward, actual_done, run_risk = eval_env.step(run_action, obs_state)
-            run_done = actual_done[0]
+            run_next_state, eval_reward, done_flags, run_risk = eval_env.step(run_action, obs_state)
+            run_done = done_flags[0]
 
             run_reward = eval_reward
             run_state = run_next_state
@@ -277,10 +290,21 @@ def eval_market(market_data: np.ndarray, obs_days: int, eval_start_idx: int, age
     mad_step = np.mean(np.abs(step - mean_step))
     std_step = np.std(step, ddof=0)
 
-    stats = [(mean_run-1)*100, mean_step, (med_run-1)*100, med_step, mad_run*100, mad_step, std_run*100, std_step]
+    lev = eval_risk_log[round, eval_run, :, 3]
+    mean_lev = np.mean(lev)
+    med_lev = np.median(lev)
+    mad_lev = np.mean(np.abs(lev - mean_lev))
+    std_lev = np.std(lev, ddof=0)
+
+    stats = [(mean_run-1)*100, (med_run-1)*100, mad_run*100, std_run*100,
+             mean_lev*100, med_lev*100, mad_lev*100, std_lev*100, 
+             mean_step, med_step, mad_step, std_step]
 
     steps_sec = np.sum(eval_log[round, eval_run, :, 2]) / np.sum(eval_log[round, eval_run, :, 0])
 
-    print("{} Evaluation Summary {:1.0f}/s g_pa/st: mean {:1.1f}%/{:1.0f}, med {:1.1f}%/{:1.0f}, mad {:1.1f}%/{:1.0f}, std {:1.1f}%/{:1.0f}"
+    print("{} Evaluations Summary {:1.0f}/s mean/med/mad/std: g% {:1.1f}/{:1.1f}/{:1.0f}/{:1.0f} l% {:1.0f}/{:1.0f}/{:1.0f}/{:1.0f} st {:1.0f}/{:1.0f}/{:1.0f}/{:1.0f}"
+
           .format(datetime.now().strftime('%d %H:%M:%S'), steps_sec, 
-                  stats[0], stats[1], stats[2], stats[3], stats[4], stats[5], stats[6], stats[7]))
+                  stats[0], stats[1], stats[2], stats[3], 
+                  stats[4], stats[5], stats[6], stats[7],
+                  stats[8], stats[9], stats[10], stats[11]))

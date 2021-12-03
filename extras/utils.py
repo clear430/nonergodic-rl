@@ -183,7 +183,7 @@ def multi_dones(wealth: float, MIN_VALUE: float, reward: float, MIN_REWARD: floa
 
     Returns:
         done: episode termination
-        learn_done: agent learning flag
+        learn_done: agent learning done flag
     """
     done_wealth = wealth == MIN_VALUE
     done_reward = reward < MIN_REWARD
@@ -216,7 +216,7 @@ def market_dones(time: int, TIME_LENGTH: int, wealth: float, MIN_VALUE: float,
 
     Returns:
         done: episode termination
-        learn_done: agent learning flag
+        learn_done: agent learning done flag
     """
     done_time = time == TIME_LENGTH
     done_wealth = wealth == MIN_VALUE

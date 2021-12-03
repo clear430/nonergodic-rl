@@ -93,10 +93,21 @@ class Agent_td3():
         self.policy_noise = inputs_dict['policy_noise'] * self.max_action
         self.target_policy_noise = inputs_dict['target_policy_noise'] * self.max_action
         self.target_policy_clip = inputs_dict['target_policy_clip'] * self.max_action
-    
-        # convert Gaussian standard deviation to Laplace diveristy
-        self.policy_scale = np.sqrt(self.policy_noise**2 / 2)
-        self.target_policy_scale = np.sqrt(self.target_policy_noise**2 / 2)
+        self.eval_policy_noise = inputs_dict['td3_eval_policy_noise'] * self.max_action
+        
+        if self.stoch == 'N':
+            self.pdf = Normal(loc=0, scale=self.policy_noise)
+            self.target_pdf = Normal(loc=0, scale=self.target_policy_noise)
+            self.eval_pdf = Normal(loc=0, scale=self.eval_policy_noise)
+        elif self.stoch == 'L':
+            # convert Gaussian standard deviation to Laplace diveristy
+            self.policy_scale = np.sqrt(self.policy_noise**2 / 2)
+            self.target_policy_scale = np.sqrt(self.target_policy_noise**2 / 2)
+            self.eval_policy_scale = np.sqrt(self.eval_policy_noise**2 / 2)
+            
+            self.pdf = Laplace(loc=0, scale=self.policy_scale)
+            self.target_pdf = Laplace(loc=0, scale=self.target_policy_scale)
+            self.eval_pdf = Laplace(loc=0, scale=self.eval_policy_scale)
 
         self.buffer_torch = inputs_dict['buffer_gpu']
         if self.buffer_torch == False:
@@ -143,13 +154,6 @@ class Agent_td3():
         self.target_critic_1 = CriticNetwork(inputs_dict, model_name, critic=1, target=1)
         self.critic_2 = CriticNetwork(inputs_dict, model_name, critic=2, target=0) 
         self.target_critic_2 = CriticNetwork(inputs_dict, model_name, critic=2, target=1)
-
-        if self.stoch == 'N':
-            self.pdf = Normal(loc=0, scale=self.policy_noise)
-            self.target_pdf = Normal(loc=0, scale=self.target_policy_noise)
-        elif self.stoch == 'L':
-            self.pdf = Laplace(loc=0, scale=self.policy_scale)
-            self.target_pdf = Laplace(loc=0, scale=self.target_policy_scale)
         
         self.critic_mean = str(inputs_dict['critic_mean_type'])
 
@@ -195,18 +199,22 @@ class Agent_td3():
 
     def eval_next_action(self, state: T.FloatTensor) -> np.ndarray:
         """
-        Agent selects next action from determinstic policy with no noise used for 
+        Agent selects next action from determinstic policy with minimal noise used for 
         direct agent inference/evaluation.
 
         Parameters:
             state: current environment state
 
         Return:
-            numpy_next_action: action to be taken by agent in next step for gym
+            next_action: action to be taken by agent in next step for gym
         """
         current_state = T.tensor(state, dtype=T.float).to(self.actor.device)
-        
-        return self.actor.forward(current_state).detach().cpu().numpy()
+        eval_noise = self.eval_pdf.sample(sample_shape=(self.num_actions,)).to(self.actor.device)
+        mu = eval_noise + self.actor.forward(current_state)
+
+        next_action = T.clamp(mu, self.min_action, self.max_action)
+
+        return next_action.detach().cpu().numpy()    
 
     def _mini_batch(self) -> Tuple[T.FloatTensor, T.FloatTensor, T.FloatTensor, 
                                    T.FloatTensor, T.BoolTensor, T.IntTensor]:

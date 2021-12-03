@@ -192,7 +192,7 @@ class Agent_sac():
             state: current environment state
 
         Return:
-            numpy_next_action: action to be taken by agent in next step for gym
+            next_action: action to be taken by agent in next step for gym
         """        
         current_state = T.tensor([state], dtype=T.float).to(self.actor.device)
 
