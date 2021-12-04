@@ -23,7 +23,7 @@ import gym
 import numpy as np
 import pybullet_envs
 import time
-from typing import NoReturn, Tuple
+from typing import List, NoReturn, Tuple
 
 import envs.coin_flip_envs as coin_flip_envs
 import envs.dice_roll_envs as dice_roll_envs
@@ -34,8 +34,8 @@ import envs.gbm_d_envs as gbm_d_envs
 import extras.utils as utils
 
 def eval_additive(agent: object, inputs: dict, eval_log: np.ndarray, cum_steps: int, round: int, 
-                  eval_run: int, loss: Tuple[float, float, float, float, float, float], logtemp: float, 
-                  loss_params: Tuple[float, float, float, float]) -> NoReturn:
+                  eval_run: int, loss: List[np.ndarray], logtemp: np.ndarray, loss_params: List[np.ndarray]) \
+        -> NoReturn:
     """
     Evaluates agent policy on environment without learning for a fixed number of episodes.
 
@@ -64,7 +64,7 @@ def eval_additive(agent: object, inputs: dict, eval_log: np.ndarray, cum_steps: 
         run_done, run_step, run_reward = False, 0, 0
 
         while not run_done:
-            run_action = agent.eval_next_action(run_state)
+            run_action = agent.eval_next_action_add(run_state)
             run_next_state, eval_reward, run_done, _ = eval_env.step(run_action)
             run_reward += eval_reward
             run_state = run_next_state
@@ -107,9 +107,10 @@ def eval_additive(agent: object, inputs: dict, eval_log: np.ndarray, cum_steps: 
           .format(datetime.now().strftime('%d %H:%M:%S'), steps_sec, 
                   stats[0], stats[1], stats[2], stats[3], stats[4], stats[5], stats[6], stats[7]))
 
-def eval_multiplicative(n_gambles: int, agent: object, inputs: dict, eval_log: np.ndarray, eval_risk_log: np.ndarray, cum_steps: int,
-                        round: int, eval_run: int, loss: Tuple[float, float, float, float, float, float], 
-                        logtemp: float, loss_params: Tuple[float, float, float, float]) -> NoReturn:
+def eval_multiplicative(n_gambles: int, agent: object, inputs: dict, eval_log: np.ndarray, eval_risk_log: np.ndarray, 
+                        cum_steps: int, round: int, eval_run: int, loss: List[np.ndarray], logtemp: np.ndarray, 
+                        loss_params: List[np.ndarray]) \
+         -> NoReturn:
     """
     Evaluates agent policy on environment without learning for a fixed number of episodes.
 
@@ -149,7 +150,7 @@ def eval_multiplicative(n_gambles: int, agent: object, inputs: dict, eval_log: n
         run_done, run_step, run_reward = False, 0, 0
 
         while not run_done:
-            run_action = agent.eval_next_action(run_state)
+            run_action = agent.eval_next_action_mul(run_state)
             run_next_state, eval_reward, done_flags, run_risk = eval_env.step(run_action)
             run_done = done_flags[0]
 
@@ -204,8 +205,8 @@ def eval_multiplicative(n_gambles: int, agent: object, inputs: dict, eval_log: n
 
 def eval_market(market_data: np.ndarray, obs_days: int, eval_start_idx: int, agent: object, inputs: dict, 
                 eval_log: np.ndarray, eval_risk_log: np.ndarray, cum_steps: int, round: int, 
-                eval_run: int, loss: Tuple[float, float, float, float, float, float], logtemp: float, 
-                loss_params: Tuple[float, float, float, float]) -> NoReturn:
+                eval_run: int, loss: List[np.ndarray], logtemp: np.ndarray, loss_params: List[np.ndarray]) \
+        -> NoReturn:
     """
     Evaluates agent policy on environment without learning for a fixed number of episodes.
 
@@ -256,7 +257,7 @@ def eval_market(market_data: np.ndarray, obs_days: int, eval_start_idx: int, age
 
         while not run_done:
             time_step += 1
-            run_action = agent.eval_next_action(run_state)
+            run_action = agent.eval_next_action_mul(run_state)
 
             obs_state = utils.observed_market_state(market_extract, time_step, obs_days)
 

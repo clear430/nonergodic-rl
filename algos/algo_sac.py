@@ -40,9 +40,11 @@ class Agent_sac():
             Select next agent action based on provided single state using given 
             stochastic policy distribution.
         
-        eval_next_action(state):
-            Select next agent action for evaluation based on provided state using given 
-            stochastic policy distribution.
+        eval_next_action_add(state):
+            ibid.
+
+        eval_next_action_mul(state):
+            ibid.
 
         _mini_batch(batch_size):
             Randomly collects mini-batch from replay buffer and sends to GPU.
@@ -171,7 +173,7 @@ class Agent_sac():
             state: current environment state
 
         Return:
-            next_action: action to be taken by agent in next step
+            next_action: action to be taken by agent during training
         """        
         # make single state a list for stochastic sampling and then select action
         current_state = T.tensor([state], dtype=T.float).to(self.actor.device)
@@ -183,16 +185,22 @@ class Agent_sac():
 
         return next_action.detach().cpu().numpy()[0]
 
-    def eval_next_action(self, state: T.FloatTensor) -> np.ndarray:
+    def eval_next_action_add(self, state: T.FloatTensor) -> np.ndarray:
         """
-        Agent selects next action from determinstic policy with no noise used for 
-        direct agent inference/evaluation.
+        ibid.
+        """        
+        current_state = T.tensor([state], dtype=T.float).to(self.actor.device)
 
-        Parameters:
-            state: current environment state
+        if self.stoch != 'MVN':
+            next_action, _ = self.actor.stochastic_uv(current_state)
+        else:
+            next_action, _ = self.actor.stochastic_mv_gaussian(current_state)
 
-        Return:
-            next_action: action to be taken by agent in next step for gym
+        return next_action.detach().cpu().numpy()[0]
+
+    def eval_next_action_mul(self, state: T.FloatTensor) -> np.ndarray:
+        """
+        ibid.
         """        
         current_state = T.tensor([state], dtype=T.float).to(self.actor.device)
 

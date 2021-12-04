@@ -61,8 +61,9 @@ def multiplicative_env(gym_envs: dict, inputs: dict, n_gambles: int) -> NoReturn
         'input_dims': env.observation_space.shape, 'num_actions': env.action_space.shape[0], 
         'max_action': env.action_space.high.min(), 'min_action': env.action_space.low.max(),    # assume all actions span equal domain 
         'random': gym_envs[str(inputs['ENV_KEY'])][3], 'dynamics': 'M',    # gambling dynamics 'M' (multiplicative)
-        'n_trials': inputs['n_trials_mul'], 'n_cumsteps': inputs['n_cumsteps_mul'],
+        'n_trials': inputs['n_trials_mul'], 'n_cumsteps': inputs['n_cumsteps_mul'], 
         'eval_freq': inputs['eval_freq_mul'], 'n_eval': inputs['n_eval_mul'], 
+        'td3_eval_policy_noise': inputs['td3_eval_noise_mul'],
         'algo': 'TD3', 'loss_fn': 'MSE', 'multi_steps': 1, **inputs
         }
 
@@ -101,7 +102,7 @@ def multiplicative_env(gym_envs: dict, inputs: dict, n_gambles: int) -> NoReturn
 
                         while not done:
 
-                            if step >= int(inputs['random']):
+                            if cum_steps >= int(inputs['random']):
                                 action = agent.select_next_action(state)
                             else:
                                 # take random actions during initial warmup period to generate new seed

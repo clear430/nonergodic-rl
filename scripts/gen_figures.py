@@ -35,6 +35,13 @@ import extras.utils as utils
 
 # ADDITIVE ENVIRONMENTS 
 
+# must select exactly four environments and two algorithms (can repeat)
+add_envs: List[int] = [6, 7, 8, 10]    # environment ENV_KEYS from main.gym_envs dictionary
+add_name: List[str] = ['Hopper', 'Walker', 'Cheetah', 'Humanoid']    # title of plotted environment results
+add_algos: List[str] = ['SAC', 'TD3']
+add_loss: List[str] = ['MSE', 'HUB', 'MAE', 'HSC', 'CAU', 'TCAU', 'MSE2', 'MSE4', 'MSE6']
+add_multi: List[int] = [1, 3, 5, 7, 9]
+
 add_inputs: dict = {
     'n_trials': 10,
     'n_cumsteps': 3e5,
@@ -46,14 +53,20 @@ add_inputs: dict = {
     'multi_steps': 1,    # default for varying critic loss functions
     }
 
-# must select exactly four environments and two algorithms (can repeat)
-add_envs: List[int] = [6, 7, 8, 10]    # environment ENV_KEYS from main.gym_envs dictionary
-add_name: List[str] = ['Hopper', 'Walker', 'Cheetah', 'Humanoid']    # title of plotted environment results
-add_algos: List[str] = ['SAC', 'TD3']
-add_loss: List[str] = ['MSE', 'HUB', 'MAE', 'HSC', 'CAU', 'TCAU', 'MSE2', 'MSE4', 'MSE6']
-add_multi: List[int] = [1, 3, 5, 7, 9]
-
 # MULTIPLICATVE ENVIRONMENTS
+
+# must select exactly three (non-unique) numbers of simultaneous identical gambles
+n_gambles: List[int] = [1, 2, 10]
+
+# must select exactly three (non-unique) environments for each list
+# assets following the coin flip
+coin_keys: List[int] = [14, 15, 16]
+# assets following the dice roll
+dice_keys: List[int] = [17, 18, 19]
+# assets following gbm
+gbm_keys: List[int] = [20, 21, 22]
+# assets following gbm (discrete)
+gbm_d_keys: List[int] = [23, 24, 25]
 
 # two dictionaries provided for different training hyperparameters
 mul_inputs_1: dict = {
@@ -71,7 +84,7 @@ mul_inputs_1: dict = {
 
 mul_inputs_2: dict = {
     'n_trials': 10,
-    'n_cumsteps': 1e5,    # 100,000 training steps
+    'n_cumsteps': 5e4,    # 50,000 training steps
     'eval_freq': 1e3,
     'n_eval': 1e3,
     'buffer': 1e6,
@@ -82,20 +95,14 @@ mul_inputs_2: dict = {
     'multi_steps': 1,
     }
 
-# must select exactly three (non-unique) numbers of simultaneous identical gambles
-n_gambles: List[int] = [1, 2, 10]
-
-# must select exactly three (non-unique) environments for each list
-# assets following the coin flip
-coin_keys: List[int] = [14, 15, 16]
-# assets following the dice roll
-dice_keys: List[int] = [17, 18, 19]
-# assets following gbm
-gbm_keys: List[int] = [20, 21, 22]
-# assets following gbm (discrete)
-gbm_d_keys: List[int] = [23, 24, 25]
-
 # INSURANCE SAFE HAVEN ENVIRONMENTS
+
+# must select exactly two (non-unique) environments for each list
+# single asset following the dice roll with safe haven
+dice_sh_keys: List[int] = [26, 27]
+dice_sh_a_keys: List[int] = [17, 28]
+dice_sh_b_keys: List[int] = [18, 29]
+dice_sh_c_keys: List[int] = [19, 30]
 
 mul_inputs_3: dict = {
     'n_trials': 10,
@@ -110,19 +117,12 @@ mul_inputs_3: dict = {
     'multi_steps': 1,
     }
 
-# must select exactly two (non-unique) environments for each list
-# single asset following the dice roll with safe haven
-dice_sh_keys: List[int] = [26, 27]
-dice_sh_a_keys: List[int] = [17, 28]
-dice_sh_b_keys: List[int] = [18, 29]
-dice_sh_c_keys: List[int] = [19, 30]
-
 if __name__ == '__main__':
 
     path = './docs/figs/'    # directory to save figures
 
-    if not os.path.exists('./docs/figs'):
-        os.makedirs('./docs/figs')
+    if not os.path.exists(path):
+        os.makedirs(path)
 
     # ADDITIVE ENVIRONMENTS
 

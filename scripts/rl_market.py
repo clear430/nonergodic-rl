@@ -58,8 +58,9 @@ def market_env(gym_envs: dict, inputs: dict, market_data: np.ndarray, obs_days: 
         'input_dims': env.observation_space.shape, 'num_actions':  env.action_space.shape[0], 
         'max_action': env.action_space.high.min(), 'min_action': env.action_space.low.max(),    # assume all actions span equal domain 
         'random': gym_envs[str(inputs['ENV_KEY'])][3], 'dynamics': 'MKT',    # gambling dynamics 'MKT' (market)
-        'n_trials': inputs['n_trials_mar'], 'n_cumsteps': int(inputs['n_cumsteps_mar']),
+        'n_trials': inputs['n_trials_mar'], 'n_cumsteps': inputs['n_cumsteps_mar'], 
         'eval_freq': inputs['eval_freq_mar'], 'n_eval': inputs['n_eval_mar'], 
+        'td3_eval_policy_noise': inputs['td3_eval_noise_mar'],
         'algo': 'TD3', 'loss_fn': 'MSE', 'multi_steps': 1, **inputs
         }
 
@@ -107,7 +108,7 @@ def market_env(gym_envs: dict, inputs: dict, market_data: np.ndarray, obs_days: 
                         while not done:
                             time_step += 1
 
-                            if step >= int(inputs['random']):
+                            if cum_steps >= int(inputs['random']):
                                 action = agent.select_next_action(state)
                             else:
                                 # take random actions during initial warmup period to generate new seed

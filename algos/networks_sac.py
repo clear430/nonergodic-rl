@@ -77,14 +77,15 @@ class ActorNetwork(nn.Module):
         # network inputs environment state space features
         self.fc1 = T.jit.script(nn.Linear(self.input_dims, fc1_dim))
         self.fc2 = T.jit.script(nn.Linear(fc1_dim, fc2_dim))
-        self.pi = T.jit.script(nn.Linear(fc2_dim, self.num_actions * 2))
+        self.pi = T.jit.script(nn.Linear(fc2_dim, self.num_actions))
+        self.log_sig = T.jit.script(nn.Linear(fc2_dim, self.num_actions))
 
         self.optimiser = optim.Adam(self.parameters(), lr=lr_alpha)
         self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
 
         self.to(self.device)
 
-    def forward(self, state: T.FloatTensor) -> T.FloatTensor:
+    def forward(self, state: T.FloatTensor) -> Tuple[T.FloatTensor, T.FloatTensor]:
         """
         Forward propogation of state to obtain fixed Gaussian distribution parameters
         (moments) for each possible action component. 
@@ -93,16 +94,17 @@ class ActorNetwork(nn.Module):
             state: current environment state
 
         Returns:
-            moments: first half columns for deterministic loc of action components
-                     and second half columns for log scales of action components
+            mu: deterministic loc of action components
+            log_scales: log scales of loc means of action components
         """
-        actions_2x = self.fc1(state)
-        actions_2x = F.relu(actions_2x)
-        actions_2x = self.fc2(actions_2x)
-        actions_2x = F.relu(actions_2x)
-        moments = self.pi(actions_2x)
+        actions = self.fc1(state)
+        actions = F.relu(actions)
+        actions = self.fc2(actions)
+        actions = F.relu(actions)
 
-        return moments
+        mu, log_scales = self.pi(actions), self.log_sig(actions)
+
+        return mu, log_scales
     
     def stochastic_uv(self, state: T.FloatTensor) -> Tuple[T.FloatTensor, T.FloatTensor]:
         """ 
@@ -120,8 +122,7 @@ class ActorNetwork(nn.Module):
             bounded_action: action truncated by tanh and scaled by max action
             bounded_logprob_action: log probability (log likelihood) of sampled truncated action 
         """
-        moments = self.forward(state)
-        mu, log_scale = moments[:, :self.num_actions], moments[:, self.num_actions:]
+        mu, log_scale = self.forward(state)
         scale = log_scale.exp()
 
         # important to enhance learning stability with very smooth critic loss functions

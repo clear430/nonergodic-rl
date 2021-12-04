@@ -45,11 +45,11 @@ multi_steps: List[int] = [1]
 # number of simultaneous gambles ONLY for multiplicative environments: list [integer > 0]
 num_gambles: List[int] = [1]
 
-# number of previous observed days observed ONLY for market environments (Markov if =1): list [integer > 0]
+# number of previous observed days observed ONLY for market environments (MDP if =1): list [integer > 0]
 obs_days: List[int] = [1]
 
 # environments to train agent: list [integer ENV_KEY from gym_envs]
-envs: List[int] = [17]
+envs: List[int] = [14]
 
 gym_envs: Dict[str, list] = {
     # ENV_KEY: [env_id, state_dim, action_dim, intial warm-up steps to generate random seed]
@@ -120,13 +120,15 @@ inputs_dict: dict = {
     'n_cumsteps_mul': 5e4,                      # ibid.
     'eval_freq_mul': 1e3,                       # ibid.
     'n_eval_mul': 1e3,                          # ibid.
-    'max_eval_steps': 1e0,                      # maximum steps per evaluation episode
+    'max_eval_steps': 1e0,                      # maximum steps per evaluation episode (1 if MDP)
+    'td3_eval_noise_mul': 1e-2,                 # miniscule noise added to TD3 deterministic action inference
 
     # market environment execution parameters
     'n_trials_mar': 10,                         # ibid.
     'n_cumsteps_mar': 8e4,                      # ibid.
     'eval_freq_mar': 1e3,                       # ibid.
     'n_eval_mar': 1e1,                          # ibid.
+    'td3_eval_noise_mar': 1e-2,                 # ibid.
     'train_days': 1e3,                          # length of each training period (steps)
     'test_days': 252,                           # length of each evaluation period (252 day years)
     'train_shuffle_days': 10,                   # interval size (>=1) to be shuffled for training
@@ -141,7 +143,6 @@ inputs_dict: dict = {
     'trail': 50,                                # moving average of training episode scores used for model saving
     'cauchy_scale': 1,                          # Cauchy scale parameter initialisation value
     'actor_percentile': 1,                      # bottom percentile of actor mini-batch to be maximised (>0, <=1)
-    'td3_eval_policy_noise': 0.05,              #
     'r_abs_zero': None,                         # defined absolute zero value for rewards
     'continue': False,                          # whether to continue learning with same parameters across trials
 

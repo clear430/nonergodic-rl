@@ -46,7 +46,7 @@ def additive_env(gym_envs: dict, inputs: dict) -> NoReturn:
         'max_action': env.action_space.high.min(), 'min_action': env.action_space.low.max(),    # assume all actions span equal domain 
         'env_id': gym_envs[str(inputs['ENV_KEY'])][0], 'random': gym_envs[str(inputs['ENV_KEY'])][3],
         'dynamics': 'A',    # gambling dynamics 'A' (additive)
-        'n_trials': inputs['n_trials_add'], 'n_cumsteps': inputs['n_cumsteps_add'],
+        'n_trials': inputs['n_trials_add'], 'n_cumsteps': inputs['n_cumsteps_add'], 
         'eval_freq': inputs['eval_freq_add'], 'n_eval': inputs['n_eval_add'], 
         'algo': 'TD3', 'loss_fn': 'MSE', 'multi_steps': 1, **inputs
         }
@@ -82,7 +82,7 @@ def additive_env(gym_envs: dict, inputs: dict) -> NoReturn:
 
                         while not done:
 
-                            if step >= int(inputs['random']):
+                            if cum_steps >= int(inputs['random']):
                                 action = agent.select_next_action(state)
                             else:
                                 # take random actions during initial warmup period to generate new seed

@@ -42,9 +42,13 @@ class Agent_td3():
         Select next agent action based on provided single state using given 
         deterministic policy distribution.
 
-    eval_next_action(state):
+    eval_next_action_add(state):
         Select next agent action for evaluation based on provided state using given 
         deterministic policy distribution with zero noise.
+
+    eval_next_action_mul(state):
+        Select next agent action for evaluation based on provided state using given 
+        deterministic policy distribution with minimal zero noise.
 
     _mini_batch(batch_size):
         Randomly collects mini-batch from replay buffer and sends to GPU.
@@ -93,20 +97,24 @@ class Agent_td3():
         self.policy_noise = inputs_dict['policy_noise'] * self.max_action
         self.target_policy_noise = inputs_dict['target_policy_noise'] * self.max_action
         self.target_policy_clip = inputs_dict['target_policy_clip'] * self.max_action
-        self.eval_policy_noise = inputs_dict['td3_eval_policy_noise'] * self.max_action
         
         if self.stoch == 'N':
             self.pdf = Normal(loc=0, scale=self.policy_noise)
             self.target_pdf = Normal(loc=0, scale=self.target_policy_noise)
-            self.eval_pdf = Normal(loc=0, scale=self.eval_policy_noise)
+            
         elif self.stoch == 'L':
             # convert Gaussian standard deviation to Laplace diveristy
             self.policy_scale = np.sqrt(self.policy_noise**2 / 2)
             self.target_policy_scale = np.sqrt(self.target_policy_noise**2 / 2)
-            self.eval_policy_scale = np.sqrt(self.eval_policy_noise**2 / 2)
             
             self.pdf = Laplace(loc=0, scale=self.policy_scale)
             self.target_pdf = Laplace(loc=0, scale=self.target_policy_scale)
+
+        # noise added to deterministic action inference for multiplicative environments
+        if inputs_dict['dynamics'] != 'A':
+            self.eval_policy_noise = inputs_dict['td3_eval_policy_noise'] * self.max_action
+            self.eval_policy_scale = np.sqrt(self.eval_policy_noise**2 / 2)
+            self.eval_pdf = Normal(loc=0, scale=self.eval_policy_noise)
             self.eval_pdf = Laplace(loc=0, scale=self.eval_policy_scale)
 
         self.buffer_torch = inputs_dict['buffer_gpu']
@@ -187,7 +195,7 @@ class Agent_td3():
             state: current environment state
 
         Return:
-            next_action: action to be taken by agent in next step
+            next_action: action to be taken by agent during training
         """
         current_state = T.tensor(state, dtype=T.float).to(self.actor.device)
         action_noise = self.pdf.sample(sample_shape=(self.num_actions,)).to(self.actor.device)
@@ -197,16 +205,31 @@ class Agent_td3():
 
         return next_action.detach().cpu().numpy()
 
-    def eval_next_action(self, state: T.FloatTensor) -> np.ndarray:
+    def eval_next_action_add(self, state: T.FloatTensor) -> np.ndarray:
         """
-        Agent selects next action from determinstic policy with minimal noise used for 
-        direct agent inference/evaluation.
+        Agent selects next action from determinstic policy for direct agent 
+        inference/evaluation for additive environments.
 
         Parameters:
             state: current environment state
 
         Return:
-            next_action: action to be taken by agent in next step for gym
+            next_action: action to be taken by agent during evaluation
+        """
+        current_state = T.tensor(state, dtype=T.float).to(self.actor.device)
+
+        return self.actor.forward(current_state).detach().cpu().numpy()    
+
+    def eval_next_action_mul(self, state: T.FloatTensor) -> np.ndarray:
+        """
+        Agent selects next action from determinstic policy with minimal noise used for 
+        direct agent inference/evaluation for multiplicative environments.
+
+        Parameters:
+            state: current environment state
+
+        Return:
+            next_action: action to be taken by agent during evaluation
         """
         current_state = T.tensor(state, dtype=T.float).to(self.actor.device)
         eval_noise = self.eval_pdf.sample(sample_shape=(self.num_actions,)).to(self.actor.device)

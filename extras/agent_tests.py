@@ -78,6 +78,8 @@ def algo_tests(inputs_dict: dict) -> NoReturn:
     assert int(inputs_dict['n_eval_mul']) >= 1, gte1
     assert isinstance(inputs_dict['max_eval_steps'], (float, int)), tfi
     assert int(inputs_dict['max_eval_steps']) >= 1, gte1
+    assert isinstance(inputs_dict['td3_eval_noise_mul'], (float, int)), tfi
+    assert inputs_dict['td3_eval_noise_mul'] > 0, gt0
 
     # market environment execution tests
     assert isinstance(inputs_dict['n_trials_mar'], (float, int)), tfi
@@ -92,6 +94,8 @@ def algo_tests(inputs_dict: dict) -> NoReturn:
         'must be less than or equal to n_cumsteps_mar'
     assert isinstance(inputs_dict['n_eval_mar'], (float, int)), tfi
     assert int(inputs_dict['n_eval_mar']) >= 1, gte1
+    assert isinstance(inputs_dict['td3_eval_noise_mar'], (float, int)), tfi
+    assert inputs_dict['td3_eval_noise_mar'] > 0, gt0
     assert isinstance(inputs_dict['train_days'], (float, int)), tfi
     assert int(inputs_dict['train_days']) > 0, gt0
     assert isinstance(inputs_dict['test_days'], (float, int)), tfi
@@ -339,7 +343,8 @@ def method_checks(inputs_dict: dict) -> NoReturn:
         assert hasattr(CriticNetwork_sac, 'save_checkpoint'), 'missing SAC critic saving functionality'
         assert hasattr(CriticNetwork_sac, 'load_checkpoint'), 'missing SAC critic load functionality'
         assert hasattr(Agent_sac, 'select_next_action'), 'missing SAC agent action selection'
-        assert hasattr(Agent_sac, 'eval_next_action'), 'missing SAC agent evaluation action selection'
+        assert hasattr(Agent_sac, 'eval_next_action_add'), 'missing SAC agent evaluation action selection'
+        assert hasattr(Agent_sac, 'eval_next_action_mul'), 'missing SAC agent evaluation action selection'
         assert hasattr(Agent_sac, 'store_transistion'), 'missing SAC transition storage functionality'
         assert hasattr(Agent_sac, 'learn'), 'missing SAC agent learning functionality'
         assert hasattr(Agent_sac, 'save_models'), 'missing SAC agent save functionality'
@@ -354,7 +359,8 @@ def method_checks(inputs_dict: dict) -> NoReturn:
         assert hasattr(CriticNetwork_td3, 'save_checkpoint'), 'missing TD3 critic saving functionality'
         assert hasattr(CriticNetwork_td3, 'load_checkpoint'), 'missing TD3 critic load functionality'
         assert hasattr(Agent_td3, 'select_next_action'), 'missing TD3 agent action selection'
-        assert hasattr(Agent_td3, 'eval_next_action'), 'missing TD3 agent evaluation action selection'
+        assert hasattr(Agent_td3, 'eval_next_action_add'), 'missing TD3 agent evaluation action selection'
+        assert hasattr(Agent_td3, 'eval_next_action_mul'), 'missing TD3 agent evaluation action selection'
         assert hasattr(Agent_td3, 'store_transistion'), 'missing TD3 transition storage functionality'
         assert hasattr(Agent_td3, 'learn'), 'missing TD3 agent learning functionality'
         assert hasattr(Agent_td3, 'save_models'), 'missing TD3 agent save functionality'
