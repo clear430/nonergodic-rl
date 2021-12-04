@@ -113,8 +113,10 @@ class Agent_td3():
         # noise added to deterministic action inference for multiplicative environments
         if inputs_dict['dynamics'] != 'A':
             self.eval_policy_noise = inputs_dict['td3_eval_policy_noise'] * self.max_action
-            self.eval_pdf = Normal(loc=0, scale=self.eval_policy_noise)
-            
+
+            if self.stoch == 'N':
+                self.eval_pdf = Normal(loc=0, scale=self.eval_policy_noise)
+
             if self.stoch == 'L':
                 self.eval_policy_scale = np.sqrt(self.eval_policy_noise**2 / 2)
                 self.eval_pdf = Laplace(loc=0, scale=self.eval_policy_scale)
