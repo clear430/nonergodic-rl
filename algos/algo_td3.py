@@ -114,8 +114,11 @@ class Agent_td3():
         if inputs_dict['dynamics'] != 'A':
             self.eval_policy_noise = inputs_dict['td3_eval_policy_noise'] * self.max_action
             self.eval_policy_scale = np.sqrt(self.eval_policy_noise**2 / 2)
-            self.eval_pdf = Normal(loc=0, scale=self.eval_policy_noise)
-            self.eval_pdf = Laplace(loc=0, scale=self.eval_policy_scale)
+            
+            if self.stoch == 'N':
+                self.eval_pdf = Normal(loc=0, scale=self.eval_policy_noise)
+            elif self.stoch == 'L':
+                self.eval_pdf = Laplace(loc=0, scale=self.eval_policy_scale)
 
         self.buffer_torch = inputs_dict['buffer_gpu']
         if self.buffer_torch == False:
