@@ -23,7 +23,7 @@ Implementation using [Python](https://www.python.org) 3.9.9 and [PyTorch](https:
 * Direct applications encompass any situation where percentage changes (as opposed to numerical changes) in underlying values are reported, such as financial trading, economic modelling, and guidance systems. 
 
 ## Data Analysis
-Comprehensive discussion and implications of all results are described in `docs/RGrewal_RL.pdf`.
+Comprehensive discussion and implications of all results are described in `docs/RGrewal_RL.pdf`. All reported results are based on release [1.0.0](https://github.com/rgrewa1/nonergodic-rl/releases/tag/v1.0.0). The multiplicative findings are currently outdated in terms of precision but the general ideas wholly remain unchanged.
 
 The data regarding agent training performance (NumPy arrays), the learned models (PyTorch parameters), and optimal leverage experiments (NumPy arrays) have a total combined size of 16.7 GB. 
 
