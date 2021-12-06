@@ -61,7 +61,7 @@ import os
 
 # common starting/endiing dates for daily data collection for all assets
 start: str = '1985-10-01'
-end: str = '2021-11-26'
+end: str = '2021-12-03'
 
 # pairs for data saving and assets to be included
 stooq: dict = {
@@ -121,9 +121,12 @@ def dataframe_to_array(market_data: pd.DataFrame, price_type: str) -> np.ndarray
         price_type: 'Open', 'High', 'Low', or 'Close' prices for the time step
 
     Returns:
-        prices: array of asset prices of a given type
+        prices: cleaned array of asset prices of a given type
     """
-    market = market_data[str(price_type)]
+    assert str(price_type.capitalize()) == 'Open' or 'High' or 'Low' or 'Close', \
+        'price_type must be one of Open, High, Low, or Close'
+
+    market = market_data[str(price_type.capitalize())]
 
     # remove all rows with missing values
     market = market.dropna(how='any')
